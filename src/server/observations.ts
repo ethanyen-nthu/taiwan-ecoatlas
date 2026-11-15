@@ -79,7 +79,77 @@ export class ObservationService {
           sort: "ImportDate desc",
           format: "json",
         }).toString();
-        parsed = parseAqi(await this.deps.fetchJson(url.toString()));
+        const payload = await this.deps.fetchJson(url.toString());
+        try {
+          parsed = parseAqi(payload);
+        } catch (error) {
+          // Schema diagnostics contain counts and allowlisted field-presence flags only.
+          // Provider error messages and raw values can echo credential-bearing requests.
+          const root =
+            payload && typeof payload === "object" && !Array.isArray(payload)
+              ? (payload as Record<string, unknown>)
+              : {};
+          const records = root.records;
+          const first = Array.isArray(records) ? records[0] : null;
+          const row =
+            first && typeof first === "object"
+              ? (first as Record<string, unknown>)
+              : {};
+          const rowFields = Object.keys(row).map((key) => key.toLowerCase());
+          const errorText = [root.error, root.message, root.error_msg]
+            .flatMap((item) => {
+              if (typeof item === "string") return [item];
+              if (
+                item &&
+                typeof item === "object" &&
+                "message" in item &&
+                typeof item.message === "string"
+              )
+                return [item.message];
+              return [];
+            })
+            .join(" ");
+          console.warn("source_payload_invalid", {
+            source: kind,
+            rootType: Array.isArray(payload) ? "array" : typeof payload,
+            rootArrayLength: Array.isArray(payload) ? payload.length : null,
+            knownFields: [
+              "records",
+              "fields",
+              "total",
+              "error",
+              "error_msg",
+              "message",
+              "status",
+              "code",
+              "success",
+              "result",
+              "data",
+            ].filter((key) => key in root),
+            recordCount: Array.isArray(records) ? records.length : null,
+            recordType: typeof records,
+            stationFields: [
+              "siteid",
+              "sitename",
+              "longitude",
+              "latitude",
+              "publishtime",
+              "aqi",
+            ].filter((key) => rowFields.includes(key)),
+            stationIdType: typeof Object.entries(row).find(
+              ([key]) => key.toLowerCase() === "siteid",
+            )?.[1],
+            authorizationErrorHint:
+              /invalid.*(?:api[_ -]?key|authorization)|(?:api[_ -]?key).*invalid|unauthorized|forbidden|授權.*(?:錯誤|無效)/i.test(
+                errorText,
+              ),
+            queryErrorHint: /sort|importdate|column/i.test(errorText),
+            quotaErrorHint: /quota.*exceed|too many|rate limit/i.test(
+              errorText,
+            ),
+          });
+          throw error;
+        }
       } else {
         const ids = ["O-A0003-001", "O-A0001-001"];
         // A partial network response retains the last complete snapshot.
