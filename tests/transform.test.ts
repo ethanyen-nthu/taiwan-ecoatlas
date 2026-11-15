@@ -10,6 +10,10 @@ import { observationFreshness } from "@/lib/freshness";
 import aqi from "./fixtures/aqi.json";
 import weather from "./fixtures/weather.json";
 describe("AQI official-format transformation", () => {
+  it("accepts the live MOENV array and the wrapped API format with identical validation", () => {
+    expect(parseAqi(aqi.records)).toEqual(parseAqi(aqi));
+    expect(() => parseAqi([])).toThrow("Invalid AQI payload");
+  });
   it("excludes reversed coordinates, deduplicates by original ID and retains newest record", () => {
     const result = parseAqi(aqi);
     expect(result.excluded).toBe(1);

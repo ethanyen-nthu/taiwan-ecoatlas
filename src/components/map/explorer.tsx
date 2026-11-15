@@ -271,6 +271,7 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                 .map((o) => (
                   <button
                     key={`${o.source}-${o.id}`}
+                    aria-label={`${o.station} · ${o.source === "aqi" ? t("Air quality", "空氣品質") : t("Weather", "氣象")}`}
                     onClick={() => {
                       const f = counties?.features.find((f) =>
                         inCounty(o, f.properties.COUNTYCODE, counties),
@@ -283,7 +284,14 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                     }}
                   >
                     <MapPin size={14} />
-                    {o.station}
+                    <span>
+                      {o.station}
+                      <small>
+                        {o.source === "aqi"
+                          ? t("Air quality", "空氣品質")
+                          : t("Weather", "氣象")}
+                      </small>
+                    </span>
                   </button>
                 ))}
               {!options.length &&

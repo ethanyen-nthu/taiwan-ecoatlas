@@ -89,7 +89,7 @@ export class ObservationService {
             payload && typeof payload === "object" && !Array.isArray(payload)
               ? (payload as Record<string, unknown>)
               : {};
-          const records = root.records;
+          const records = Array.isArray(payload) ? payload : root.records;
           const first = Array.isArray(records) ? records[0] : null;
           const row =
             first && typeof first === "object"

@@ -59,7 +59,7 @@ const object = (v: unknown): Record<string, unknown> =>
     : {};
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 export function parseAqi(payload: unknown) {
-  const records = object(payload).records;
+  const records = Array.isArray(payload) ? payload : object(payload).records;
   if (!Array.isArray(records) || !records.length)
     throw new Error("Invalid AQI payload");
   const rows: Observation[] = [];

@@ -126,7 +126,11 @@ for (const kind of ["aqi", "weather"] as const) {
       Date.now() - 3600_000,
     );
     const valueName = kind === "aqi" ? "aqi" : "temperature";
-    const station = data.observations.find((o) => o.values[valueName] !== null);
+    const station = data.observations.find(
+      (o) =>
+        Number.isFinite(o.values[valueName]) &&
+        Date.parse(o.observedAt) > Date.now() - 2 * 3600_000,
+    );
     expect(station).toBeDefined();
     for (const o of data.observations) {
       expect(o.longitude).toBeGreaterThanOrEqual(117);
@@ -143,7 +147,10 @@ for (const kind of ["aqi", "weather"] as const) {
       .getByRole("textbox", { name: "Search counties or station names" })
       .fill(station!.station);
     await page
-      .getByRole("button", { name: station!.station, exact: true })
+      .getByRole("button", {
+        name: `${station!.station} · ${kind === "aqi" ? "Air quality" : "Weather"}`,
+        exact: true,
+      })
       .first()
       .click();
     await expect(page.locator(".maplibregl-popup h3")).toHaveText(
@@ -152,9 +159,14 @@ for (const kind of ["aqi", "weather"] as const) {
     await expect(page.locator(".maplibregl-popup")).toContainText(
       kind === "aqi" ? "AQX_P_432" : station!.source,
     );
-    await expect(page.locator(".maplibregl-popup")).toContainText(
-      `${station!.values[valueName]}`,
-    );
+    await expect(
+      page
+        .locator(".maplibregl-popup")
+        .getByText(
+          `${kind === "aqi" ? "AQI" : "Air temperature · °C"}: ${station!.values[valueName]}`,
+          { exact: true },
+        ),
+    ).toBeVisible();
     console.log(
       `${kind}: ${data.observations.length} observations; latest=${data.lastObservationAt}; retrieved=${data.retrievedAt}`,
     );

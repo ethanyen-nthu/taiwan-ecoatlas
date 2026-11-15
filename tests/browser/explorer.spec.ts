@@ -172,7 +172,7 @@ test("date filter only filters actual latest observations and popup retains prov
     .fill("Synthetic browser test");
   await page
     .getByRole("button", {
-      name: "Synthetic browser test station",
+      name: "Synthetic browser test station · Air quality",
       exact: true,
     })
     .click();

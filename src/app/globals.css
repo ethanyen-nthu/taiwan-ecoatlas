@@ -1112,6 +1112,15 @@ svg {
 .search-results button:hover {
   background: var(--soft);
 }
+.search-results button > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.search-results small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
 .search-results button svg:last-child {
   margin-left: auto;
 }

@@ -4,7 +4,7 @@ A bilingual environmental and cultural geography explorer. **Milestone 1** provi
 
 ## Run locally
 
-Requirements: Node.js **24 LTS** (at least 22.18 for the optional database seed script), pnpm **11.25.0**, a modern browser with WebGL. Install pnpm with `npm install --global pnpm@11.25.0` if needed.
+Requirements: Node.js **24.x**, pnpm **11.25.0**, a modern browser with WebGL. The Node major is pinned so Vercel uses the same runtime as CI. Install pnpm with `npm install --global pnpm@11.25.0` if needed.
 
 ```sh
 pnpm install --frozen-lockfile
