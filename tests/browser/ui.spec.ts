@@ -74,13 +74,41 @@ test("mobile navigation restores focus on Escape and text reflows at 200 percent
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "200%";
     });
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth - window.innerWidth,
+    try {
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () => document.documentElement.scrollWidth - window.innerWidth,
+            ),
+          { message: `Text reflow at 320px and 200% on ${route}` },
+        )
+        .toBeLessThanOrEqual(1);
+    } catch (error) {
+      console.error(
+        "Reflow overflow",
+        route,
+        await page.locator("body *").evaluateAll((elements) =>
+          elements
+            .flatMap((element) => {
+              const rect = element.getBoundingClientRect();
+              return rect.width > 0 && rect.right > innerWidth + 1
+                ? [
+                    {
+                      tag: element.tagName,
+                      className: element.className,
+                      right: rect.right,
+                      width: rect.width,
+                      text: element.textContent?.slice(0, 100),
+                    },
+                  ]
+                : [];
+            })
+            .slice(0, 30),
         ),
-      )
-      .toBeLessThanOrEqual(1);
+      );
+      throw error;
+    }
   }
   await page.screenshot({
     path: "test-results/ui-320-text-200.png",

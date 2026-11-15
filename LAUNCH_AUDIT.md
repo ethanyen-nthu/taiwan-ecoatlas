@@ -34,7 +34,10 @@
 ## Publication and provider gates
 
 - User chose to enter MOENV/CWA secrets directly in Vercel. No values were requested in chat.
-- GitHub CLI device authentication is awaiting user completion; the GitHub connector cannot create repositories. No remote repository or public deployment is claimed at this point.
+- User selected `ethanyen-nthu` after the initial connected tools were found to belong to a different account. GitHub CLI authentication was verified for that selected account.
+- Public repository created and `main` pushed: https://github.com/ethanyen-nthu/taiwan-ecoatlas. The initial release commit is `c1313b7`; no force push or existing repository overwrite was used.
+- The first hosted CI run passed types, lint, 60 unit/API tests, production build, secret scan and geography. Nine browser tests passed; the 320px/200% text reflow check found a nine-pixel overflow on the Linux runner. That issue is being resolved before launch.
+- Vercel CLI authentication verified as `ethanyen-nthu`; intended team is `nthu1` (NTHU), separate from the initially connected account. No public deployment is claimed yet.
 - The unmocked production suite requires real fresh observations. Live-provider and public-URL results remain pending until the GitHub project is published, the Vercel project exists, and its secrets are configured.
 
 Live provider verification and publication results are recorded separately when they are actually observed. Passing fixture tests or a successful local build alone does not establish a working public deployment.

@@ -74,7 +74,7 @@ The import refuses missing CRS, invalid geometry, duplicate county codes and bal
 
 ## GitHub and Vercel
 
-A local repository is initialized on `main`. No remote repository or deployment has been created or claimed.
+The public repository is [ethanyen-nthu/taiwan-ecoatlas](https://github.com/ethanyen-nthu/taiwan-ecoatlas), with production branch `main`. Public deployment verification is recorded in [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md).
 
 1. Create an empty GitHub repository in your account, then connect it as `origin`.
 2. Review files and run the checks above. Commit and push `main`.
