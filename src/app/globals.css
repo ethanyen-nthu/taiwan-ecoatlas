@@ -126,14 +126,20 @@ svg {
   display: flex;
   align-items: center;
   gap: 11px;
-  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
   font-size: 1.2rem;
   letter-spacing: -0.04em;
+}
+.brand > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .brand b {
   font-weight: 750;
 }
 .brand-icon {
+  flex-shrink: 0;
   width: 42px;
   height: 42px;
   border-radius: 50%;

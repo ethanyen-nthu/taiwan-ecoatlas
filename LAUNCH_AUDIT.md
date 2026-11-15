@@ -38,6 +38,8 @@
 - Public repository created and `main` pushed: https://github.com/ethanyen-nthu/taiwan-ecoatlas. The initial release commit is `c1313b7`; no force push or existing repository overwrite was used.
 - The first hosted CI run passed types, lint, 60 unit/API tests, production build, secret scan and geography. Nine browser tests passed; the 320px/200% text reflow check found a nine-pixel overflow on the Linux runner. That issue is being resolved before launch.
 - Vercel CLI authentication verified as `ethanyen-nthu`; intended team is `nthu1` (NTHU), separate from the initially connected account. No public deployment is claimed yet.
+- Project created in `nthu1`: `prj_tmHV1Sp6fgEEFwdaa6wmWajLXW1f`. GitHub repository connected; production branch confirmed as `main`. Saved configuration: Next.js, Node 24.x, `pnpm build`, `pnpm install --frozen-lockfile`, default Next.js output and repository root.
+- Linux reflow diagnostics identified the header brand's non-wrapping min-content width. The brand text now wraps within the available width while retaining the logo size; the strict overflow check remains enabled.
 - The unmocked production suite requires real fresh observations. Live-provider and public-URL results remain pending until the GitHub project is published, the Vercel project exists, and its secrets are configured.
 
 Live provider verification and publication results are recorded separately when they are actually observed. Passing fixture tests or a successful local build alone does not establish a working public deployment.
