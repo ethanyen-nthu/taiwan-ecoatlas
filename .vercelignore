@@ -7,3 +7,5 @@ playwright-report/
 coverage/
 data/raw/
 __pycache__/
+*.tsbuildinfo
+.DS_Store

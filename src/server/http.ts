@@ -1,4 +1,25 @@
 import "server-only";
+const networkCodes = new Set([
+  "ENOTFOUND",
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "CERT_HAS_EXPIRED",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+]);
+export class UpstreamRequestError extends Error {
+  constructor(
+    readonly category: "http-status" | "invalid-json" | "network" | "timeout",
+    readonly status: number | null = null,
+    readonly networkCode: string | null = null,
+  ) {
+    super("External data request failed");
+  }
+}
 export async function fetchJson(
   url: string,
   init: RequestInit = {},
@@ -12,17 +33,38 @@ export async function fetchJson(
         signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) {
-        if (response.status < 500 && response.status !== 429)
-          throw new NonRetryableError();
-        throw new Error("Upstream unavailable");
+        throw new UpstreamRequestError("http-status", response.status);
       }
-      return await response.json();
+      try {
+        return await response.json();
+      } catch {
+        throw new UpstreamRequestError("invalid-json", response.status);
+      }
     } catch (error) {
-      if (error instanceof NonRetryableError || attempt === attempts - 1)
-        throw new Error("External data request failed");
+      const cause = error instanceof Error ? error.cause : null;
+      const code =
+        cause && typeof cause === "object" && "code" in cause
+          ? cause.code
+          : null;
+      const failure =
+        error instanceof UpstreamRequestError
+          ? error
+          : new UpstreamRequestError(
+              error instanceof Error && error.name === "TimeoutError"
+                ? "timeout"
+                : "network",
+              null,
+              typeof code === "string" && networkCodes.has(code) ? code : null,
+            );
+      if (
+        (failure.category === "http-status" &&
+          failure.status! < 500 &&
+          failure.status !== 429) ||
+        attempt === attempts - 1
+      )
+        throw failure;
       await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
     }
   }
   throw new Error("External data request failed");
 }
-class NonRetryableError extends Error {}

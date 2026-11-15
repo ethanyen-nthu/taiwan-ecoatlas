@@ -3,7 +3,7 @@ import { sourceById } from "@/lib/sources";
 import { observationFreshness } from "@/lib/freshness";
 import { normalize, parseAqi, parseWeather } from "@/lib/transform";
 import type { DatasetResponse, ObservationKind } from "@/lib/types";
-import { fetchJson } from "./http";
+import { fetchJson, UpstreamRequestError } from "./http";
 import { readSnapshot, writeSnapshot, recordSync } from "./snapshots";
 
 export class ObservationService {
@@ -138,11 +138,19 @@ export class ObservationService {
         duplicates: parsed.duplicates,
       });
       return result;
-    } catch {
+    } catch (error) {
       this.retryAfter.set(kind, this.deps.now() + 60_000);
       console.warn("source_sync_failed", {
         source: kind,
         retainedSnapshot: !!cached,
+        category:
+          error instanceof UpstreamRequestError
+            ? error.category
+            : "invalid-payload",
+        upstreamStatus:
+          error instanceof UpstreamRequestError ? error.status : null,
+        networkCode:
+          error instanceof UpstreamRequestError ? error.networkCode : null,
       });
       if (cached) {
         const stale: DatasetResponse = {

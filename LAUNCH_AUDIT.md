@@ -40,6 +40,11 @@
 - Vercel CLI authentication verified as `ethanyen-nthu`; intended team is `nthu1` (NTHU), separate from the initially connected account. No public deployment is claimed yet.
 - Project created in `nthu1`: `prj_tmHV1Sp6fgEEFwdaa6wmWajLXW1f`. GitHub repository connected; production branch confirmed as `main`. Saved configuration: Next.js, Node 24.x, `pnpm build`, `pnpm install --frozen-lockfile`, default Next.js output and repository root.
 - Linux reflow diagnostics identified the header brand's non-wrapping min-content width. The brand text now wraps within the available width while retaining the logo size; the strict overflow check remains enabled.
+- Hosted validation for `fbfca70` passed, including all ten Linux/Chromium browser scenarios. Run: https://github.com/ethanyen-nthu/taiwan-ecoatlas/actions/runs/43706973747.
+- GitHub automatically created production deployment `dpl_61LkiQBW2hw7rmzGv12LpSakJz36` from `fbfca70`; the source repository, branch and SHA were verified through Vercel. Public domain: https://taiwan-ecoatlas.vercel.app.
+- Unauthenticated public homepage request returned HTTP 200 with the expected title. Three unmocked public Playwright scenarios passed: all routes/languages/screen sizes, the official archive/all county selections/layer controls, and private-file exclusions.
+- Public `/api/status` confirmed `MOENV_API_KEY` present and CWA absent. The actual AQI endpoint returned HTTP 200 with `unavailable` and zero observations; the strict live-AQI test failed. This release is not considered fully launched until provider requests and real observation popups pass.
+- Added server-only failure categories, HTTP statuses and allowlisted transport error codes. Raw request URLs, response bodies, arbitrary error messages and credentials are never included in this diagnostic metadata.
 - The unmocked production suite requires real fresh observations. Live-provider and public-URL results remain pending until the GitHub project is published, the Vercel project exists, and its secrets are configured.
 
 Live provider verification and publication results are recorded separately when they are actually observed. Passing fixture tests or a successful local build alone does not establish a working public deployment.
