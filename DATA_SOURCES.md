@@ -24,7 +24,7 @@ The canonical typed registry is `src/lib/sources.ts`; the bilingual `/sources` v
 - The source offers a report/publication time rather than a separate pollutant sampling time. The app uses `publishtime` as the reported observation time **and** publication time; these are not represented as independently measured timestamps. `ImportDate` is used only for upstream ordering.
 - Official categorical status determines colour. Unknown status is grey; categories are never inferred from an AQI value. Cluster colour is a grouping cue, not a regional AQI estimate.
 - Category swatches match the MOENV [official AQI indicator page](https://airtw.moenv.gov.tw/CHT/Information/Standard/AirQualityIndicatorNew.aspx) and its [published stylesheet](https://airtw.moenv.gov.tw/css/git_articlesFix.css): good `#009865`, moderate `#fffb26`, sensitive groups `#ff9835`, unhealthy `#ca0034`, very unhealthy `#670099`, hazardous `#7e0123` (checked 2026-11-15). Marker labels/popups carry text as well as colour.
-- Requires a real key for end-to-end provider verification; fixtures test the documented schema only.
+- The live MOENV response is a station array; the adapter also accepts a `records` wrapper. Both forms undergo identical validation. An authenticated production request on 2026-11-15 returned 84 valid real observations; a public map popup was verified. See `LAUNCH_AUDIT.md` for the recorded check.
 
 ## Integrated adapters: CWA weather
 
@@ -40,7 +40,7 @@ The canonical typed registry is `src/lib/sources.ts`; the bilingual `/sources` v
 - Codes `X`, `T`, -99, -98 and variable wind direction 990 remain null in the numeric representation; “trace” rainfall is not converted to zero. Legitimate subzero air temperatures are retained. Future enhancement: preserve special-code semantics alongside numeric nulls.
 - Observation time is from `ObsTime.DateTime`; publication time is **not supplied** by this adapter. Retrieval time is separately recorded. No continuous temperature surface or shade estimate is generated.
 - Both network requests must validate before replacing a complete weather snapshot; partial upstream failure retains the previous complete snapshot as stale.
-- Authenticated live provider results remain unverified until a real key is configured.
+- Authenticated production requests to both networks were verified on 2026-11-15: 874 valid station observations after validation/deduplication, with a real public map popup. Counts vary as the providers update; see `LAUNCH_AUDIT.md`.
 
 ## Planned, not downloaded or verified in Milestone 1
 

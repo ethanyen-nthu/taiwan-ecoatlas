@@ -2,6 +2,8 @@
 
 A bilingual environmental and cultural geography explorer. **Milestone 1** provides a working official county map, source registry, AQI/CWA adapters, explicit data availability states, and a deployable Next.js foundation. No measurements are fabricated. Later datasets have documented empty states.
 
+Public website: [taiwan-ecoatlas.vercel.app](https://taiwan-ecoatlas.vercel.app). Repository: [ethanyen-nthu/taiwan-ecoatlas](https://github.com/ethanyen-nthu/taiwan-ecoatlas). Both government feeds and all five unmocked release scenarios were verified on 15 November 2026; see [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md) for evidence, configuration and limitations.
+
 ## Run locally
 
 Requirements: Node.js **24.x**, pnpm **11.25.0**, a modern browser with WebGL. The Node major is pinned so Vercel uses the same runtime as CI. Install pnpm with `npm install --global pnpm@11.25.0` if needed.

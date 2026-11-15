@@ -1,5 +1,7 @@
 # Milestone 1 completion report
 
+This is the original **pre-launch local verification snapshot**. The subsequent public launch, live API verification and current test results are documented in [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md).
+
 Verified locally on **15 November 2026 (Asia/Taipei)**. Scope is Milestone 1 only. No public deployment is claimed.
 
 ## Implemented and working
