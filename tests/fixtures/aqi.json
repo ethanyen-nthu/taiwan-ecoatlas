@@ -1,0 +1,36 @@
+{
+  "records": [
+    {
+      "siteid": "TEST-A",
+      "sitename": "Fixture station",
+      "county": "臺北市",
+      "longitude": "121.514",
+      "latitude": "25.046",
+      "publishtime": "2026/11/15 08:00:00",
+      "aqi": "42",
+      "status": "良好",
+      "pm2.5": "7.1",
+      "pm10": "",
+      "o3": "-",
+      "no2": "9.5",
+      "so2": "0",
+      "co": "0.2"
+    },
+    {
+      "siteid": "TEST-A",
+      "sitename": "Older duplicate",
+      "longitude": "121.514",
+      "latitude": "25.046",
+      "publishtime": "2026/11/15 07:00:00",
+      "aqi": "99",
+      "status": "普通"
+    },
+    {
+      "siteid": "TEST-REVERSED",
+      "sitename": "Reversed coordinates",
+      "longitude": "25.046",
+      "latitude": "121.514",
+      "publishtime": "2026/11/15 08:00:00"
+    }
+  ]
+}

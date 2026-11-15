@@ -1,0 +1,23 @@
+{
+  "source": "https://data.gov.tw/en/datasets/7442",
+  "download": "https://www.tgos.tw/tgos/VirtualDir/Product/1cd4f4c9-6b01-4cf9-bf6c-23a73aa17d24/%E7%9B%B4%E8%BD%84%E5%B8%82%E3%80%81%E7%B8%A3%28%E5%B8%82%29%E7%95%8C%E7%B7%9A1140318.zip",
+  "edition": "2025-03-18",
+  "retrievedAt": "2026-11-15T02:58:23.750751+00:00",
+  "sourceSha256": "9ff4d337e03a711d7e17caaf4d0c46a0fe2c6bd3660b321a2e35123030d8491c",
+  "outputSha256": "1767405590c6578c646ac1e5065e436dbd3c0411cc8a55d8a11e5935ed370be6",
+  "sourceCrsWkt": "GEOGCRS[\"GCS_TWD97[2020]\",DATUM[\"Taiwan_Datum_1997\",ELLIPSOID[\"GRS 1980\",6378137,298.257222101,LENGTHUNIT[\"metre\",1]],ID[\"EPSG\",1026]],PRIMEM[\"Greenwich\",0,ANGLEUNIT[\"Degree\",0.0174532925199433]],CS[ellipsoidal,2],AXIS[\"longitude\",east,ORDER[1],ANGLEUNIT[\"Degree\",0.0174532925199433]],AXIS[\"latitude\",north,ORDER[2],ANGLEUNIT[\"Degree\",0.0174532925199433]]]",
+  "targetCrs": "EPSG:4326",
+  "transformation": "axis order change (2D) + TWD97 to WGS 84 (1) (with axis order normalized for visualization)",
+  "transformationAccuracyMetres": 1.0,
+  "countyCount": 22,
+  "simplified": false,
+  "coordinateDecimalPlaces": 7,
+  "licence": "Open Government Data License 1.0",
+  "licenceUrl": "https://data.gov.tw/license",
+  "bounds": [
+    114.35928247200002,
+    10.371347663000051,
+    124.56115802500005,
+    26.38527526200005
+  ]
+}

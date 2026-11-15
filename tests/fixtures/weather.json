@@ -1,0 +1,34 @@
+{
+  "success": "true",
+  "records": {
+    "Station": [
+      {
+        "StationId": "TEST-W",
+        "StationName": "Fixture weather station",
+        "ObsTime": { "DateTime": "2026-11-15T08:00:00+08:00" },
+        "GeoInfo": {
+          "CountyName": "臺北市",
+          "Coordinates": [
+            {
+              "CoordinateName": "TWD67",
+              "StationLongitude": 120,
+              "StationLatitude": 23
+            },
+            {
+              "CoordinateName": "WGS84",
+              "StationLongitude": 121.514,
+              "StationLatitude": 25.046
+            }
+          ]
+        },
+        "WeatherElement": {
+          "AirTemperature": "-2.1",
+          "RelativeHumidity": 86,
+          "WindSpeed": "X",
+          "WindDirection": "990",
+          "Now": { "Precipitation": "T" }
+        }
+      }
+    ]
+  }
+}
