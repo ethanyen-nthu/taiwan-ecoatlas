@@ -24,8 +24,8 @@ export const riverDataset: AtlasDataset = {
   dateRange: null,
   updatedAt: null,
   limitation: {
-    en: "Bounded extract of up to 10,000 indicator rows; not the complete archive or live water conditions. Censored values remain missing. Monthly sampling generally has a publication delay. County averages describe the loaded samples, without rankings.",
-    zh: "最多擷取 10,000 筆指標資料，並非完整典藏或即時水況。低於偵測限的測值保留缺值；月採樣通常延後發布。縣市平均僅描述已載入樣本，不作排名。",
+    en: "One bounded provider response: requested cap 10,000 indicator rows; the provider may return fewer. Not the complete archive or live water conditions. Censored values remain missing. Monthly sampling generally has a publication delay. County averages describe the loaded samples, without rankings.",
+    zh: "單次有限回應：請求上限為 10,000 筆指標資料，來源可能回傳較少筆數。並非完整典藏或即時水況。低於偵測限的測值保留缺值；月採樣通常延後發布。縣市平均僅描述已載入樣本，不作排名。",
   },
   fields: [
     { key: "river", label: { en: "River", zh: "河川" } },

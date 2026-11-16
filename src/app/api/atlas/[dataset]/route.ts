@@ -85,6 +85,7 @@ export async function GET(
         ...queryAtlas(loaded.dataset, loaded.collection, filter),
         status: loaded.status,
         retrievedAt: loaded.retrievedAt,
+        ...("sourceRows" in loaded ? { sourceRows: loaded.sourceRows } : {}),
       },
       { headers: { "Cache-Control": "no-store" } },
     );

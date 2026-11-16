@@ -88,5 +88,6 @@ export interface AtlasResult {
   }[];
   dateRange: [string, string] | null;
   retrievedAt?: string | null;
+  sourceRows?: number;
   status?: string;
 }

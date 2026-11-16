@@ -79,13 +79,15 @@ export function parseRiver(
           id: key,
           sourceId: "WQX_P_01",
           stationId: id,
-          title: string(row.siteengname) || id,
-          countyCode: countyForName(string(row.countyen)),
-          county: string(row.countyen),
+          title: string(row.siteengname) || string(row.sitename) || id,
+          ...(string(row.sitename) ? { titleZh: string(row.sitename) } : {}),
+          countyCode: countyForName(string(row.countyen) || string(row.county)),
+          county: string(row.countyen) || string(row.county),
           date,
-          category: string(row.riveren) || "River not reported",
-          river: string(row.riveren),
-          basin: string(row.basinen),
+          category:
+            string(row.riveren) || string(row.river) || "River not reported",
+          river: string(row.riveren) || string(row.river),
+          basin: string(row.basinen) || string(row.basin),
           publishedAt: null,
           sourceCrs: "EPSG:3824",
           transformOperation: "EPSG:1549; stated accuracy 1 m",
@@ -118,6 +120,7 @@ export function parseRiver(
     feature.properties[`${indicator}Unit`] = string(row.itemunit);
     feature.properties[`${indicator}Note`] =
       string(row.noteen) ||
+      string(row.note) ||
       (value === null
         ? "Missing, censored or unsupported-unit value; not treated as zero"
         : "");

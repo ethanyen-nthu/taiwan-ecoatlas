@@ -15,7 +15,7 @@ launch verified AQI/CWA on 2026-11-15. That evidence does **not** verify the
 expanded implementation or prove its changes have reached production.
 
 The expanded implementation passes the local production build, TypeScript,
-ESLint, 130 unit/API tests, official county validation and repository/client
+ESLint, 131 unit/API tests, official county validation and repository/client
 secret-boundary audit. The expanded-release commit and direct public
 verification are pending the release run; a local build does not establish
 successful deployment.
@@ -180,7 +180,7 @@ publication dates. It has been linted but remains unexecuted until deployment.
 
 | Final release check                                | Current evidence                                                                                                |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Whole-tree TypeScript / ESLint / all unit tests    | Passed: TypeScript, ESLint and 130 unit/API tests                                                               |
+| Whole-tree TypeScript / ESLint / all unit tests    | Passed: TypeScript, ESLint and 131 unit/API tests                                                               |
 | Geographic validation                              | Passed: official checksums, WGS84 and all 22 valid county geometries                                            |
 | Production build and secret audit                  | Passed: Next.js production build and secret-boundary audit                                                      |
 | Desktop/tablet/mobile Playwright and visual review | Passed: 27 browser tests (10 baseline, 5 central, 12 platform); accessibility, responsive and screenshot checks |

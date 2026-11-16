@@ -54,3 +54,35 @@ it("preserves the first reported value rather than overwriting duplicate source 
   expect(result.duplicates).toBe(1);
   expect(result.collection.features[0].properties.do).toBe(5.2);
 });
+it("retains station, river and county metadata from the official Chinese schema", () => {
+  const {
+    siteengname: _site,
+    countyen: _county,
+    riveren: _river,
+    ...shared
+  } = row;
+  void _site;
+  void _county;
+  void _river;
+  const result = parseRiver(
+    [
+      {
+        ...shared,
+        sitename: "測試橋",
+        county: "臺北市",
+        river: "測試溪",
+        basin: "測試流域",
+        note: "來源備註",
+      },
+    ],
+    (name) => (name === "臺北市" ? "63000" : null),
+  );
+  expect(result.collection.features[0].properties).toMatchObject({
+    title: "測試橋",
+    titleZh: "測試橋",
+    countyCode: "63000",
+    river: "測試溪",
+    basin: "測試流域",
+    doNote: "來源備註",
+  });
+});

@@ -504,6 +504,17 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           <div>
             <strong>{dataset.title[language]}</strong>
             <p>{dataset.limitation[language]}</p>
+            {dataset.id === "river-quality" &&
+              result.data?.sourceRows !== undefined && (
+                <p>
+                  {t("Provider extract before filters: ", "篩選前來源擷取：")}
+                  {result.data.sourceRows.toLocaleString()}
+                  {t(
+                    " indicator rows; grouped by station and sampling date.",
+                    " 筆指標資料；依測站與採樣日期合併。",
+                  )}
+                </p>
+              )}
             {section === "forests" && (
               <p>
                 {t(
