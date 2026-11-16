@@ -1,68 +1,181 @@
-# Architecture — Milestone 1
+# Architecture
+
+This document describes the expanded implementation in the working tree. It is
+separate from deployment evidence in `LAUNCH_AUDIT.md`; the current release
+verification is recorded in `FULL_PLATFORM_REPORT.md`.
 
 ## Application boundaries
 
-Next.js App Router, TypeScript, React, Tailwind 4 and Lucide form a single Vercel-compatible application. Custom CSS defines the scientific explorer design system. Heavy map/chart modules load dynamically in client components. Recharts displays counts only when real AQI observations are available. No FastAPI service is needed for this milestone; GeoPandas/Shapely/PyProj run offline.
+Next.js App Router, TypeScript, React, Tailwind 4, MapLibre, Recharts and Lucide
+form one Vercel-compatible application. The existing Watermelon-derived tabs,
+split accordion and methodology disclosures remain part of the shared design.
+Map/chart modules load on the client; credentials, provider requests and static
+atlas collection reads belong to server modules. GeoPandas, Shapely, PyProj and
+Rasterio processing runs offline, not in request handlers. No FastAPI service
+or online satellite classifier is required.
 
 ```text
-Browser / explorer controls
- ├─ local official county GeoJSON → one MapLibre instance
- ├─ OpenFreeMap Liberty / configurable public style
- └─ same-origin Next.js observation API
-      ├─ input validation / cache / concurrent request coalescing / backoff
-      ├─ server-only MOENV + CWA adapters → validation + UTC normalization
-      └─ optional Supabase REST (service role, never in browser)
-           ├─ latest valid source snapshot
-           ├─ source metadata status/timestamps
-           └─ source synchronization audit log
+Browser: bilingual explorer, section workbenches, profiles, source library
+ ├─ official county GeoJSON + OpenFreeMap basemap
+ ├─ GET /api/observations/{aqi|weather}
+ │    └─ server validation/cache → MOENV/CWA → optional private snapshots
+ ├─ GET /api/atlas: server catalogue + checked-in bilingual manifests
+ ├─ GET /api/atlas/{dataset}: filters, pagination, summaries, bounded CSV
+ ├─ GET /api/atlas/map: viewport map payloads and point aggregation
+ │    ├─ latest validated station reports
+ │    ├─ MOENV bounded river sample query
+ │    └─ per-instance cached public GeoJSON collections
+ └─ processed public files, raster overview PNGs and statistical JSON
+
+Offline import scripts → reviewed public artifacts + provenance/checksums
+                      └─ ignored data/raw/ holds original/restricted inputs
 ```
 
-## Code ownership
+## Code and data ownership
 
-- `src/app`: all ten routes, metadata, route handlers, global styles, error/404 boundaries.
-- `src/components/map`: responsive explorer UI and lifecycle-isolated MapLibre renderer.
-- `src/components/providers.tsx`: language preference and deduplicated SWR requests. Components use `t(en, zh)`; original source proper names remain unaltered.
-- `src/lib/sources.ts`, `layers.ts`: typed source and eleven-layer registry, bilingual descriptions, legends/colour metadata, temporal applicability, availability flags.
-- `src/lib/transform.ts`, `geo.ts`, `freshness.ts`: pure validation, normalization, source-reported classifications, coordinate/county checks, configurable freshness thresholds.
-- `src/server`: `server-only` network adapters, retries/timeouts, cache, durable snapshots and sync logs.
-- `scripts`: reproducible official-boundary conversion/validation and optional idempotent database seed.
-- `tests`: explicitly synthetic, source-shaped fixtures; independent geographic, adapter, retry, freshness and browser checks.
+- `src/app`: public pages, two dynamic profile routes, metadata, API handlers,
+  error/404 boundaries and global styles.
+- `src/components/map`: one MapLibre renderer per mount, explorer controls,
+  official county selection, station/atlas sources, raster/line overlays.
+- `section-page.tsx`, `section-workbench.tsx`, `atlas-charts.tsx`: shared section
+  controls, filters, records and descriptive charts.
+- `atlas-hooks.ts`: SWR catalogue and viewport overlay requests;
+  `providers.tsx`: persisted language preference, county and observation hooks.
+- `atlas-profile.tsx`: client bilingual source facts, original cultural study
+  narratives, species-level aggregate evidence and attribution. Profile pages
+  read only fixed public file paths and look up the requested ID; unknown IDs
+  call `notFound()`.
+- `atlas-source-library.tsx`: actual catalogue licences, source IDs, dates,
+  limits and downloads. API metadata placeholder counts are not represented as
+  observed totals.
+- `src/lib/atlas-types.ts`: shared manifest, feature, collection and query-result
+  contracts. `atlas-query.ts`: pure filters, geometry bounds, grouping,
+  descriptive summaries and CSV serialization. `river.ts`: source-specific
+  sample/date/unit validation. `wildlife.ts`: public subset conventions.
+- `src/lib/sources.ts` and `layers.ts`: typed source/layer provenance and display
+  metadata; source identifiers remain separate from UI dataset IDs.
+- `src/server`: server-only observation adapters, network retries, snapshots,
+  river querying and atlas catalogue/collection loading.
+- `public/data/atlas`: publishable processed static artifacts and source
+  manifests. Original precise wildlife records remain in ignored `data/raw/`.
+- `scripts`: reproducible imports, geographic validation, seed and secret audit.
 
-## Map lifecycle
+Offline processing dependencies are pinned in `scripts/requirements-atlas.txt`
+(including the base geographic requirements). They are optional for application
+runtime; install with `.venv/bin/python -m pip install -r
+scripts/requirements-atlas.txt` before reproducing atlas imports.
 
-The dynamically loaded renderer initializes once per mount and destroys the map, workers, event handlers and resize observer on unmount. React effects update existing sources, visibility and selection filters. Layer toggles do not recreate the map. County hover uses feature state; selection uses official county codes. Geometry always uses longitude, latitude / EPSG:4326. `fitBounds` includes the required offshore islands; full geometry is retained even outside that starting extent.
+## Map and query lifecycle
 
-Station GeoJSON sources cluster at low zoom; clicking a cluster expands it. Point popups use DOM text content rather than unsanitized HTML. Point sources retain source IDs, values and timestamps. County filters use exact point-in-official-polygon tests rather than name guesses. Date filters use Taiwan calendar days and only affect actual temporal observation layers. They do not fetch historical data. County names and loaded station names are searchable; address geocoding is not implemented.
+The renderer initializes once per mount and destroys map workers, handlers and
+resize observers on unmount. React updates existing sources and layer filters.
+County hover/selection uses official county codes. Public geometry uses
+longitude/latitude WGS84; fit bounds include Taiwan and required offshore
+islands. Missing WebGL and basemap failures have explicit states. Plain-map
+fallbacks retain real county geometry; no replacement geography is invented.
 
-If a style request fails, a plain-background style plus official county geometries remains usable. Tile failures show a visible warning. WebGL failure gets its own accessible empty state. No invented geometry is used as fallback.
+The bounded station networks use current validated reports. Atlas inventories
+are loaded/cached as full server-side GeoJSON collections, then filtered in
+memory. `GET /api/atlas/{dataset}` validates dataset and query inputs, supports
+county, search, category, species and date filters, and returns at most 100
+record rows per page. Map output uses geometry-bounds intersection with the
+viewport. Trails also retain intersecting county codes so cross-county routes
+remain discoverable.
 
-For the bounded AQI/CWA station networks, the client loads the current station set. `GET /api/observations/{aqi|weather}?bbox=west,south,east,north` offers validated viewport response filtering, but still fetches/caches each provider's full current network. Future large wildlife/tree inventories must use indexed database viewport queries and pagination; they must not reuse an all-record download approach. Full-detail county GeoJSON is ~8.2 MB before HTTP compression; preserving boundary detail is an explicit first-milestone tradeoff.
+Point map payloads combine identical positions and aggregate dense collections
+into viewport-scaled cells when there are more than 3,000 unique positions.
+Aggregation centroids describe grouped records, not additional observations.
+At most 3,000 nonpoint shapes are included in the generic map payload. The
+current inventories remain in memory per server instance; this is not a
+PostGIS-backed spatial index or a global cache. Cold starts and repeated scans
+are material limits for the 85,177-record Taipei park-tree inventory.
 
-## Data lifecycle
+Filtered county/timeline summaries describe matching records before viewport
+clipping. Tables use visible-record pagination. Numeric county means require
+at least two measurements except the precomputed forest summaries; nulls stay
+missing. This threshold does not establish comparable monitoring schedules or
+sampling effort. Wind direction is not linearly averaged. Monthly/day/year
+series group records that actually exist, and do not create a historical feed.
+Forest classification dates retain year precision; village listing dates are
+not treated as founding dates. CSV exports escape formula-like strings and
+are capped at 5,000 matching records.
 
-Public route → validate dataset and optional bbox → check credential presence → in-process cache → optional durable snapshot → upstream request → schema/coordinate/time validation → per-station deduplication → atomically replace last-valid dataset → optional durable snapshot and sync-log write → response with source/status/exclusion counts/timestamps.
+Wildlife map positions are already generalized 10 km grid centres. Original
+county assignment was done before generalization, so a public centre can lie
+outside its county. Heatmaps/clusters describe reports, not animal abundance,
+current locations or corrected roadkill risk. Precise locations, observer
+identifiers and per-occurrence source links are not client properties.
 
-AQI caches for 30 minutes; weather for 10 minutes. A per-source in-flight promise coalesces simultaneous refreshes. A failed refresh backs off for 60 seconds, retains last-valid observations, preserves the successful retrieval timestamp and marks the result stale. Empty failures remain unavailable. Cached records age according to **observation** time. Both weather networks validate before replacing a complete weather snapshot. Retries cover transient errors; authorization/client errors are not retried. Network calls have timeouts; logs contain generic events and source IDs, never raw errors with credential-bearing URLs.
+Forest PNGs are georeferenced, nearest-neighbour web overviews. Original-pixel
+statistics are separate JSON/summary-point artifacts; summary points and
+rendered pixels must not be described as original satellite observations.
 
-The application uses refresh-on-read with stale-on-failure, rather than an untracked background refresh that Vercel could terminate. SWR retains prior client results on application-network errors and marks them stale. Without Supabase there is no durable cache and no global rate limiter across serverless instances; cache/backoff/coalescing constrain traffic within an instance only. A distributed limiter may be appropriate before high-traffic public operation.
+## Live data and failure handling
 
-`POST /api/ingest` requires a constant-time-checked Bearer cron secret. It refreshes via the same cache policy; it does not bypass source validation or store a historical time series. GitHub Actions hourly scheduling is explicitly opt-in, separate from Vercel Hobby Cron.
+AQI caches for 30 minutes; weather for 10 minutes. Validation normalizes source
+schemas, coordinates, station IDs, missing values and timestamps. Both weather
+networks must validate before replacing the complete weather result. Per-source
+promises coalesce refreshes. Failure backs off for 60 seconds, retains the last
+valid result with its successful retrieval time, and marks it stale. An empty
+failure is unavailable; missing credentials are not configured. Observation
+age, not retrieval time, determines freshness. Logs use generic event codes,
+not raw credential-bearing URLs.
 
-## Database
+Optional Supabase storage persists latest valid AQI/weather snapshots and sync
+runs. Otherwise cache/backoff state disappears on instance restart. Client SWR
+retains and marks prior results stale on request failure. There is no global
+rate limiter or shared cache across all instances.
 
-Migration uses PostgreSQL/PostGIS with the extension in `extensions` and UTC `timestamptz` fields. RLS permits only published reads by `anon`/`authenticated`. No client mutation policy exists. Trusted service-role calls alone write imports, snapshots and logs.
+The river adapter queries `WQX_P_01` with the server MOENV key, requesting up to
+10,000 indicator rows. It groups by station/sampling date, deduplicates repeated
+indicators, preserves raw/censored values separately from numeric nulls, checks
+units and retains source-reported RPI rather than inventing it. Source TWD97
+geographic coordinates use the explicit EPSG:1549 transformation convention;
+no projected XY is relabelled as longitude/latitude. Sampling date is separate
+from retrieval and unknown publication dates remain null. River results cache
+in process for six hours with request coalescing/backoff. They are not persisted
+by the existing snapshot or ingestion path. Monthly field samples with release
+lag are historical samples, not live river conditions or a complete archive.
 
-| Table | Milestone 1 role |
-| --- | --- |
-| `environmental_sources` | Canonical identity, agency, source URL, licence, policy and runtime sync metadata |
-| `source_sync_runs` | Generic success/failure audit, accepted/excluded/duplicate counts |
-| `counties` | Official `MultiPolygon,4326`, bilingual names, source, edition; GiST index |
-| `source_snapshots` | Private latest-valid JSON dataset per source; no public select |
-| `aqi_observations` | Prepared future history schema; `Point,4326`, nullable pollutants, unique source/station/time, spatial/time indexes |
-| `weather_observations` | Prepared future history schema; `Point,4326`, explicit daily rainfall and originating dataset, unique source/station/time, spatial/time indexes |
+## Persistence and scheduling
 
-Future migrations will add `river_monitoring_stations`, `river_samples`, `roadkill_observations`, `indigenous_villages`, `landcover_county_summaries`, `urban_green_spaces`, and `tree_locations` alongside their verified ingestion workflows. They are intentionally not implemented ahead of their milestone. Projected area calculation, rasters, STAC and heavy satellite processing belong in separate offline/background jobs, not request handlers.
+The existing foundation migration uses PostgreSQL/PostGIS, the `extensions`
+schema and UTC timestamps. RLS allows only published reads for public source,
+county and prepared observation tables; browser mutation policies are absent.
+Snapshots and sync runs have no public access. Trusted server service-role
+requests write snapshots and logs; credentials never enter client components.
+
+| Existing table                             | Actual current role                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `environmental_sources`                    | Canonical provenance and runtime sync metadata                                                         |
+| `source_sync_runs`                         | Optional generic success/failure audit                                                                 |
+| `counties`                                 | Optional seeded official MultiPolygon geometry, spatial index                                          |
+| `source_snapshots`                         | Optional private latest-valid station result                                                           |
+| `aqi_observations`, `weather_observations` | Prepared history schema and uniqueness/time/spatial indexes; current ingestion does not append records |
+
+There are no migrations or import writers for river history, static inventories
+or cultural profiles. The static collections do not imply database persistence.
+A configured Supabase variable alone does not establish that a migration has
+run or that database writes succeed.
+
+`POST /api/ingest` checks a Bearer secret in constant time and refreshes AQI and
+weather through the same validated cache policy. The opt-in GitHub Actions job
+runs at minute 7 hourly when `ECOATLAS_INGEST_ENABLED=true`; it stores latest
+snapshots only when optional persistence works. It does not preserve a full
+station time series, refresh river data or run offline static imports. GitHub
+schedule delays are possible. No Vercel Hobby hourly cron is used.
 
 ## Deployment
 
-Next.js builds without provider credentials, network fonts or remote build-time data. Public style variables are read at build time; secret credentials are read by server modules at runtime. No hardcoded deployment origin is used by the frontend. GitHub `ethanyen-nthu/taiwan-ecoatlas` is connected to Vercel's `nthu1/taiwan-ecoatlas` project; `main` deploys production automatically and PR branches can create previews. Node is pinned to 24.x in both package engines and project settings. MOENV/CWA values are Production Secrets in Vercel. Only `.env.example` is tracked; local environment and Vercel configuration files are excluded. Current public verification is recorded in `LAUNCH_AUDIT.md`.
+Node 24 and pnpm 11.25.0 are pinned. Build/dev use Webpack explicitly. Provider
+keys are runtime server settings; no remote data or font downloads are needed
+for the build. Public map-style settings are build-time browser values.
+`next.config.ts` supplies file-tracing includes for atlas APIs and profile
+routes. `.gitignore` and `.vercelignore` exclude local secrets, original raw
+inputs, virtual environments and private deployment metadata.
+
+The earlier launch connected `ethanyen-nthu/taiwan-ecoatlas` to Vercel project
+`nthu1/taiwan-ecoatlas`, production branch `main`. The dated launch audit remains
+unchanged. An expanded release must separately verify all section APIs, bundled
+files, profiles, language controls and mobile layouts at its actual public
+URL. Local tests and a build do not establish deployment success.

@@ -19,6 +19,7 @@ import { Status, useFormatTime } from "./status";
 import { MethodologyFaq } from "./watermelon/methodology-faq";
 import { Footer } from "./footer";
 import { sources } from "@/lib/sources";
+import { AtlasSourceLibrary } from "./atlas-source-library";
 const ObservationChart = dynamic(() => import("./observation-chart"), {
   ssr: false,
 });
@@ -239,8 +240,8 @@ export function AboutPage() {
           <h2>{t("One map, many connections", "一張地圖，多種連結")}</h2>
           <p>
             {t(
-              "Taiwan EcoAtlas brings environmental observations and cultural geography into one accessible map. This first milestone establishes the map, official county geography, bilingual navigation, and air quality and weather adapters.",
-              "Taiwan EcoAtlas 將環境觀測與文化地理帶入易用的共同地圖。第一階段建立地圖、官方縣市地理、雙語導覽，以及空品與氣象介接。",
+              "Taiwan EcoAtlas brings environmental observations, forest classifications, historical wildlife records, public cultural geography and municipal inventories into one accessible map. Each subject provides filters, evidence and its own coverage limits.",
+              "Taiwan EcoAtlas 將環境觀測、森林分類、歷史野生動物紀錄、公開文化地理與地方清冊帶入共同地圖。各專題提供篩選、證據與自身的涵蓋限制。",
             )}
           </p>
         </article>
@@ -259,8 +260,8 @@ export function AboutPage() {
           <h2>{t("Open, with attribution", "開放並註明出處")}</h2>
           <p>
             {t(
-              "Each dataset retains its own agency, licence, coverage and update policy. The map uses OpenFreeMap with OpenStreetMap-derived basemaps and the required attribution. Planned research and cultural sources remain unavailable until verified and imported.",
-              "每份資料保留各自的機關、授權、涵蓋範圍及更新政策。地圖使用 OpenFreeMap 與 OpenStreetMap 衍生底圖並標註來源。規劃中的研究及文化來源會在確認與匯入後才啟用。",
+              "Each dataset retains its own agency, licence, coverage and update policy. The map uses OpenFreeMap with OpenStreetMap-derived basemaps and the required attribution. Source limitations remain visible alongside the imported public data.",
+              "每份資料保留各自的機關、授權、涵蓋範圍及更新政策。地圖使用 OpenFreeMap 與 OpenStreetMap 衍生底圖並標註來源；匯入的公開資料持續顯示其來源限制。",
             )}
           </p>
           <Link className="text-link" href="/sources">
@@ -273,8 +274,8 @@ export function AboutPage() {
           <h2>{t("Growing in verified steps", "以驗證過的步驟成長")}</h2>
           <p>
             {t(
-              "Next: river samples, persistent history and county comparisons. Later: land-cover change, historical roadkill, Indigenous villages and urban inventories. Satellite analysis and public submissions are future work, not current capabilities.",
-              "下一步是河川採樣、持久化歷史與縣市比較。後續將加入土地覆蓋變遷、歷史路死、原住民族部落與都市清冊。衛星分析與公民提交為未來工作，目前尚未提供。",
+              "The public platform includes live government observations and processed historical research, wildlife, village and Taipei inventory data. A verified 2013 land-cover baseline, continuous environmental history, satellite surface-temperature scenes and moderated public submissions still require additional data or infrastructure. These are not presented as completed features.",
+              "公開平台收錄政府最新觀測，以及處理後的歷史研究、野生動物、部落與臺北清冊資料。可確認的 2013 土地覆蓋基準、連續環境歷史、衛星地表溫度影像與經審核的公民提交，仍須額外資料或基礎設施，不會被當作已完成功能。",
             )}
           </p>
         </article>
@@ -296,8 +297,8 @@ export function DataPage() {
           <h1>{t("Take a closer look.", "仔細看見資料。")}</h1>
           <p>
             {t(
-              "Inspect the available geography and source metadata. Historical downloads will follow verified ingestion.",
-              "檢視可用地理與來源詮釋資料，歷史資料下載將於驗證匯入後提供。",
+              "Download verified geography, historical editions and statistical summaries. Check each source's period, coverage and privacy treatment before comparing records.",
+              "下載已驗證地理、歷史版本與統計摘要；比較紀錄前，請確認各來源的年代、涵蓋範圍與隱私處理。",
             )}
           </p>
         </div>
@@ -327,8 +328,8 @@ export function DataPage() {
           <h2>{t("Observation endpoints", "觀測資料端點")}</h2>
           <p>
             {t(
-              "Current, validated station reports with freshness status, retrieval timestamps and exclusion counts. Credentials stay on the server. No historical archive is included in this milestone.",
-              "經驗證的目前測站報告，附新鮮度、擷取時間與排除筆數。金鑰保留在伺服器，本階段不包含歷史典藏。",
+              "Validated AQI and weather reports retain freshness status, retrieval times and exclusion counts. River samples retain sampling dates and publication lag. These API extracts are distinct from the static historical editions below.",
+              "驗證後空品與氣象報告保留新鮮度、擷取時間與排除筆數；河川樣本保留採樣日期與發布延遲。這些 API 擷取資料與下方靜態歷史版本分開呈現。",
             )}
           </p>
           <a
@@ -353,8 +354,18 @@ export function DataPage() {
             {t("Optional viewport filter", "可選視窗篩選")}:{" "}
             <code>?bbox=117.8,21.7,122.2,26.6</code>
           </p>
+          <a
+            className="text-link"
+            href="/api/atlas/river-quality"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t("River samples", "河川採樣")} · JSON
+            <ArrowUpRight size={14} />
+          </a>
         </article>
       </section>
+      <AtlasSourceLibrary />
       <Footer />
     </main>
   );

@@ -2,6 +2,25 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
   devIndicators: false,
+  outputFileTracingIncludes: {
+    "/api/atlas": ["./public/data/atlas/*.metadata.json"],
+    "/api/atlas/*": [
+      "./public/data/atlas/*.json",
+      "./public/data/atlas/*.geojson",
+      "./public/data/counties.geojson",
+    ],
+    "/culture/places/*": [
+      "./public/data/atlas/culture.metadata.json",
+      "./public/data/atlas/cultural-trails.json",
+      "./public/data/atlas/villages.geojson",
+      "./public/data/atlas/public-historic-trails.geojson",
+    ],
+    "/wildlife/species/*": [
+      "./public/data/atlas/wildlife.species.json",
+      "./public/data/atlas/wildlife.metadata.json",
+      "./public/data/counties.geojson",
+    ],
+  },
   async headers() {
     return [
       {

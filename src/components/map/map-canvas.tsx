@@ -4,6 +4,7 @@ import * as maplibregl from "maplibre-gl";
 import type {
   GeoJSONSource,
   Map as LibreMap,
+  MapLayerMouseEvent,
   StyleSpecification,
 } from "maplibre-gl";
 import { LocateFixed, TriangleAlert } from "lucide-react";
@@ -17,8 +18,16 @@ import type {
 import { boundsOfCoordinates, TAIWAN_BOUNDS } from "@/lib/geo";
 import { aqiColor, aqiStatusEnglish } from "@/lib/transform";
 import { observationFreshness } from "@/lib/freshness";
+import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
 
 interface Props {
+  overlays?: AtlasOverlay[];
+  onViewport?: (viewport: {
+    bbox: [number, number, number, number];
+    zoom: number;
+  }) => void;
+  onAtlasSelect?: (datasetId: string, feature: AtlasFeature) => void;
+  focusedAtlas?: { datasetId: string; feature: AtlasFeature } | null;
   compact?: boolean;
   counties: Counties;
   selectedCounty: string;
@@ -165,6 +174,58 @@ function popupContent(
   return el;
 }
 
+function atlasPopup(
+  feature: AtlasFeature,
+  overlay: AtlasOverlay,
+  language: Language,
+) {
+  const root = document.createElement("div"),
+    zh = language === "zh";
+  const add = (tag: string, text: string) => {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    root.append(node);
+  };
+  add("small", overlay.dataset.title[language]);
+  add(
+    "h3",
+    zh && feature.properties.titleZh
+      ? feature.properties.titleZh
+      : feature.properties.title,
+  );
+  if (feature.properties.aggregated)
+    add(
+      "p",
+      zh
+        ? "彙整格網，請使用圖表下方的篩選資料列表檢視紀錄。"
+        : "Aggregated map cell. Inspect the filtered record list beneath the charts for individual records.",
+    );
+  else {
+    if (feature.properties.date)
+      add(
+        "p",
+        `${zh ? "資料日期" : "Record date"}: ${feature.properties.date}`,
+      );
+    for (const field of overlay.dataset.fields) {
+      const value = feature.properties[field.key];
+      if (value !== undefined)
+        add(
+          "p",
+          `${field.label[language]}: ${value === null ? "—" : value}${value !== null && field.unit ? ` ${field.unit}` : ""}`,
+        );
+    }
+  }
+  add("p", overlay.dataset.limitation[language]);
+  add("p", `${zh ? "授權" : "Licence"}: ${overlay.dataset.licence}`);
+  const link = document.createElement("a");
+  link.href = `/${overlay.dataset.section}?dataset=${encodeURIComponent(overlay.dataset.id)}`;
+  link.textContent = zh
+    ? "開啟專題與資料詳情 ↗"
+    : "Open subject and record details ↗";
+  root.append(link);
+  return root;
+}
+
 export default function MapCanvas(props: Props) {
   const {
     aqi,
@@ -175,6 +236,15 @@ export default function MapCanvas(props: Props) {
     selectedCounty,
   } = props;
   const pointPopup = useRef<maplibregl.Popup | null>(null);
+  const countyHoverPopup = useRef<maplibregl.Popup | null>(null);
+  const atlasPopupDataset = useRef<string | null>(null);
+  const overlaySpecs = useRef(new Map<string, string>());
+  const overlayClickHandlers = useRef(
+    new Map<
+      string,
+      { layerId: string; listener: (event: MapLayerMouseEvent) => void }[]
+    >(),
+  );
   const container = useRef<HTMLDivElement>(null),
     mapRef = useRef<LibreMap | null>(null),
     latest = useRef(props);
@@ -188,6 +258,8 @@ export default function MapCanvas(props: Props) {
   }, [props]);
   useEffect(() => {
     let disposed = false;
+    const clickHandlers = overlayClickHandlers.current;
+    const specs = overlaySpecs.current;
     let resize: ResizeObserver | undefined;
     const controller = new AbortController();
     const init = async () => {
@@ -223,6 +295,34 @@ export default function MapCanvas(props: Props) {
           maxZoom: 18,
         });
         mapRef.current = map;
+        const reportViewport = () => {
+          const box = map.getBounds();
+          const rawWest = box.getWest(),
+            rawEast = box.getEast(),
+            zoom = map.getZoom();
+          if (
+            ![rawWest, rawEast, box.getSouth(), box.getNorth(), zoom].every(
+              Number.isFinite,
+            )
+          )
+            return;
+          const span = rawEast - rawWest;
+          if (span <= 0) return;
+          const normalizedWest = ((((rawWest + 180) % 360) + 360) % 360) - 180;
+          // The map API accepts one non-wrapping rectangle. A crossing viewport
+          // conservatively requests all longitudes instead of an invalid bbox.
+          const crossesDateline = span >= 360 || normalizedWest + span > 180;
+          const west = crossesDateline ? -180 : normalizedWest;
+          const east = crossesDateline ? 180 : normalizedWest + span;
+          const south = Math.max(-90, Math.min(90, box.getSouth()));
+          const north = Math.max(-90, Math.min(90, box.getNorth()));
+          if (south >= north || west >= east) return;
+          latest.current.onViewport?.({
+            bbox: [west, south, east, north],
+            zoom,
+          });
+        };
+        map.on("moveend", reportViewport);
         map.on("movestart", () => {
           if (!disposed) setIdle(false);
         });
@@ -321,6 +421,7 @@ export default function MapCanvas(props: Props) {
             className: "county-tooltip",
             offset: 12,
           });
+          countyHoverPopup.current = hoverPopup;
           map.on("mousemove", "county-fill", (event) => {
             const feature = event.features?.[0];
             if (!feature) return;
@@ -359,7 +460,12 @@ export default function MapCanvas(props: Props) {
                 "weather-points",
                 "aqi-clusters",
                 "weather-clusters",
-              ],
+                ...(latest.current.overlays || []).flatMap((overlay) =>
+                  ["points", "clusters", "line", "fill"].map(
+                    (suffix) => `atlas-${overlay.dataset.id}-${suffix}`,
+                  ),
+                ),
+              ].filter((id) => !!map.getLayer(id)),
             });
             if (!hits.length && event.features?.[0])
               latest.current.onSelect(event.features[0].properties.COUNTYCODE);
@@ -443,6 +549,7 @@ export default function MapCanvas(props: Props) {
                     : raw.values,
               } as Observation;
               pointPopup.current?.remove();
+              atlasPopupDataset.current = null;
               pointPopup.current = new maplibregl.Popup({ maxWidth: "320px" })
                 .setLngLat(feature.geometry.coordinates as [number, number])
                 .setDOMContent(
@@ -468,6 +575,7 @@ export default function MapCanvas(props: Props) {
             }
           }
           setReady(true);
+          reportViewport();
           latest.current.onReady?.();
         });
         resize = new ResizeObserver(() => map.resize());
@@ -481,10 +589,277 @@ export default function MapCanvas(props: Props) {
       disposed = true;
       controller.abort();
       resize?.disconnect();
+      const map = mapRef.current;
+      if (map)
+        for (const handlers of clickHandlers.values())
+          for (const { layerId, listener } of handlers)
+            map.off("click", layerId, listener);
+      clickHandlers.clear();
+      specs.clear();
+      pointPopup.current?.remove();
+      pointPopup.current = null;
+      countyHoverPopup.current?.remove();
+      countyHoverPopup.current = null;
+      atlasPopupDataset.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };
   }, []);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const overlays = props.overlays || [];
+    const remove = (id: string) => {
+      for (const { layerId, listener } of overlayClickHandlers.current.get(
+        id,
+      ) || [])
+        map.off("click", layerId, listener);
+      overlayClickHandlers.current.delete(id);
+      if (`atlas-${atlasPopupDataset.current}` === id) {
+        pointPopup.current?.remove();
+        pointPopup.current = null;
+        atlasPopupDataset.current = null;
+      }
+      for (const suffix of [
+        "label",
+        "points",
+        "clusters",
+        "heat",
+        "line",
+        "fill",
+        "raster",
+      ])
+        if (map.getLayer(`${id}-${suffix}`)) map.removeLayer(`${id}-${suffix}`);
+      if (map.getSource(id)) map.removeSource(id);
+      if (map.getSource(`${id}-image`)) map.removeSource(`${id}-image`);
+      overlaySpecs.current.delete(id);
+    };
+    for (const id of [...overlaySpecs.current.keys()])
+      if (!overlays.some((overlay) => `atlas-${overlay.dataset.id}` === id))
+        remove(id);
+    for (const overlay of overlays) {
+      const id = `atlas-${overlay.dataset.id}`;
+      const shape = overlay.data.features.some(
+        (feature) => feature.geometry.type !== "Point",
+      );
+      const spec = `${overlay.mode}:${shape}:${!!overlay.dataset.raster}`;
+      if (overlaySpecs.current.has(id) && overlaySpecs.current.get(id) !== spec)
+        remove(id);
+      if (!map.getSource(id)) {
+        const clusters = !shape && overlay.mode === "clusters";
+        map.addSource(id, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+          cluster: clusters,
+          clusterRadius: 42,
+          ...(clusters
+            ? {
+                clusterProperties: {
+                  records: ["+", ["coalesce", ["get", "count"], 1]],
+                },
+              }
+            : {}),
+        });
+        if (overlay.dataset.raster) {
+          map.addSource(`${id}-image`, {
+            type: "image",
+            url: overlay.dataset.raster.url,
+            coordinates: overlay.dataset.raster.coordinates,
+          });
+          map.addLayer(
+            {
+              id: `${id}-raster`,
+              type: "raster",
+              source: `${id}-image`,
+              paint: { "raster-opacity": 0.68, "raster-resampling": "nearest" },
+            },
+            "county-line",
+          );
+        }
+        if (shape) {
+          map.addLayer({
+            id: `${id}-fill`,
+            type: "fill",
+            source: id,
+            filter: ["==", ["geometry-type"], "Polygon"],
+            paint: { "fill-color": overlay.color, "fill-opacity": 0.25 },
+          });
+          map.addLayer({
+            id: `${id}-line`,
+            type: "line",
+            source: id,
+            filter: [
+              "in",
+              ["geometry-type"],
+              ["literal", ["LineString", "Polygon"]],
+            ],
+            paint: {
+              "line-color": overlay.color,
+              "line-width": 3,
+              "line-opacity": 0.85,
+            },
+          });
+        }
+        if (clusters) {
+          map.addLayer({
+            id: `${id}-clusters`,
+            type: "circle",
+            source: id,
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-color": overlay.color,
+              "circle-radius": 21,
+              "circle-stroke-color": "#fff",
+              "circle-stroke-width": 2,
+            },
+          });
+          map.addLayer({
+            id: `${id}-label`,
+            type: "symbol",
+            source: id,
+            filter: ["has", "point_count"],
+            layout: {
+              "text-field": ["to-string", ["get", "records"]],
+              "text-size": 11,
+            },
+            paint: { "text-color": "#fff" },
+          });
+        }
+        if (overlay.mode === "heatmap")
+          map.addLayer({
+            id: `${id}-heat`,
+            type: "heatmap",
+            source: id,
+            paint: {
+              "heatmap-weight": ["coalesce", ["get", "count"], 1],
+              "heatmap-radius": 25,
+              "heatmap-opacity": 0.65,
+            },
+          });
+        map.addLayer({
+          id: `${id}-points`,
+          type: "circle",
+          source: id,
+          filter: [
+            "all",
+            ["==", ["geometry-type"], "Point"],
+            ["!", ["has", "point_count"]],
+          ],
+          paint: {
+            "circle-color": overlay.color,
+            "circle-radius": overlay.mode === "heatmap" ? 3 : 5,
+            "circle-opacity": overlay.mode === "heatmap" ? 0.4 : 0.9,
+            "circle-stroke-color": "#fff",
+            "circle-stroke-width": 1.2,
+          },
+        });
+        const handlers: {
+          layerId: string;
+          listener: (event: MapLayerMouseEvent) => void;
+        }[] = [];
+        for (const suffix of ["points", "line", "fill", "clusters"])
+          if (map.getLayer(`${id}-${suffix}`)) {
+            const layerId = `${id}-${suffix}`;
+            const listener = (event: MapLayerMouseEvent) => {
+              const raw = event.features?.[0];
+              const current = latest.current.overlays?.find(
+                (item) => item.dataset.id === overlay.dataset.id,
+              );
+              if (!raw || !current) return;
+              if (raw.properties.cluster_id !== undefined) {
+                const source = map.getSource(id) as GeoJSONSource | undefined;
+                if (!source) return;
+                void source
+                  .getClusterExpansionZoom(raw.properties.cluster_id)
+                  .then((zoom) => {
+                    if (
+                      mapRef.current === map &&
+                      map.getSource(id) === source &&
+                      raw.geometry.type === "Point"
+                    )
+                      map.easeTo({
+                        center: raw.geometry.coordinates as [number, number],
+                        zoom,
+                      });
+                  })
+                  .catch(() => {});
+                return;
+              }
+              const feature = {
+                type: "Feature",
+                geometry: raw.geometry,
+                properties: raw.properties,
+              } as AtlasFeature;
+              pointPopup.current?.remove();
+              atlasPopupDataset.current = current.dataset.id;
+              pointPopup.current = new maplibregl.Popup({ maxWidth: "340px" })
+                .setLngLat(event.lngLat)
+                .setDOMContent(
+                  atlasPopup(feature, current, latest.current.language),
+                )
+                .addTo(map);
+              latest.current.onAtlasSelect?.(current.dataset.id, feature);
+            };
+            map.on("click", layerId, listener);
+            handlers.push({ layerId, listener });
+          }
+        overlayClickHandlers.current.set(id, handlers);
+        overlaySpecs.current.set(id, spec);
+      }
+      (map.getSource(id) as GeoJSONSource).setData(
+        overlay.dataset.raster
+          ? { type: "FeatureCollection", features: [] }
+          : overlay.data,
+      );
+    }
+  }, [ready, props.overlays]);
+  const focusedOverlayAvailable =
+    !!props.focusedAtlas &&
+    !!props.overlays?.some(
+      (overlay) => overlay.dataset.id === props.focusedAtlas?.datasetId,
+    );
+  useEffect(() => {
+    const map = mapRef.current,
+      focus = props.focusedAtlas;
+    if (!ready || !map || !focus || !focusedOverlayAvailable) return;
+    const overlay = latest.current.overlays?.find(
+      (item) => item.dataset.id === focus.datasetId,
+    );
+    if (!overlay) return;
+    const county = overlay.dataset.raster
+      ? latest.current.counties.features.find(
+          (item) =>
+            item.properties.COUNTYCODE === focus.feature.properties.countyCode,
+        )
+      : undefined;
+    const box = boundsOfCoordinates(
+      county?.geometry.coordinates || focus.feature.geometry.coordinates,
+    );
+    const center: [number, number] =
+      focus.feature.geometry.type === "Point"
+        ? [
+            focus.feature.geometry.coordinates[0],
+            focus.feature.geometry.coordinates[1],
+          ]
+        : [(box[0][0] + box[1][0]) / 2, (box[0][1] + box[1][1]) / 2];
+    map.fitBounds(box, {
+      maxZoom: 13,
+      padding: fitPadding(props.compact),
+      duration: 500,
+    });
+    pointPopup.current?.remove();
+    atlasPopupDataset.current = overlay.dataset.id;
+    pointPopup.current = new maplibregl.Popup({ maxWidth: "340px" })
+      .setLngLat(center)
+      .setDOMContent(atlasPopup(focus.feature, overlay, props.language))
+      .addTo(map);
+  }, [
+    ready,
+    props.focusedAtlas,
+    props.language,
+    props.compact,
+    focusedOverlayAvailable,
+  ]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -549,6 +924,7 @@ export default function MapCanvas(props: Props) {
     const rows = focus.kind === "aqi" ? aqi : weather;
     const visible = focus.kind === "aqi" ? aqiVisible : weatherVisible;
     pointPopup.current?.remove();
+    atlasPopupDataset.current = null;
     if (!visible || !rows.some((o) => o.id === focus.observation.id)) return;
     const o = focus.observation;
     map.easeTo({

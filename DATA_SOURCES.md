@@ -1,6 +1,6 @@
 # Source registry and licences
 
-The canonical typed registry is `src/lib/sources.ts`; the bilingual `/sources` view joins it with runtime observation/retrieval timestamps and status. Source identifiers are retained in records and database metadata. Cache intervals below are application policy, not promises of source publication frequency.
+The agency registry is `src/lib/sources.ts`; imported editions also have bilingual manifests under `public/data/atlas/`. `/api/atlas` joins these with API adapter metadata. `/sources` and `/data` expose actual licences, source IDs, dates, coverage limits and processed downloads. Cache intervals are application policy, not source publication promises. Launch checks quoted below are dated historical evidence, not proof that the expanded release is deployed.
 
 ## Imported: official county boundaries
 
@@ -42,19 +42,90 @@ The canonical typed registry is `src/lib/sources.ts`; the bilingual `/sources` v
 - Both network requests must validate before replacing a complete weather snapshot; partial upstream failure retains the previous complete snapshot as stale.
 - Authenticated production requests to both networks were verified on 2026-11-15: 874 valid station observations after validation/deduplication, with a real public map popup. Counts vary as the providers update; see `LAUNCH_AUDIT.md`.
 
-## Planned, not downloaded or verified in Milestone 1
+## Integrated river sample adapter
 
-These are explicit dependencies for later milestones. Supplied licence/coverage claims are recorded as provisional; no associated measurements, coordinates, classes, or derived statistics are shown.
+- MOENV [WQX_P_01](https://data.moenv.gov.tw/en/dataset/detail/WQX_P_01), **Open Government Data License 1.0**, using server-side `MOENV_API_KEY`.
+- Monthly field sampling with publication lag. The adapter requests at most **10,000 indicator rows**, not the complete archive; caches in process for six hours; it is not part of persistent snapshot/history ingestion.
+- Rows group by original station ID and sampling date. Repeated indicators are deduplicated. DO, BOD, suspended solids and ammonia nitrogen require recognized mg/L units. RPI is retained only when source-reported, not invented from replacement values.
+- Sampling and retrieval dates remain distinct. Publication dates are null when not separately supplied. Raw strings/notes preserve censored or unsupported values; missing numeric measurements are not zero.
+- Geographic TWD97 `twd97lon`/`twd97lat` use the explicit EPSG:3824→4326 operation EPSG:1549 (stated 1 m accuracy, numerically unchanged). Projected XY is not relabelled as longitude/latitude. Unknown source county attribution remains null.
+- `/api/atlas/river-quality` provides actual request counts/status. Catalogue `recordCount=0` is a runtime placeholder, not a verified count of samples or a claim that none exist. County averages describe the loaded samples; they are not pollution rankings or matched-effort comparisons. Current production verification belongs in `FULL_PLATFORM_REPORT.md`.
 
-| Source | Original source / dataset | Licence and coverage to verify | Milestone |
-| --- | --- | --- | --- |
-| River quality, MOENV | https://data.moenv.gov.tw/en/dataset/detail/WQX_P_01 · `WQX_P_01` | Verify source metadata/licence and release frequency. Physical sampling, not live sensors. Keep sampling/publication dates separate. Proposed cache 7 days. | 2 |
-| Historical land cover | https://zenodo.org/records/14033363 | Verify licence, actual 2013/2023 files, class codebook, CRS, no-data masks and projection suitability before calculating any areas. Version-based refresh. | 3 |
-| Taiwan Roadkill Observation Network | https://portal.taibif.tw/en/dataset/046bcff5-591c-41d7-99d2-a0e7b54ea3c8 · https://www.gbif.org/dataset/db09684b-0fd1-431e-b5fa-4c1532fbdb14 | Brief specifies CC BY 4.0, 46,416 records, 2011–December 2017; independently verify the published archive before import. Historical only. Refresh by published version. | 3 |
-| Indigenous village GIS, CIP | https://data.cip.gov.tw/API/v1/dump/datastore/A53000000A-111027-001 · https://data.gov.tw/dataset/156632 | Brief specifies Open Government Data License, annual updates; verify latest metadata, record dates, public-coordinate restrictions and naming fields. Proposed cache 30 days. | 4 |
-| Green spaces/public trees | Municipal sources not selected | No national coverage asserted. Must select exact catalogues and verify licences and completeness. No substitute dataset is imported. | 4 |
-| Satellite land-surface temperature | Source not selected | Must verify measurement, acquisition dates, quality masks, spatial resolution and licence. Kept separate from air temperature. | 4+ |
-| Sentinel-2 Level-2A | https://stac.dataspace.copernicus.eu/v1/ · `sentinel-2-l2a` | Future integration only; inspect STAC metadata/licence/cloud coverage. A revisit is not a guarantee of a clear usable image. | 5 |
+## Imported 2023 land cover
+
+- Chen et al., _Taiwan land cover data_, version 3, [Zenodo 14033363](https://zenodo.org/records/14033363), published **2024-11-04**, **CC BY 4.0**. Source archive checksum, class interpretation and method are recorded in [FOREST_DATA.md](FOREST_DATA.md) and `landcover-2023.statistics.json`.
+- The verified archive contains **2023- and 2015-labelled TIFFs**. A description mentioning 2013 does not establish a 2013 baseline. No 2013→2023 change statistic is fabricated; the associated paper says 2013–2022 results require author request.
+- The 2023 source is EPSG:4326. Areas use original-pixel inclusion and WGS84 ellipsoid pixel areas, not degree squares or Web Mercator area. Class 5 remains unresolved built-up/agriculture; no-data remains missing.
+- **19 mapped county summaries** and an all-22-county statistical JSON. Kinmen, Lienchiang and Penghu have null forest statistics; mainland/coastal gaps also remain visible.
+- **1,011,497,706** accepted original pixels yield **36,383.637 km² mapped area**, including **21,258.103 km² class-1 forest**. These are research-classification outputs, not a legal forest inventory. Forest share uses mapped classes 1–6 as denominator, not total legal county area.
+- Two rendered PNGs are generalized web overviews. GeoJSON summary points are not forest plots or raw satellite pixels. Dates retain classification-year precision, not invented sampling days. A classification change alone does not establish deforestation or its cause.
+
+## Imported privacy-screened roadkill subset
+
+- Lin T (2026), Taiwan Biodiversity Research Institute, _The Taiwan Roadkill Observation Network Data Set_, version 1.11, DOI [10.15468/cidkqi](https://doi.org/10.15468/cidkqi), [GBIF source](https://www.gbif.org/dataset/db09684b-0fd1-431e-b5fa-4c1532fbdb14), **CC BY 4.0**.
+- Source archive: **46,416 records**, 2011–December 2017. Current public edition: **10,841 records, 99 taxa**, **2014-01-02–2017-12-31**. It is a limited screened subset, not the whole archive.
+- Conservation metadata checked for **15,600 of 18,147 GBIF Least Concern records**, explicitly incomplete. Only eligible Least Concern species/subspecies outside conservative exclusions are published. Both the [official terrestrial list](https://www.forest.gov.tw/0008324) and [official marine list](https://www.forest.gov.tw/0008329) inform protection screening. Marine turtle/mammal/seabird families, sea-snake genera and all bats are conservatively excluded; original/interpreted species identities must agree without fuzzy taxon matches. This intentionally over-excludes some taxa and is not a legal status determination.
+- Original private coordinates assign counties with official NLSC polygons. All public positions are **10 km EPSG:3826 grid-cell centres**, transformed to WGS84. County assignment remains pre-generalization, so a centre can fall outside that county. The 7.1 km radius describes the grid, not source positional accuracy.
+- Exact coordinates, observer identifiers, localities, media URLs and individual occurrence/source links are withheld. Original observation IDs, scientific names, validated dates, source and licence remain. Species profiles provide aggregate frequency and a whole-dataset source link.
+- Counts reflect reporting effort and screening, not abundance, current distribution or corrected roadkill risk. No photographer assets are copied without verified attribution/licence. See [WILDLIFE_DATA.md](WILDLIFE_DATA.md) and `wildlife.provenance.json`.
+
+## Imported cultural geography and historical trails
+
+| Official source                                                                              |                                     Accepted records | Licence and period                                                  |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------: | ------------------------------------------------------------------- |
+| [CIP village catalogue 156632](https://data.gov.tw/dataset/156632), `A53000000A-111027-001`  |                                            730 / 739 | Open Government Data License 1.0; catalogue updated 2026-08-25      |
+| [CIP historical studies 166817](https://data.gov.tw/dataset/166817), `A53000000A-112072-001` |                            Eight nonspatial profiles | Open Government Data License 1.0; study 2011, listing 2023-12-19    |
+| [Tourism Administration trails 41653](https://data.gov.tw/dataset/41653)                     | 24 public historical routes selected from 229 trails | Open Government Data License 1.0; release 2026-11-15T14:30:30+08:00 |
+
+Village Chinese names, traditional romanization, groups, townships, original IDs
+and public reference points are source-provided. EPSG:3826 coordinates use the
+official non-ballpark 1 m transform; geographic columns cross-check within
+300 m and accepted points must lie in the source county. Nine invalid,
+conflicting or mismatched records are excluded. Points do not define traditional
+territories or access rights; listing dates are not founding dates.
+
+The eight CIP profiles preserve full original Chinese history, communities,
+study conditions and attribution. They contain no coordinates: `geometry=null`.
+English readers see an untranslated notice. Historical terminology and recorded
+conditions are source material, not current hiking guidance.
+
+Actual tourism route geometry is WGS84 WKT with elevation removed for display.
+Selection requires `古道` in the name, `IsPublicAccess=1`, `ServiceStatus=1`;
+two closed/nonpublic historical routes are excluded. This is a public historical
+trail selection, not an exhaustive Indigenous trail inventory. Cross-county
+routes retain `intersectingCountyCodes`; closures and community restrictions
+take precedence over release status.
+
+Official [族語 E 樂園](https://web.klokah.tw/) and
+[Indigenous dictionaries](https://e-dictionary.ilrdf.org.tw/) are linked, not
+copied or relicensed. No names, translations, history or photos are invented.
+See [CULTURE_DATA.md](CULTURE_DATA.md).
+
+## Imported Taipei urban inventories
+
+All three municipal sources use **Open Government Data License 1.0**. Coverage
+is Taipei, not a nationwide tree/park inventory.
+
+| Source                                                                                              | Accepted records | Actual source period / limit                                                      |
+| --------------------------------------------------------------------------------------------------- | ---------------: | --------------------------------------------------------------------------------- |
+| [Parks, squares and green spaces 128366](https://data.gov.tw/dataset/128366)                        |        812 / 813 | Catalogue 2026-10-13; reference points, not park polygons or national green cover |
+| [Public park trees](https://data.taipei/dataset/detail?id=7a49d00c-a5ff-4a6b-be9e-aaa6dc1ff7e8)     |  85,177 / 85,181 | Survey 2016-06-02–2026-10-02; latest row update 2026-11-13                        |
+| [Riverside tree survey](https://data.taipei/dataset/detail?id=34800b67-b5a5-4ce9-9892-eb0945b82644) |  10,735 / 10,921 | One-time survey 2016-11-04–2017-06-16; file update 2023-07-05, not a new survey   |
+
+Source tree IDs, species, dimensions and survey dates are retained. Projected
+TWD97 coordinates use the verified transform; geographic/projected riverside
+columns cross-check. All accepted points lie in the official Taipei polygon.
+**481 park-tree dates and two riverside dates** remain null where missing or
+invalid, including spreadsheet 1899 defaults. Inventory records do not prove
+current survival, planting dates or canopy change. See the city's
+[tree-platform notice](https://pwd.gov.taipei/News_Content.aspx?n=74082687FC0B1094&s=A181C1BB75726C09),
+[URBAN_DATA.md](URBAN_DATA.md) and `urban.provenance.json`.
+
+## Linked resources, not imported measurement layers
+
+- [USGS Landsat surface temperature](https://www.usgs.gov/landsat-missions/landsat-collection-2-surface-temperature): official documentation only. No validated Taiwan thermal scene or urban heat-island estimate is imported. CWA station air temperature must not be relabelled as satellite land-surface temperature.
+- [Copernicus Browser](https://browser.dataspace.copernicus.eu/) and [STAC documentation](https://documentation.dataspace.copernicus.eu/APIs/STAC.html): official scene-discovery resources. There is no integrated scene-ingestion or live satellite-analysis pipeline. Services may require an account; Sentinel-2 has no thermal sensor.
+- Persistent AQI/weather history, a complete river archive and sampling-effort-adjusted county rankings are not provided by current snapshot ingestion.
 
 ## Basemap attribution
 

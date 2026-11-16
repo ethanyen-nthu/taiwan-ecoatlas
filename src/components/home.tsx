@@ -63,24 +63,37 @@ const themes = [
 ];
 const themeNotes = [
   [
-    "Locate air quality and weather station reports, inspect their timestamps, and understand the source behind each measurement.",
-    "尋找空品與氣象測站報告，確認觀測時間，理解每筆測量背後的來源。",
+    "Compare loaded air-quality and weather reports and explore monthly river samples. Check observation and sampling dates before comparing counties; monthly water samples are not live river conditions.",
+    "比較已載入空品與氣象報告，探索每月河川採樣。比較縣市前請確認觀測與採樣日期；月採樣不代表即時河川水況。",
   ],
   [
-    "Follow the planned 2013 and 2023 land-cover comparison. Source classes and methodology will be verified before any change statistics are published.",
-    "認識規劃中的 2013 與 2023 土地覆蓋比較；發布變遷統計前，會先確認來源分類與方法。",
+    "Explore the verified 2023 land-cover raster and county forest summaries. Offshore gaps and unresolved classes stay visible; a verified 2013 baseline is unavailable, so no 2013 change statistic is invented.",
+    "探索驗證之 2023 土地覆蓋影像及縣市森林摘要。離島缺口與未區分類別保持可見；尚無已驗證 2013 基準，不虛構 2013 變遷統計。",
   ],
   [
-    "Explore the context of a historical roadkill archive. Reporting density reflects observer effort as well as wildlife encounters.",
-    "了解歷史路死典藏的資料脈絡。通報密度同時受觀察投入及野生動物遭遇影響。",
+    "Filter a limited 2014–2017 public roadkill subset by species, county and date. Locations are generalized to 10 km grid centres. Recorded frequency reflects observer effort, not animal abundance or roadkill risk.",
+    "依物種、縣市與日期篩選有限之 2014–2017 公開路死子集。位置概化為 10 公里網格中心；頻次受觀察投入影響，不代表動物數量或路死風險。",
   ],
   [
-    "Learn about the planned public village geography layer. Village points document locations; they do not define traditional territories.",
-    "認識規劃中的公開部落地理圖層。部落點位記錄位置，不代表傳統領域範圍。",
+    "Explore 730 validated village reference points, source-listed traditional names and groups, public historical trails and original historical studies. Public points do not define traditional territories or access rights.",
+    "探索 730 筆驗證之部落定位點、來源傳統名制與族別、公開古道及原始歷史研究。公開點位不代表傳統領域或進入權利。",
   ],
   [
-    "Start with measured station air temperatures. Verified parks, tree inventories and satellite surface temperatures will be added as distinct sources.",
-    "從測站實測氣溫開始。經驗證的公園、樹木清冊與衛星地表溫度將作為不同來源加入。",
+    "Explore Taipei park and tree inventories alongside measured CWA air temperatures. Tree survey records are not proof of current survival or nationwide coverage; satellite surface temperature remains a separate, unavailable source.",
+    "將臺北市公園與樹木清冊和 CWA 實測氣溫分別探索。樹木調查紀錄不證明目前存活，也非全國完整覆蓋；衛星地表溫度為尚未匯入之獨立來源。",
+  ],
+];
+const themeStatus = [
+  ["Station reports & monthly river samples", "測站報告與每月河川採樣"],
+  ["2023 research raster · offshore gaps", "2023 研究影像・離島有缺口"],
+  [
+    "Limited historical subset · generalized locations",
+    "有限歷史子集・概化位置",
+  ],
+  ["Public villages, trails & historical studies", "公開部落、古道與歷史研究"],
+  [
+    "Taipei inventories · measured station air temperature",
+    "臺北市清冊・測站實測氣溫",
   ],
 ];
 export function Home() {
@@ -200,18 +213,7 @@ export function Home() {
             title: t(theme.en, theme.zh),
             subtitle: t(theme.enSub, theme.zhSub),
             icon: <theme.Icon size={24} strokeWidth={1.5} />,
-            status:
-              index === 0
-                ? t(
-                    "Latest station reports · configuration required",
-                    "最新測站報告・需要設定",
-                  )
-                : index === 4
-                  ? t(
-                      "Station temperatures · CWA configuration required",
-                      "測站氣溫・需要 CWA 設定",
-                    )
-                  : t("Source import planned", "規劃匯入來源"),
+            status: t(themeStatus[index][0], themeStatus[index][1]),
             content: (
               <>
                 <p>{t(themeNotes[index][0], themeNotes[index][1])}</p>

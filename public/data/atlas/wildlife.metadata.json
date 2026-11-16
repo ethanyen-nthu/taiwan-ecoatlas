@@ -1,0 +1,124 @@
+{
+  "section": "wildlife",
+  "datasets": [
+    {
+      "id": "wildlife",
+      "section": "wildlife",
+      "title": {
+        "en": "Roadkill archive · public subset",
+        "zh": "路死觀察典藏・公開子集"
+      },
+      "description": {
+        "en": "Citizen-science roadkill observations from the released 2011–2017 TaiRON archive. Each point is a generalized 10 km grid-cell centre.",
+        "zh": "取自臺灣路死觀察網 2011–2017 公開典藏的公民科學紀錄。每個點皆為概化後的 10 公里網格中心。"
+      },
+      "sourceId": "roadkill",
+      "sourceUrl": "https://www.gbif.org/dataset/db09684b-0fd1-431e-b5fa-4c1532fbdb14",
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "status": "available",
+      "file": "/data/atlas/wildlife.geojson",
+      "recordCount": 10841,
+      "dateRange": [
+        "2014-01-02",
+        "2017-12-31"
+      ],
+      "updatedAt": "2026-11-16T00:31:42.612269+00:00",
+      "limitation": {
+        "en": "Published subset dates: 2014-01-02–2017-12-31. Conservation metadata checked for 15,600 of 18,147 Least Concern records. Conservative subset: only exact-name GBIF Least Concern matches screened against published terrestrial and marine protected lists. Fuzzy taxon matches, marine turtles/mammals, seabird groups, sea snakes and bats are omitted conservatively; this screen is not a legal status determination. Exact coordinates, observer details and individual source links are withheld. Map points are 10 km cell centres, not observation locations; multiple records may share a centre. Source coordinate accuracy is unknown; the 7.1 km generalization radius describes the grid only. Counts reflect reporting effort, not animal abundance or roadkill risk.",
+        "zh": "公開子集日期：2014-01-02–2017-12-31；已核對 15,600／18,147 筆無危紀錄的保育資訊。採保守公開子集：僅呈現學名完全符合的 GBIF 無危紀錄，並以公開陸域及海洋保育名錄篩檢。模糊分類匹配、海龜、海洋哺乳類、海鳥分類群、海蛇及蝙蝠皆保守排除；本篩檢不是法律上的保育等級認定。精確座標、觀察者及個別來源連結不公開。地圖點位是 10 公里網格中心，並非發現位置，多筆紀錄可能共用中心。來源座標準確度未知，7.1 公里概化半徑僅描述網格。通報數受觀察投入影響，不代表動物數量或路死風險。"
+      },
+      "fields": [
+        {
+          "key": "scientificName",
+          "label": {
+            "en": "Reported taxon",
+            "zh": "原始分類名稱"
+          }
+        },
+        {
+          "key": "category",
+          "label": {
+            "en": "Reported class",
+            "zh": "原始綱別"
+          }
+        },
+        {
+          "key": "family",
+          "label": {
+            "en": "Reported family",
+            "zh": "原始科別"
+          }
+        },
+        {
+          "key": "observationId",
+          "label": {
+            "en": "Original observation ID",
+            "zh": "原始觀察編號"
+          }
+        },
+        {
+          "key": "individualCount",
+          "label": {
+            "en": "Reported individuals",
+            "zh": "原始個體數"
+          }
+        },
+        {
+          "key": "precision",
+          "label": {
+            "en": "Location precision",
+            "zh": "位置精度"
+          }
+        }
+      ],
+      "statisticsFile": "/data/atlas/wildlife.species.json"
+    }
+  ],
+  "resources": [
+    {
+      "title": {
+        "en": "TaiRON · contribute an observation",
+        "zh": "臺灣路死觀察網・提供觀察紀錄"
+      },
+      "url": "https://roadkill.tw/",
+      "description": {
+        "en": "Use the official network to contribute new observations. EcoAtlas does not collect user submissions in this release.",
+        "zh": "請透過官方觀察網提供新紀錄；本版 EcoAtlas 不收集使用者通報。"
+      }
+    },
+    {
+      "title": {
+        "en": "Released archive and methodology",
+        "zh": "公開典藏與調查方法"
+      },
+      "url": "https://www.gbif.org/dataset/db09684b-0fd1-431e-b5fa-4c1532fbdb14",
+      "description": {
+        "en": "Taiwan Biodiversity Research Institute, TaiBIF and GBIF. Lin T (2026), version 1.11, DOI 10.15468/cidkqi.",
+        "zh": "農業部生物多樣性研究所、TaiBIF 與 GBIF；Lin T（2026），版本 1.11，DOI 10.15468/cidkqi。"
+      }
+    },
+    {
+      "title": {
+        "en": "Official protected-species list",
+        "zh": "官方陸域保育類野生動物名錄"
+      },
+      "url": "https://www.forest.gov.tw/0008324",
+      "description": {
+        "en": "The currently published list is used only for a conservative exclusion screen. This atlas is not a legal status determination.",
+        "zh": "以官方目前公布的名錄進行保守排除；本圖集不作法律上的保育等級認定。"
+      }
+    },
+    {
+      "title": {
+        "en": "Official marine protected-species list",
+        "zh": "官方海洋保育類野生動物名錄"
+      },
+      "url": "https://www.forest.gov.tw/0008329",
+      "description": {
+        "en": "The published marine list supplements the terrestrial screen. Sensitive marine groups are conservatively omitted even where an individual legal status is uncertain.",
+        "zh": "以公開海洋名錄補足陸域篩檢；海洋敏感分類群即使個別法律等級未確認，亦保守排除。"
+      }
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import { sources } from "@/lib/sources";
 import { useLanguage, useObservations } from "./providers";
 import { Status, useFormatTime } from "./status";
 import { Footer } from "./footer";
+import { AtlasSourceLibrary } from "./atlas-source-library";
 export function SourceRegistry() {
   const { t, language } = useLanguage(),
     format = useFormatTime();
@@ -51,11 +52,13 @@ export function SourceRegistry() {
       <div className="configuration-banner">
         <Info size={21} />
         <div>
-          <h2>{t("Your data connections", "資料連線設定")}</h2>
+          <h2>
+            {t("Live services and published editions", "即時服務與公開版本")}
+          </h2>
           <p>
             {t(
-              "Add MOENV_API_KEY and CWA_API_KEY to enable station observations. Supabase is optional for the local map and provides durable last-valid snapshots when configured.",
-              "設定 MOENV_API_KEY 與 CWA_API_KEY 可啟用測站觀測。地圖可在無 Supabase 下使用；設定後可永久保留最後有效快照。",
+              "Station status below reflects current API requests. River samples are collected monthly and published later. Forest, wildlife, cultural and urban layers use documented source editions; historical dates remain visible and do not become live observations.",
+              "下方測站狀態反映目前 API 請求。河川資料按月採樣後延後發布。森林、野生動物、文化與都市圖層使用已記錄之來源版本，保留歷史年代，不作即時觀測。",
             )}
           </p>
           <span>
@@ -107,15 +110,19 @@ export function SourceRegistry() {
                   />
                 ) : (
                   <span
-                    className={`source-state ${source.id === "counties" ? "verified" : ""}`}
+                    className={`source-state ${source.stage === "ready" ? "verified" : ""}`}
                   >
                     {source.id === "counties" ? (
                       <>
                         <CheckCircle2 size={14} />
                         {t("Verified static edition", "已驗證靜態版本")}
                       </>
+                    ) : source.id === "river" ? (
+                      t("Server API adapter", "伺服器 API 介接")
+                    ) : source.stage === "ready" ? (
+                      t("Published source edition", "公開來源版本")
                     ) : (
-                      t("Not imported", "尚未匯入")
+                      t("Unavailable", "尚無可用資料")
                     )}
                   </span>
                 )}
@@ -136,7 +143,9 @@ export function SourceRegistry() {
                     {source.cacheSeconds
                       ? source.cacheSeconds < 3600
                         ? `${source.cacheSeconds / 60} ${t("minutes", "分鐘")}`
-                        : `${source.cacheSeconds / 86400} ${t("days", "天")}`
+                        : source.cacheSeconds < 86400
+                          ? `${source.cacheSeconds / 3600} ${t("hours", "小時")}`
+                          : `${source.cacheSeconds / 86400} ${t("days", "天")}`
                       : t("Version based", "依版本")}
                   </dd>
                 </div>
@@ -224,6 +233,7 @@ export function SourceRegistry() {
           );
         })}
       </div>
+      <AtlasSourceLibrary />
       <Footer />
     </main>
   );

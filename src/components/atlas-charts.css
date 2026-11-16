@@ -1,0 +1,161 @@
+.atlas-charts {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.atlas-chart-panel {
+  min-width: 0;
+  padding: clamp(16px, 2.5vw, 26px);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.atlas-chart-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.atlas-chart-panel h3 {
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+.atlas-chart-eyebrow {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.atlas-chart-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-chart-secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.atlas-chart-panel figure {
+  margin: 16px 0 0;
+  min-width: 0;
+}
+.atlas-chart-panel figcaption,
+.atlas-chart-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  margin-top: 12px;
+}
+.atlas-chart-scroll {
+  /* Constrain the scrollport, not Recharts' measured chart wrapper. Its
+     ResponsiveContainer intentionally nests the chart in a zero-width div. */
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
+}
+.atlas-chart-empty {
+  padding: 26px 0 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.atlas-region-picker,
+.atlas-chart-table {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 0.83rem;
+}
+.atlas-charts summary {
+  width: fit-content;
+  max-width: 100%;
+  cursor: pointer;
+  font-weight: 600;
+}
+.atlas-region-picker fieldset {
+  margin: 14px 0 0;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.atlas-region-picker legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.atlas-region-actions {
+  display: flex;
+  gap: 16px;
+  margin: 12px 0;
+}
+.atlas-region-actions button {
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atlas-region-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 6px 18px;
+}
+.atlas-region-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  cursor: pointer;
+}
+.atlas-region-options input {
+  accent-color: var(--green);
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.atlas-chart-table table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 330px;
+  margin-top: 12px;
+  font-size: 0.79rem;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-chart-table caption {
+  text-align: start;
+  color: var(--muted);
+  font-size: 0.73rem;
+  padding-bottom: 10px;
+}
+.atlas-chart-table th,
+.atlas-chart-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: end;
+  vertical-align: top;
+}
+.atlas-chart-table th:first-child {
+  text-align: start;
+}
+.atlas-chart-table thead th {
+  background: var(--soft);
+  font-weight: 600;
+}
+.atlas-chart-table tbody th {
+  font-weight: 500;
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+.atlas-period-table {
+  max-height: 360px;
+  margin-top: 10px;
+}
+@media (max-width: 760px) {
+  .atlas-chart-secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atlas-chart-panel {
+    padding: 16px;
+  }
+}

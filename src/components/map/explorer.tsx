@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { layers, type LayerId } from "@/lib/layers";
+import type { AtlasDataset, AtlasFeature } from "@/lib/atlas-types";
 import { inCounty } from "@/lib/geo";
 import { aqiColours, aqiStatusEnglish } from "@/lib/transform";
 import type {
@@ -31,6 +32,12 @@ import { sourceById } from "@/lib/sources";
 import { useLanguage, useObservations, useCounties } from "../providers";
 import { ContinuousTabs } from "../watermelon/continuous-tabs";
 import { Status, useFormatTime } from "../status";
+import {
+  useAtlasCatalogue,
+  useAtlasOverlays,
+  type AtlasMapFilters,
+} from "../atlas-hooks";
+import { AtlasLayerControls, AtlasMapLegend } from "../atlas-layer-controls";
 
 const MapCanvas = dynamic(() => import("./map-canvas"), {
   ssr: false,
@@ -58,7 +65,13 @@ function filterObservations(
     ) || []
   );
 }
-export default function Explorer({ compact = false }: { compact?: boolean }) {
+export default function Explorer({
+  compact = false,
+  initialLayers = [],
+}: {
+  compact?: boolean;
+  initialLayers?: string[];
+}) {
   const MapHeading = compact ? "h2" : "h1";
   const { t, language } = useLanguage();
   const panelId = useId();
@@ -66,7 +79,13 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
   const [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
     [resetToken, setResetToken] = useState(0);
-  const [visible, setVisible] = useState<LayerId[]>(["counties", "aqi"]),
+  const [visible, setVisible] = useState<LayerId[]>(
+      initialLayers.includes("live-weather")
+        ? initialLayers.includes("live-aqi")
+          ? ["counties", "aqi", "weather"]
+          : ["counties", "weather"]
+        : ["counties", "aqi"],
+    ),
     [panelOpen, setPanelOpen] = useState(!compact);
   const [tab, setTab] = useState<"layers" | "details">("layers"),
     [date, setDate] = useState("");
@@ -74,6 +93,64 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
     kind: ObservationKind;
     observation: Observation;
   } | null>(null);
+  const [atlasIds, setAtlasIds] = useState<string[]>(
+    initialLayers.filter((id) => !["live-aqi", "live-weather"].includes(id)),
+  );
+  const [atlasMode, setAtlasMode] = useState<"clusters" | "heatmap">(
+    "clusters",
+  );
+  const [atlasFilters, setAtlasFilters] = useState<AtlasMapFilters>({});
+  const [atlasFocus, setAtlasFocus] = useState<{
+    datasetId: string;
+    feature: AtlasFeature;
+  } | null>(null);
+  const [viewport, setViewport] = useState<{
+    bbox: [number, number, number, number];
+    zoom: number;
+  } | null>(null);
+  const catalogue = useAtlasCatalogue();
+  const atlas = useAtlasOverlays(atlasIds, viewport, selected, atlasMode, {
+    ...atlasFilters,
+    q: query.trim(),
+  });
+  const atlasMatches = query.trim()
+    ? atlas.overlays
+        .flatMap((overlay) =>
+          overlay.data.features
+            .filter(
+              (feature) =>
+                !feature.properties.aggregated &&
+                [
+                  feature.properties.title,
+                  feature.properties.titleZh,
+                  feature.properties.species,
+                  feature.properties.scientificName,
+                ].some((value) =>
+                  String(value || "")
+                    .toLowerCase()
+                    .includes(query.toLowerCase()),
+                ),
+            )
+            .map((feature) => ({ dataset: overlay.dataset, feature })),
+        )
+        .slice(0, 8)
+    : [];
+  const toggleAtlas = (dataset: AtlasDataset) => {
+    setAtlasFocus(null);
+    setAtlasIds((current) =>
+      current.includes(dataset.id)
+        ? current.filter((id) => id !== dataset.id)
+        : [
+            ...current.filter(
+              (id) =>
+                !dataset.raster ||
+                !catalogue.data?.datasets.find((item) => item.id === id)
+                  ?.raster,
+            ),
+            dataset.id,
+          ],
+    );
+  };
   const aqi = useObservations("aqi"),
     weather = useObservations("weather");
   const formatTime = useFormatTime();
@@ -91,7 +168,7 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
         .toLowerCase()
         .includes(query.toLowerCase()),
     ) || [];
-  // Only small station datasets are retained in memory. Large future layers use viewport queries.
+  // Native station lists stay small; catalogue layers use bounded viewport queries.
   const filteredAqi = useMemo(
     () => filterObservations(aqi.data, selected, counties, date),
     [aqi.data, selected, counties, date],
@@ -106,6 +183,8 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
     );
   const reset = () => {
     setFocus(null);
+    setAtlasFocus(null);
+    setAtlasFilters({});
     setSelected("");
     setQuery("");
     setDate("");
@@ -131,9 +210,14 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
             resetToken={resetToken}
             onSelect={(code) => {
               setFocus(null);
+              setAtlasFocus(null);
               setSelected(code);
             }}
             focusedObservation={focus}
+            overlays={atlas.overlays}
+            onViewport={setViewport}
+            focusedAtlas={atlasFocus}
+            onAtlasSelect={() => setFocus(null)}
             aqiRetrievedAt={aqi.data?.retrievedAt || null}
             weatherRetrievedAt={weather.data?.retrievedAt || null}
           />
@@ -249,6 +333,7 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                   key={f.properties.COUNTYCODE}
                   onClick={() => {
                     setFocus(null);
+                    setAtlasFocus(null);
                     setSelected(f.properties.COUNTYCODE);
                     setQuery("");
                   }}
@@ -280,6 +365,7 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                       const kind = o.source === "aqi" ? "aqi" : "weather";
                       setVisible((v) => (v.includes(kind) ? v : [...v, kind]));
                       setFocus({ kind, observation: o });
+                      setAtlasFocus(null);
                       setQuery("");
                     }}
                   >
@@ -294,7 +380,29 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                     </span>
                   </button>
                 ))}
+              {atlasMatches.map(({ dataset, feature }) => (
+                <button
+                  key={`${dataset.id}-${feature.properties.id}`}
+                  onClick={() => {
+                    setFocus(null);
+                    setAtlasFocus({ datasetId: dataset.id, feature });
+                    setQuery("");
+                  }}
+                >
+                  <MapPin size={14} />
+                  <span>
+                    {language === "zh"
+                      ? feature.properties.titleZh || feature.properties.title
+                      : feature.properties.title}
+                    <small>
+                      {dataset.title[language]} ·{" "}
+                      {t("current view", "目前視窗")}
+                    </small>
+                  </span>
+                </button>
+              ))}
               {!options.length &&
+                !atlasMatches.length &&
                 ![
                   ...(aqi.data?.observations || []),
                   ...(weather.data?.observations || []),
@@ -303,8 +411,8 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                 ) && (
                   <p>
                     {t(
-                      "No matching county or loaded station.",
-                      "沒有符合的縣市或已載入測站。",
+                      "No matching county, loaded station or selected-layer feature in this view.",
+                      "此視窗沒有符合的縣市、已載入測站或已選圖層地物。",
                     )}
                   </p>
                 )}
@@ -317,6 +425,7 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
               value={selected}
               onChange={(e) => {
                 setFocus(null);
+                setAtlasFocus(null);
                 setSelected(e.target.value);
               }}
             >
@@ -349,7 +458,9 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                     <>
                       <Layers3 size={16} />
                       {t("Layers", "圖層")}
-                      <span className="tab-count">{visible.length}</span>
+                      <span className="tab-count">
+                        {visible.length + atlasIds.length}
+                      </span>
                     </>
                   ),
                 },
@@ -445,34 +556,24 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                       </button>
                     </div>
                   ))}
-                <details className="future-layers">
-                  <summary>
-                    <span>{t("More layers", "更多圖層")}</span>
-                    <span>{t("8 not imported", "8 個尚未匯入")}</span>
-                    <ChevronDown size={16} />
-                  </summary>
-                  <div className="section-label upcoming-label">
-                    <span>{t("ON THE HORIZON", "未來圖層")}</span>
-                    <span>{t("Not imported", "尚未匯入")}</span>
-                  </div>
-                  {layers
-                    .filter((l) => !l.available)
-                    .map((layer) => (
-                      <div className="layer-row future-layer" key={layer.id}>
-                        <span
-                          className="layer-dot"
-                          style={{ background: layer.color }}
-                        />
-                        <div className="layer-text">
-                          <span>{layer.name[language]}</span>
-                          <p>
-                            {layer.dateRange || layer.description[language]}
-                          </p>
-                        </div>
-                        <span className="planned-mark">—</span>
-                      </div>
-                    ))}
-                </details>
+                <AtlasLayerControls
+                  datasets={catalogue.data?.datasets || []}
+                  selected={atlasIds}
+                  onToggle={toggleAtlas}
+                  mode={atlasMode}
+                  onMode={setAtlasMode}
+                  filters={atlasFilters}
+                  onFilters={(next) => {
+                    setAtlasFocus(null);
+                    setAtlasFilters(next);
+                  }}
+                  loading={catalogue.isLoading || atlas.isLoading}
+                  error={!!catalogue.error || !!atlas.error}
+                  failedLayers={atlas.failedLayers}
+                  categories={atlas.layerDetails
+                    .flatMap((layer) => layer.categories || [])
+                    .map((category) => category.name)}
+                />
                 <div className="panel-note">
                   <Info size={15} />
                   <p>
@@ -526,6 +627,33 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
                     </div>
                   );
                 })}
+                {atlas.overlays.map((overlay) => (
+                  <div className="data-detail" key={overlay.dataset.id}>
+                    <h3>{overlay.dataset.title[language]}</h3>
+                    <p className="small muted">
+                      {overlay.dataset.limitation[language]}
+                    </p>
+                    <dl>
+                      <dt>{t("Source", "來源")}</dt>
+                      <dd>{overlay.dataset.sourceId}</dd>
+                      <dt>{t("Date coverage", "日期涵蓋")}</dt>
+                      <dd>
+                        {overlay.dataset.dateRange?.join(" — ") ||
+                          t("Not supplied", "未提供")}
+                      </dd>
+                      <dt>{t("Licence", "授權")}</dt>
+                      <dd>{overlay.dataset.licence}</dd>
+                    </dl>
+                    <a
+                      href={overlay.dataset.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t("Original source", "原始來源")}
+                      <ArrowUpRight size={13} />
+                    </a>
+                  </div>
+                ))}
                 <p className="small muted">
                   {t(
                     "All displayed times use Asia/Taipei (UTC+8). Freshness applies to the latest report; inspect each station’s own timestamp.",
@@ -632,7 +760,10 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
         </aside>
       )}
       {!compact && (
-        <div className="map-legend">
+        <div
+          className="map-legend"
+          style={{ maxHeight: "min(45vh, 380px)", overflowY: "auto" }}
+        >
           <span className="eyebrow">{t("MAP KEY", "圖例")}</span>
           {visible.includes("counties") && (
             <div>
@@ -646,6 +777,7 @@ export default function Explorer({ compact = false }: { compact?: boolean }) {
               {t("Weather station", "氣象測站")}
             </div>
           )}
+          <AtlasMapLegend overlays={atlas.overlays} />
           {visible.includes("aqi") && (
             <details>
               <summary>

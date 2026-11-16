@@ -1,5 +1,5 @@
-import { TopicPage } from "@/components/topic-page";
+import { SectionPage } from "@/components/section-page";
 export const metadata = { title: "wildlife" };
 export default function Page() {
-  return <TopicPage topic="wildlife" />;
+  return <SectionPage section="wildlife" />;
 }
