@@ -2,7 +2,7 @@
 
 A bilingual environmental and cultural geography platform with five source-backed sections: environmental observations, historical land cover, a privacy-screened wildlife archive, public cultural geography and Taipei urban inventories. The shared atlas provides filters, map layers, descriptive charts, source records and exports. No environmental measurements or missing historical baselines are fabricated.
 
-Existing public website: [taiwan-ecoatlas.vercel.app](https://taiwan-ecoatlas.vercel.app). Repository: [ethanyen-nthu/taiwan-ecoatlas](https://github.com/ethanyen-nthu/taiwan-ecoatlas). The earlier launch, including both government feeds, was verified on 15 November 2026; [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md) preserves that evidence. It does not establish that the expanded implementation below has been deployed. Current scope, dataset counts and release-verification status are recorded in [FULL_PLATFORM_REPORT.md](FULL_PLATFORM_REPORT.md).
+Verified public website: [taiwan-ecoatlas.vercel.app](https://taiwan-ecoatlas.vercel.app). Repository: [ethanyen-nthu/taiwan-ecoatlas](https://github.com/ethanyen-nthu/taiwan-ecoatlas). The five-section release was deployed and tested on 16 November 2026: 131 unit/API tests, 27 local browser cases and 23 public production cases passed. [FULL_PLATFORM_REPORT.md](FULL_PLATFORM_REPORT.md) records the tested application revisions, dataset coverage, live provider counts and remaining limits; [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md) preserves the earlier launch history.
 
 ## Current data coverage
 
@@ -118,13 +118,14 @@ The separate release suite makes real, read-only requests without mocking APIs o
 
 ```sh
 ECOATLAS_BASE_URL=https://your-public-production-domain pnpm test:production
+ECOATLAS_BASE_URL=https://your-public-production-domain pnpm test:platform:production
 ```
 
 It checks routes and language switching at desktop, tablet and mobile widths, all 22 county selections, the downloaded boundary checksum, private-file exclusions, actual fresh AQI/weather reports in map popups, and real historical river samples with separate sampling/publication timestamps in record details. Missing keys, unavailable/stale providers and authentication-protected URLs fail the relevant provider checks. Do not substitute the no-key browser suite for public release verification. Use `--grep 'public|private'` only for presentation checks while credentials are pending, and report the provider checks separately.
 
 In the Vercel project's **Settings → Environment Variables**, add `MOENV_API_KEY` and `CWA_API_KEY` as **Secret** variables targeting **Production**. Add Preview only if those deployments should also access the providers. Enter values directly in Vercel; do not paste them into chat, GitHub, client code or variables beginning `NEXT_PUBLIC_`. Redeploy after saving because environment changes apply to new deployments. Verify `/api/status`, both observation endpoints and the complete release suite afterward. Neither a variable's presence nor a green build establishes that the provider accepted its value.
 
-See [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md) for the current launch audit; the original milestone report records an earlier local-only verification.
+Both provider credentials are already configured and verified in the existing production project. See [FULL_PLATFORM_REPORT.md](FULL_PLATFORM_REPORT.md) for this release and [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md) for earlier launch evidence.
 
 ## Optional hourly snapshot refresh
 

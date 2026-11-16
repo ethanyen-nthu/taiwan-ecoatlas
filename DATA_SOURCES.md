@@ -46,6 +46,7 @@ The agency registry is `src/lib/sources.ts`; imported editions also have bilingu
 
 - MOENV [WQX_P_01](https://data.moenv.gov.tw/en/dataset/detail/WQX_P_01), **Open Government Data License 1.0**, using server-side `MOENV_API_KEY`.
 - Monthly field sampling with publication lag. The adapter requests at most **10,000 indicator rows**, not the complete archive; caches in process for six hours; it is not part of persistent snapshot/history ingestion.
+- Public verification on 2026-11-16 returned **1,000 indicator rows**, grouped into 39 dated samples across six counties in the checked response. Counts can vary between provider responses and server instances. The actual row count is displayed, and Chinese/English metadata schemas are both supported.
 - Rows group by original station ID and sampling date. Repeated indicators are deduplicated. DO, BOD, suspended solids and ammonia nitrogen require recognized mg/L units. RPI is retained only when source-reported, not invented from replacement values.
 - Sampling and retrieval dates remain distinct. Publication dates are null when not separately supplied. Raw strings/notes preserve censored or unsupported values; missing numeric measurements are not zero.
 - Geographic TWD97 `twd97lon`/`twd97lat` use the explicit EPSG:3824→4326 operation EPSG:1549 (stated 1 m accuracy, numerically unchanged). Projected XY is not relabelled as longitude/latitude. Unknown source county attribution remains null.

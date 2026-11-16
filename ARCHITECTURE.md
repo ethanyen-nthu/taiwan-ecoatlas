@@ -127,7 +127,10 @@ retains and marks prior results stale on request failure. There is no global
 rate limiter or shared cache across all instances.
 
 The river adapter queries `WQX_P_01` with the server MOENV key, requesting up to
-10,000 indicator rows. It groups by station/sampling date, deduplicates repeated
+10,000 indicator rows. Production verification returned 1,000; the API/UI expose
+the actual upstream row count rather than assuming the requested cap was met.
+Both official Chinese and English station/county/river metadata schemas are
+supported. It groups by station/sampling date, deduplicates repeated
 indicators, preserves raw/censored values separately from numeric nulls, checks
 units and retains source-reported RPI rather than inventing it. Source TWD97
 geographic coordinates use the explicit EPSG:1549 transformation convention;

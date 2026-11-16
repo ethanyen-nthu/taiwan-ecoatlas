@@ -9,16 +9,18 @@ supersede or rewrite the dated [LAUNCH_AUDIT.md](LAUNCH_AUDIT.md) or
 
 The existing repository is
 [ethanyen-nthu/taiwan-ecoatlas](https://github.com/ethanyen-nthu/taiwan-ecoatlas),
-and the earlier launch URL is
-[taiwan-ecoatlas.vercel.app](https://taiwan-ecoatlas.vercel.app). The previous
-launch verified AQI/CWA on 2026-11-15. That evidence does **not** verify the
-expanded implementation or prove its changes have reached production.
+and the verified public URL is
+[taiwan-ecoatlas.vercel.app](https://taiwan-ecoatlas.vercel.app).
+The expanded platform was published in `ddeb7eb`; production river metadata
+was corrected in application revision `4cfa4e8`. Vercel marked
+[the application deployment](https://taiwan-ecoatlas-1tp287agj-nthu1.vercel.app)
+READY, and the actual public alias was tested on 2026-11-16.
 
 The expanded implementation passes the local production build, TypeScript,
 ESLint, 131 unit/API tests, official county validation and repository/client
-secret-boundary audit. The expanded-release commit and direct public
-verification are pending the release run; a local build does not establish
-successful deployment.
+secret-boundary audit. All 27 local browser cases and 23 actual public
+production cases passed, including the river correction. The production
+checks used real providers without route interception or substitute data.
 
 ## Implemented breadth
 
@@ -148,7 +150,7 @@ The optional pinned processing environment is installed with
 `.venv/bin/python -m pip install -r scripts/requirements-atlas.txt`; these
 Python dependencies are not required to run the Next.js application.
 
-## Validation evidence and pending release checks
+## Validation evidence
 
 Completed during the culture/urban/profile/source-library work:
 
@@ -172,22 +174,55 @@ not establish public deployment or complete dashboard accessibility coverage.
 
 Other current test suites cover geography, adapters, HTTP retries, snapshots,
 river parsing, atlas queries/APIs, forest statistics and wildlife privacy.
-Their final aggregate results must be recorded from the final release run,
-not inferred from the existence of test files.
+Their final aggregate results below come from executed commands and browser runs.
 The new production-only river test makes real API/UI requests, requires actual
 historical samples and verifies sampling dates separately from missing
-publication dates. It has been linted but remains unexecuted until deployment.
+publication dates. It passed against the corrected public deployment.
 
-| Final release check                                | Current evidence                                                                                                |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Whole-tree TypeScript / ESLint / all unit tests    | Passed: TypeScript, ESLint and 131 unit/API tests                                                               |
-| Geographic validation                              | Passed: official checksums, WGS84 and all 22 valid county geometries                                            |
-| Production build and secret audit                  | Passed: Next.js production build and secret-boundary audit                                                      |
-| Desktop/tablet/mobile Playwright and visual review | Passed: 27 browser tests (10 baseline, 5 central, 12 platform); accessibility, responsive and screenshot checks |
-| GitHub commit and pushed revision                  | Pending final release record                                                                                    |
-| Vercel expanded deployment / actual public URL     | Pending deployment and direct verification                                                                      |
-| Production AQI, CWA and river provider checks      | Pending new release; dated earlier AQI/CWA evidence remains in launch audit                                     |
-| Production profile/assets/routes/language checks   | Pending expanded-release verification                                                                           |
+| Final release check              | Executed evidence                                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript / ESLint / unit tests | Passed; 131 tests across 14 files                                                                                                           |
+| Geography                        | Passed official checksums, WGS84, all 22 valid counties and offshore islands                                                                |
+| Install/build/secrets            | Frozen lockfile install, production build and repository/client secret-boundary scan passed; .env.local and .vercel excluded                |
+| Local Playwright                 | 27 passed: 10 baseline, 5 central map, 12 platform; desktop/tablet/mobile, keyboard, axe and actual screenshot review                       |
+| GitHub                           | Normal main pushes to existing repository; application revisions ddeb7eb and 4cfa4e8; no force push                                         |
+| Vercel                           | Existing nthu1/taiwan-ecoatlas project; Next.js/Node24/default output; automatic Git production deployments verified                        |
+| Public platform                  | 17/17 passed on ddeb7eb: all five dashboards, source-backed layers, dates, charts, profiles, language, accessibility and responsive layouts |
+| Public release/provider flow     | 6/6 passed on 4cfa4e8: routes, 22 county selections, fresh AQI/weather popups, private-file exclusion and actual river record details       |
+| Public assets                    | All 11 unique catalogue download/raster/statistics URLs returned HTTP200                                                                    |
+
+At 00:47 UTC on 2026-11-16, actual production reports contained **84 AQI**
+and **874 weather** stations, both fresh. The corrected river request returned
+**39 station/date samples across six counties**, dated **2026-09-02–2026-09-21**,
+with **147 numeric indicator values** across DO, BOD, suspended solids, ammonia
+nitrogen and reported RPI. These are observed request counts, not fixed totals.
+Every checked sample retained its source station/river name and valid county.
+Sampling dates and unknown publication dates were verified in the actual UI.
+
+The river provider returned **1,000 indicator rows despite the requested
+10,000-row cap**. The API and interface disclose the actual extract size.
+Different per-instance responses can contain different partial subsets; no
+complete archive or matched county monitoring coverage is claimed. Historical
+river samples are loaded on demand and are not durably imported into a database.
+The initial production test caught missing Chinese-schema station/county fields;
+the corrected bilingual parser and regression test passed before closeout.
+
+Initial accessibility testing also found and fixed an invisible Recharts sizing
+constraint and an unnamed-role scroll region. Affected checks were rerun and
+passed. No test failure remains unresolved.
+
+Source/private-value audit scope: no MOENV/CWA values were read back locally;
+pattern and client-boundary scans passed, server-only imports remain enforced,
+and actual private-file HTTP checks passed. This is not a claim that a scanner
+can recognize unknown secrets from arbitrary strings.
+
+Reproduce the public checks with the production URL and installed Playwright
+browser:
+
+```sh
+ECOATLAS_BASE_URL=https://taiwan-ecoatlas.vercel.app pnpm test:production
+ECOATLAS_BASE_URL=https://taiwan-ecoatlas.vercel.app pnpm test:platform:production
+```
 
 ## Remaining limits
 
