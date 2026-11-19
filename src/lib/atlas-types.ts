@@ -61,8 +61,10 @@ export interface AtlasManifest {
 export interface AtlasOverlay {
   dataset: AtlasDataset;
   data: AtlasCollection;
-  mode: "clusters" | "heatmap";
+  mode: "points" | "density";
   color: string;
+  /** Colour each point by the official AQI band of its own reading. */
+  colorBy?: "aqi";
 }
 export interface AtlasResult {
   dataset: AtlasDataset;

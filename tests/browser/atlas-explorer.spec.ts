@@ -249,9 +249,9 @@ test("real forest rasters and all thematic switches preserve the central map can
   const style = page.getByRole("combobox", {
     name: "Additional point-layer style",
   });
-  await style.selectOption("heatmap");
-  await expect(style).toHaveValue("heatmap");
-  await style.selectOption("clusters");
+  await style.selectOption("density");
+  await expect(style).toHaveValue("density");
+  await style.selectOption("points");
   await enableLayer(page, "Indigenous village reference points", "villages");
   const trails = await enableLayer(
     page,

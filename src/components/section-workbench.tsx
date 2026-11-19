@@ -1,17 +1,22 @@
 "use client";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useId, useMemo, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import useSWRImmutable from "swr/immutable";
 import {
   ArrowDownToLine,
   ArrowUpRight,
-  ChartNoAxesCombined,
   Info,
-  Layers3,
-  MapPin,
   RefreshCw,
   X,
 } from "lucide-react";
@@ -22,6 +27,11 @@ import type {
   AtlasSection,
 } from "@/lib/atlas-types";
 import type { Freshness } from "@/lib/types";
+import {
+  aqiColorForValue,
+  aqiColours,
+  aqiStatusEnglish,
+} from "@/lib/transform";
 import { ContinuousTabs } from "./watermelon/continuous-tabs";
 import { useCounties, useLanguage } from "./providers";
 import {
@@ -45,7 +55,6 @@ const headings = {
   environment: {
     en: "Our shared environment.",
     zh: "我們共有的環境。",
-    eyebrow: ["ENVIRONMENTAL MONITORING", "環境監測"],
     description: [
       "Read the measurements behind the map: air quality, weather and laboratory-tested river samples.",
       "從地圖看見測量：空氣品質、氣象與實驗室檢測的河川採樣。",
@@ -54,7 +63,6 @@ const headings = {
   forests: {
     en: "A changing landscape.",
     zh: "變遷中的地景。",
-    eyebrow: ["FORESTS & LAND COVER", "森林與土地覆蓋"],
     description: [
       "Explore the published 2023 land-cover classification and its county statistics. Keep classification, coverage and evidence in view.",
       "探索公開的 2023 土地覆蓋分類與縣市統計，同時理解分類、涵蓋範圍及證據。",
@@ -63,7 +71,6 @@ const headings = {
   wildlife: {
     en: "Life along the roads.",
     zh: "道路旁的生命。",
-    eyebrow: ["HISTORICAL WILDLIFE ARCHIVE", "歷史野生動物典藏"],
     description: [
       "Explore a conservation-screened subset of the 2011–2017 roadkill archive. Public map positions are generalized grid centres, not sighting locations.",
       "探索 2011–2017 路死典藏中經保育篩檢的子集。公開地圖位置為概化格網中心，並非實際發現點。",
@@ -72,7 +79,6 @@ const headings = {
   culture: {
     en: "People and place.",
     zh: "人與地方。",
-    eyebrow: ["INDIGENOUS CULTURAL ATLAS", "原住民族文化地圖"],
     description: [
       "Follow public village reference points, source-listed names and groups, historical studies and public trail routes.",
       "探索公開部落定位點、來源所列名稱與族群、歷史研究及公開古道路線。",
@@ -81,7 +87,6 @@ const headings = {
   urban: {
     en: "Greener everyday spaces.",
     zh: "更綠的日常空間。",
-    eyebrow: ["URBAN ECOLOGY & TEMPERATURE", "都市生態與氣溫"],
     description: [
       "Locate Taipei parks and public trees, then inspect measured station air temperatures. Each inventory keeps its own geographical coverage and survey dates.",
       "尋找臺北公園與公共樹木，再檢視測站實測氣溫。各盤點保留自身地理範圍與調查日期。",
@@ -127,6 +132,15 @@ const knownMetrics = new Set([
   "diameterCm",
 ]);
 
+const subjects: { key: AtlasSection; label: [string, string] }[] = [
+  { key: "environment", label: ["Environment", "環境"] },
+  { key: "forests", label: ["Forests", "森林"] },
+  { key: "wildlife", label: ["Wildlife", "野生動物"] },
+  { key: "culture", label: ["Culture", "文化"] },
+  { key: "urban", label: ["Urban", "都市"] },
+];
+const COUNTY_PREVIEW = 7;
+
 export function SectionWorkbench({ section }: { section: AtlasSection }) {
   const formatTime = useFormatTime();
   const { language, t } = useLanguage(),
@@ -136,8 +150,9 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     { counties, boundaryError, retryBoundaries } = useCounties();
   const [chosen, setChosen] = useState<string | null>(null),
     [chosenMetric, setChosenMetric] = useState<string | null>(null);
-  const [tab, setTab] = useState<"map" | "charts" | "sources">("map"),
-    [mode, setMode] = useState<"clusters" | "heatmap">("clusters");
+  const [tab, setTab] = useState<"records" | "charts" | "sources">("records"),
+    [mode, setMode] = useState<"points" | "density">("points"),
+    [allCounties, setAllCounties] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     county: search.get("county") || "",
     q: "",
@@ -152,7 +167,11 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     bbox: [number, number, number, number];
     zoom: number;
   } | null>(null);
-  const [selected, setSelected] = useState<AtlasFeature | null>(null);
+  const [selected, setSelected] = useState<AtlasFeature | null>(null),
+    [fly, setFly] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null),
+    peekRef = useRef<HTMLElement>(null),
+    focusPeek = useRef(false);
   const available = useMemo(
     () =>
       (catalogue.data?.datasets || []).filter(
@@ -181,7 +200,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
   for (const [key, value] of Object.entries(filters))
     if (value !== "" && value !== 0) params.set(key, String(value));
   if (metric) params.set("metric", metric);
-  if (viewport && tab === "map")
+  if (viewport)
     params.set(
       "bbox",
       viewport.bbox.map((value) => value.toFixed(4)).join(","),
@@ -191,6 +210,26 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     dedupingInterval: 30000,
     shouldRetryOnError: false,
   });
+  // The county navigator must keep listing every county after one is chosen,
+  // so it asks for totals without the county, viewport or paging filters.
+  const summaryParams = new URLSearchParams({ summary: "1" });
+  for (const [key, value] of Object.entries(filters))
+    if (
+      !["county", "offset", "period"].includes(key) &&
+      value !== "" &&
+      value !== 0
+    )
+      summaryParams.set(key, String(value));
+  if (metric) summaryParams.set("metric", metric);
+  const summary = useSWR<AtlasResult>(
+    dataset ? `/api/atlas/${dataset.id}?${summaryParams}` : null,
+    atlasFetcher,
+    {
+      dedupingInterval: 30000,
+      shouldRetryOnError: false,
+      keepPreviousData: true,
+    },
+  );
   const speciesIndex = useSWRImmutable<{
     species: { id: string; name: string; count: number }[];
   }>(
@@ -233,15 +272,21 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               data: result.data?.collection || emptyAtlas,
               color: sectionColors[dataset.section],
               mode,
+              colorBy:
+                dataset.id === "live-aqi" && metric === "aqi"
+                  ? ("aqi" as const)
+                  : undefined,
             },
           ]
         : [],
-    [dataset, result.data?.dataset, result.data?.collection, mode],
+    [dataset, result.data?.dataset, result.data?.collection, mode, metric],
   );
   const focusedAtlas = useMemo(
     () =>
-      selected && dataset ? { datasetId: dataset.id, feature: selected } : null,
-    [selected, dataset],
+      selected && dataset
+        ? { datasetId: dataset.id, feature: selected, fly }
+        : null,
+    [selected, dataset, fly],
   );
   const onViewport = useCallback(
     (next: { bbox: [number, number, number, number]; zoom: number }) => {
@@ -258,6 +303,16 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     },
     [],
   );
+  useEffect(() => {
+    if (!selected || !focusPeek.current) return;
+    focusPeek.current = false;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    stageRef.current?.scrollIntoView({
+      block: "start",
+      behavior: calm ? "auto" : "smooth",
+    });
+    peekRef.current?.focus({ preventScroll: true });
+  }, [selected]);
   const change = (key: keyof Filters, value: string) => {
     setSelected(null);
     setFilters((current) => ({ ...current, [key]: value, offset: 0 }));
@@ -277,6 +332,11 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
       offset: 0,
     });
   };
+  const viewRecord = (record: AtlasFeature) => {
+    focusPeek.current = true;
+    setFly(true);
+    setSelected(record);
+  };
   const valueText = (value: unknown) =>
     value === null || value === undefined || value === ""
       ? "—"
@@ -290,6 +350,9 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
             })
           : String(value);
   const metricField = dataset?.fields.find((field) => field.key === metric);
+  const metricLabel = metricField
+    ? `${metricField.label[language]}${metricField.unit ? ` (${metricField.unit})` : ""}`
+    : "";
   const numericFields =
     dataset?.fields.filter(
       (field) =>
@@ -300,45 +363,156 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     ) || [];
   const species = speciesIndex.data?.species || result.data?.species || [];
   const title = headings[section];
+  const live =
+    !!dataset &&
+    (dataset.id.startsWith("live-") || dataset.id === "river-quality");
+  const unavailable = dataset?.status === "unavailable";
+  const stationLayer =
+    dataset?.id === "live-aqi" || dataset?.id === "live-weather";
+
+  // County navigator: ranked by the chosen measurement, otherwise by record count.
+  const countyList = useMemo(() => {
+    const rows = (summary.data?.counties || []).map((item) => ({
+      ...item,
+      name: countyNames[item.code] || item.code,
+    }));
+    const byValue = !!metric && rows.some((row) => row.value !== null);
+    rows.sort((a, b) => {
+      if (!byValue) return b.count - a.count || a.name.localeCompare(b.name);
+      if (a.value === null && b.value === null) return b.count - a.count;
+      if (a.value === null) return 1;
+      if (b.value === null) return -1;
+      return b.value - a.value;
+    });
+    const top = Math.max(
+      0,
+      ...rows.map((row) => (byValue ? (row.value ?? 0) : row.count)),
+    );
+    return { rows, byValue, top };
+  }, [summary.data?.counties, countyNames, metric]);
+  const shownCounties = allCounties
+    ? countyList.rows
+    : countyList.rows.filter(
+        (row, index) => index < COUNTY_PREVIEW || row.code === filters.county,
+      );
+  const extraFilters =
+    (filters.start ? 1 : 0) +
+    (filters.end ? 1 : 0) +
+    (filters.category ? 1 : 0) +
+    (chosenMetric !== null ? 1 : 0) +
+    (filters.period !== "month" ? 1 : 0);
+
+  // One short list for the map card; every field stays under "All fields".
+  const recordRows = (feature: AtlasFeature) => {
+    const p = feature.properties;
+    const rows: { key: string; label: string; value: string; note?: string }[] =
+      [
+        {
+          key: "id",
+          label: t("Original identifier", "原始編號"),
+          value: valueText(p.id),
+        },
+        {
+          key: "source",
+          label: t("Source", "來源"),
+          value: valueText(p.sourceId),
+        },
+        {
+          key: "date",
+          label:
+            dataset?.id === "river-quality"
+              ? t("Sampling date", "採樣日期")
+              : dataset?.id.startsWith("live-")
+                ? t("Observation time", "觀測時間")
+                : t("Record date", "紀錄日期"),
+          value: valueText(p.date),
+        },
+      ];
+    if (live)
+      rows.push({
+        key: "published",
+        label: t("Publication time", "發布時間"),
+        value: p.publishedAt
+          ? valueText(p.publishedAt)
+          : t("Not supplied by this source record", "此來源紀錄未提供"),
+      });
+    for (const field of dataset?.fields || []) {
+      const raw = p[field.key];
+      rows.push({
+        key: field.key,
+        label: field.label[language],
+        value:
+          valueText(raw) +
+          (raw !== null && raw !== undefined && field.unit
+            ? ` ${field.unit}`
+            : ""),
+        note:
+          dataset?.id === "river-quality" &&
+          raw === null &&
+          p[`${field.key}Raw`]
+            ? `${t("Source: ", "來源：")}${valueText(p[`${field.key}Raw`])} ${valueText(p[`${field.key}Unit`])}`
+            : undefined,
+      });
+    }
+    return rows;
+  };
+  const peekFacts = (feature: AtlasFeature) => {
+    const p = feature.properties;
+    const facts: { label: string; value: string }[] = [];
+    const county = countyNames[p.countyCode || ""];
+    if (county) facts.push({ label: t("County", "縣市"), value: county });
+    if (p.date)
+      facts.push({
+        label: live ? t("Observed", "觀測") : t("Date", "日期"),
+        value: valueText(p.date),
+      });
+    const fields = [
+      ...(dataset?.fields.filter((field) => field.key === metric) || []),
+      ...(dataset?.fields.filter((field) => field.key !== metric) || []),
+    ];
+    for (const field of fields) {
+      if (facts.length >= 4) break;
+      const raw = p[field.key];
+      if (raw === null || raw === undefined || raw === "") continue;
+      facts.push({
+        label: field.label[language],
+        value: valueText(raw) + (field.unit ? ` ${field.unit}` : ""),
+      });
+    }
+    return facts;
+  };
+
   return (
     <main
       id="main"
       className="document-page atlas-workbench"
       data-dataset={dataset?.id || ""}
+      data-subject={section}
     >
-      <div className="page-intro">
-        <div>
-          <span className="eyebrow">
-            {title.eyebrow[language === "en" ? 0 : 1]}
-          </span>
+      <header className="atlas-head">
+        <div className="atlas-head-copy">
           <h1>{title[language]}</h1>
           <p>{title.description[language === "en" ? 0 : 1]}</p>
         </div>
-        <Layers3 size={46} strokeWidth={1} />
-      </div>
-      <nav
-        className="atlas-section-nav"
-        aria-label={t("Atlas subjects", "地圖專題")}
-      >
-        {(Object.keys(headings) as AtlasSection[]).map((key) => (
-          <Link
-            key={key}
-            href={`/${key}`}
-            aria-current={key === section ? "page" : undefined}
-          >
-            {key === "environment"
-              ? t("Environment", "環境")
-              : key === "forests"
-                ? t("Forests", "森林")
-                : key === "wildlife"
-                  ? t("Wildlife", "野生動物")
-                  : key === "culture"
-                    ? t("Culture", "文化")
-                    : t("Urban", "都市")}
+        <nav
+          className="atlas-section-nav"
+          aria-label={t("Atlas subjects", "地圖專題")}
+        >
+          {subjects.map((item) => (
+            <Link
+              key={item.key}
+              href={`/${item.key}`}
+              data-tone={item.key}
+              aria-current={item.key === section ? "page" : undefined}
+            >
+              {item.label[language === "en" ? 0 : 1]}
+            </Link>
+          ))}
+          <Link href="/explore" className="atlas-nav-all">
+            {t("All layers", "全部圖層")} ↗
           </Link>
-        ))}
-        <Link href="/explore">{t("All layers", "全部圖層")} ↗</Link>
-      </nav>
+        </nav>
+      </header>
       {catalogue.error && (
         <div className="atlas-notice" role="alert">
           <p>
@@ -353,177 +527,6 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           >
             {t("Retry", "重試")}
           </button>
-        </div>
-      )}
-      <div className="atlas-filters">
-        <label>
-          <span>{t("Dataset", "資料集")}</span>
-          <select
-            aria-label={t("Dataset", "資料集")}
-            value={dataset?.id || ""}
-            onChange={(event) => choose(event.target.value)}
-          >
-            {available.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title[language]}
-                {item.status === "unavailable"
-                  ? ` · ${t("unavailable", "尚無資料")}`
-                  : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{t("County", "縣市")}</span>
-          <select
-            aria-label={t("County", "縣市")}
-            value={filters.county}
-            onChange={(event) => change("county", event.target.value)}
-          >
-            <option value="">
-              {t("All Taiwan & offshore islands", "全臺灣與離島")}
-            </option>
-            {Object.entries(countyNames).map(([code, name]) => (
-              <option key={code} value={code}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{t("Search records", "搜尋紀錄")}</span>
-          <input
-            aria-label={t("Search records", "搜尋紀錄")}
-            value={filters.q}
-            onChange={(event) => change("q", event.target.value)}
-            placeholder={t(
-              "Name, group, river or identifier",
-              "名稱、族群、河川或編號",
-            )}
-          />
-        </label>
-        {!!result.data?.categories.length && (
-          <label>
-            <span>{t("Category", "類別")}</span>
-            <select
-              aria-label={t("Category", "類別")}
-              value={filters.category}
-              onChange={(event) => change("category", event.target.value)}
-            >
-              <option value="">{t("All categories", "所有類別")}</option>
-              {result.data.categories.map((item) => (
-                <option key={item.name} value={item.name}>
-                  {item.name} ({item.count})
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {!!species.length && (
-          <label>
-            <span>{t("Species", "物種")}</span>
-            <select
-              aria-label={t("Species", "物種")}
-              value={filters.species}
-              onChange={(event) => change("species", event.target.value)}
-            >
-              <option value="">
-                {t("All included species", "所有收錄物種")}
-              </option>
-              {species.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} ({item.count})
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {(dataset?.dateRange ||
-          dataset?.id.startsWith("live-") ||
-          dataset?.id === "river-quality") && (
-          <>
-            <label>
-              <span>{t("Start date", "起始日期")}</span>
-              <input
-                aria-label={t("Start date", "起始日期")}
-                type="date"
-                value={filters.start}
-                onChange={(event) => change("start", event.target.value)}
-              />
-            </label>
-            <label>
-              <span>{t("End date", "結束日期")}</span>
-              <input
-                aria-label={t("End date", "結束日期")}
-                type="date"
-                value={filters.end}
-                onChange={(event) => change("end", event.target.value)}
-              />
-            </label>
-          </>
-        )}
-        <label>
-          <span>{t("Metric", "指標")}</span>
-          <select
-            aria-label={t("Metric", "指標")}
-            value={metric}
-            onChange={(event) => setChosenMetric(event.target.value)}
-          >
-            <option value="">{t("Record count", "紀錄數")}</option>
-            {numericFields.map((field) => (
-              <option key={field.key} value={field.key}>
-                {field.label[language]}
-                {field.unit ? ` (${field.unit})` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{t("Aggregation", "時間彙整")}</span>
-          <select
-            aria-label={t("Aggregation", "時間彙整")}
-            value={filters.period}
-            onChange={(event) => change("period", event.target.value)}
-          >
-            <option value="day">{t("Daily", "每日")}</option>
-            <option value="month">{t("Monthly", "每月")}</option>
-            <option value="year">{t("Yearly", "每年")}</option>
-          </select>
-        </label>
-        <button
-          className="button secondary atlas-reset"
-          onClick={() => choose(dataset?.id || defaults[section])}
-        >
-          <RefreshCw size={15} />
-          {t("Reset filters", "重設篩選")}
-        </button>
-      </div>
-      {dataset && (
-        <div className="atlas-notice">
-          <Info size={19} />
-          <div>
-            <strong>{dataset.title[language]}</strong>
-            <p>{dataset.limitation[language]}</p>
-            {dataset.id === "river-quality" &&
-              result.data?.sourceRows !== undefined && (
-                <p>
-                  {t("Provider extract before filters: ", "篩選前來源擷取：")}
-                  {result.data.sourceRows.toLocaleString()}
-                  {t(
-                    " indicator rows; grouped by station and sampling date.",
-                    " 筆指標資料；依測站與採樣日期合併。",
-                  )}
-                </p>
-              )}
-            {section === "forests" && (
-              <p>
-                {t(
-                  "The public archive contains a 2023 raster and a file labelled 2015; a verified 2013 baseline is not supplied. No 2013–2023 change or deforestation estimate is fabricated.",
-                  "公開典藏含 2023 影像與標示為 2015 的檔案，未提供可確認的 2013 基準。本平台不捏造 2013–2023 變遷或毀林估計。",
-                )}
-              </p>
-            )}
-          </div>
         </div>
       )}
       {result.error && (
@@ -542,285 +545,609 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           </button>
         </div>
       )}
-      <div className="atlas-stat-strip" aria-live="polite">
-        <div>
-          <span>{t("Matching records", "符合紀錄")}</span>
-          <strong>
-            {result.data ? result.data.total.toLocaleString() : "—"}
-          </strong>
+      <div className="atlas-stage" ref={stageRef} id="atlas-stage">
+        <div className="atlas-stat-strip" aria-live="polite">
+          <div>
+            <span>{t("Matching records", "符合紀錄")}</span>
+            <strong>
+              {result.data ? result.data.total.toLocaleString() : "—"}
+            </strong>
+          </div>
+          <div>
+            <span>{t("In current map view", "目前地圖範圍內")}</span>
+            <strong>
+              {result.data ? result.data.inViewport.toLocaleString() : "—"}
+            </strong>
+          </div>
+          <div>
+            <span>{t("Included record dates", "收錄資料日期")}</span>
+            <strong className="atlas-date-stat">
+              {result.data?.dateRange?.join(" → ") ||
+                t("Undated inventory", "無日期盤點")}
+            </strong>
+          </div>
+          <div>
+            <span>{t("Source state", "來源狀態")}</span>
+            <span className="atlas-state">
+              <Status
+                loading={result.isLoading}
+                status={
+                  (result.data?.status === "available"
+                    ? "historical-only"
+                    : result.data?.status || "unavailable") as Freshness
+                }
+              />
+              {result.data?.retrievedAt && (
+                <small>
+                  {live
+                    ? `${t("Retrieved ", "擷取 ")}${formatTime(result.data.retrievedAt)}${t(" (Taiwan time)", "（臺灣時間）")}`
+                    : `${t("Catalogue date ", "目錄日期 ")}${result.data.retrievedAt.slice(0, 10)}`}
+                </small>
+              )}
+            </span>
+          </div>
         </div>
-        <div>
-          <span>{t("In current map view", "目前地圖範圍內")}</span>
-          <strong>
-            {result.data ? result.data.inViewport.toLocaleString() : "—"}
-          </strong>
+        <section
+          className="atlas-controls"
+          aria-label={t("Choose what to show", "選擇顯示內容")}
+        >
+          <label>
+            <span>{t("Dataset", "資料集")}</span>
+            <select
+              aria-label={t("Dataset", "資料集")}
+              value={dataset?.id || ""}
+              onChange={(event) => choose(event.target.value)}
+            >
+              {available.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title[language]}
+                  {item.status === "unavailable"
+                    ? ` · ${t("unavailable", "尚無資料")}`
+                    : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t("County", "縣市")}</span>
+            <select
+              aria-label={t("County", "縣市")}
+              value={filters.county}
+              onChange={(event) => change("county", event.target.value)}
+            >
+              <option value="">
+                {t("All Taiwan & offshore islands", "全臺灣與離島")}
+              </option>
+              {Object.entries(countyNames).map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t("Search records", "搜尋紀錄")}</span>
+            <input
+              aria-label={t("Search records", "搜尋紀錄")}
+              value={filters.q}
+              onChange={(event) => change("q", event.target.value)}
+              placeholder={t(
+                "Name, group, river or identifier",
+                "名稱、族群、河川或編號",
+              )}
+            />
+          </label>
+          {!!species.length && (
+            <label>
+              <span>{t("Species", "物種")}</span>
+              <select
+                aria-label={t("Species", "物種")}
+                value={filters.species}
+                onChange={(event) => change("species", event.target.value)}
+              >
+                <option value="">
+                  {t("All included species", "所有收錄物種")}
+                </option>
+                {species.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} ({item.count})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <details className="atlas-more">
+            <summary>
+              {t("More filters", "更多篩選")}
+              {extraFilters > 0 && (
+                <span className="atlas-count">{extraFilters}</span>
+              )}
+            </summary>
+            <div className="atlas-more-grid">
+              {!!result.data?.categories.length && (
+                <label>
+                  <span>{t("Category", "類別")}</span>
+                  <select
+                    aria-label={t("Category", "類別")}
+                    value={filters.category}
+                    onChange={(event) => change("category", event.target.value)}
+                  >
+                    <option value="">{t("All categories", "所有類別")}</option>
+                    {result.data.categories.map((item) => (
+                      <option key={item.name} value={item.name}>
+                        {item.name} ({item.count})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {(dataset?.dateRange || live) && (
+                <>
+                  <label>
+                    <span>{t("Start date", "起始日期")}</span>
+                    <input
+                      aria-label={t("Start date", "起始日期")}
+                      type="date"
+                      value={filters.start}
+                      onChange={(event) => change("start", event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>{t("End date", "結束日期")}</span>
+                    <input
+                      aria-label={t("End date", "結束日期")}
+                      type="date"
+                      value={filters.end}
+                      onChange={(event) => change("end", event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+              <label>
+                <span>{t("Metric", "指標")}</span>
+                <select
+                  aria-label={t("Metric", "指標")}
+                  value={metric}
+                  onChange={(event) => setChosenMetric(event.target.value)}
+                >
+                  <option value="">{t("Record count", "紀錄數")}</option>
+                  {numericFields.map((field) => (
+                    <option key={field.key} value={field.key}>
+                      {field.label[language]}
+                      {field.unit ? ` (${field.unit})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>{t("Aggregation", "時間彙整")}</span>
+                <select
+                  aria-label={t("Aggregation", "時間彙整")}
+                  value={filters.period}
+                  onChange={(event) => change("period", event.target.value)}
+                >
+                  <option value="day">{t("Daily", "每日")}</option>
+                  <option value="month">{t("Monthly", "每月")}</option>
+                  <option value="year">{t("Yearly", "每年")}</option>
+                </select>
+              </label>
+              <button
+                className="button secondary atlas-reset"
+                onClick={() => choose(dataset?.id || defaults[section])}
+              >
+                <RefreshCw size={15} />
+                {t("Reset filters", "重設篩選")}
+              </button>
+            </div>
+          </details>
+        </section>
+
+        <div className="atlas-map-pane">
+          <div className="atlas-map-toolbar">
+            {dataset?.raster ? (
+              <span>
+                {t(
+                  "Raster overview · nearest-neighbour display",
+                  "網格概覽・最近鄰呈現",
+                )}
+              </span>
+            ) : (
+              <label>
+                {t("Map display", "地圖呈現")}
+                <select
+                  aria-label={t("Map display", "地圖呈現")}
+                  value={mode}
+                  onChange={(event) =>
+                    setMode(event.target.value as "points" | "density")
+                  }
+                >
+                  <option value="points">
+                    {t("Points & routes", "點位與路線")}
+                  </option>
+                  <option value="density">
+                    {t("Density surface", "密度圖")}
+                  </option>
+                </select>
+              </label>
+            )}
+            <Link href={`/explore?layers=${dataset?.id || ""}`}>
+              {t("Open central atlas", "開啟中央地圖")} ↗
+            </Link>
+          </div>
+          <div className="atlas-map">
+            {counties ? (
+              <MapCanvas
+                compact
+                externalInspector
+                counties={counties}
+                selectedCounty={filters.county}
+                boundariesVisible
+                aqi={[]}
+                weather={[]}
+                aqiVisible={false}
+                weatherVisible={false}
+                focusedObservation={null}
+                aqiRetrievedAt={null}
+                weatherRetrievedAt={null}
+                language={language}
+                resetToken={0}
+                onSelect={(code) => change("county", code)}
+                overlays={overlays}
+                onViewport={onViewport}
+                focusedAtlas={focusedAtlas}
+                onAtlasSelect={(_, feature) => {
+                  setFly(false);
+                  setSelected(feature);
+                }}
+              />
+            ) : (
+              <div className="map-loading">
+                {boundaryError ? (
+                  <button
+                    className="button secondary"
+                    onClick={retryBoundaries}
+                  >
+                    {t("Retry official boundaries", "重試官方界線")}
+                  </button>
+                ) : (
+                  t("Loading official county boundaries…", "載入官方縣市界線…")
+                )}
+              </div>
+            )}
+            {selected && dataset && selected.properties.aggregated && (
+              <section
+                id="atlas-record-details"
+                className="atlas-peek"
+                aria-label={t("Selected map spot", "選取的地圖位置")}
+                tabIndex={-1}
+                ref={peekRef}
+              >
+                <div className="atlas-peek-head">
+                  <div>
+                    <span className="atlas-peek-kind">
+                      {dataset.title[language]}
+                    </span>
+                    <h2>
+                      {language === "zh"
+                        ? `此處有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
+                        : `${Number(selected.properties.count || 0).toLocaleString("en")} records at this spot`}
+                    </h2>
+                  </div>
+                  <button
+                    className="icon-button"
+                    aria-label={t("Close record details", "關閉紀錄詳情")}
+                    onClick={() => setSelected(null)}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <p className="atlas-peek-text">
+                  {t(
+                    "These records share one public map position, so they cannot be told apart on the map. They are listed under Records below.",
+                    "這些紀錄共用同一個公開地圖位置，無法在地圖上區分，已列於下方「紀錄」。",
+                  )}
+                </p>
+                <button
+                  type="button"
+                  className="atlas-more-toggle"
+                  onClick={() => {
+                    setTab("records");
+                    document
+                      .getElementById(`${tabId}-records-panel`)
+                      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+                  }}
+                >
+                  {t("Show them in the list", "在列表中查看")} ↓
+                </button>
+              </section>
+            )}
+            {selected && dataset && !selected.properties.aggregated && (
+              <section
+                id="atlas-record-details"
+                className="atlas-peek"
+                aria-label={t("Selected record", "選取的紀錄")}
+                tabIndex={-1}
+                ref={peekRef}
+              >
+                <div className="atlas-peek-head">
+                  <div>
+                    <span className="atlas-peek-kind">
+                      {dataset.title[language]}
+                    </span>
+                    <h2>
+                      {language === "zh" && selected.properties.titleZh
+                        ? selected.properties.titleZh
+                        : selected.properties.title}
+                    </h2>
+                  </div>
+                  <button
+                    className="icon-button"
+                    aria-label={t("Close record details", "關閉紀錄詳情")}
+                    onClick={() => setSelected(null)}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <dl className="atlas-peek-facts">
+                  {peekFacts(selected).map((fact) => (
+                    <div key={fact.label}>
+                      <dt>{fact.label}</dt>
+                      <dd>{fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="atlas-peek-links">
+                  {selected.properties.speciesId && (
+                    <Link
+                      className="text-link"
+                      href={`/wildlife/species/${encodeURIComponent(String(selected.properties.speciesId))}`}
+                    >
+                      {t("Species information & frequencies", "物種資料與頻度")}{" "}
+                      ↗
+                    </Link>
+                  )}
+                  {section === "culture" && !selected.properties.aggregated && (
+                    <Link
+                      className="text-link"
+                      href={`/culture/places/${encodeURIComponent(selected.properties.id)}`}
+                    >
+                      {t("Open place profile", "開啟地點資料")} ↗
+                    </Link>
+                  )}
+                </div>
+                <details className="atlas-peek-all">
+                  <summary>
+                    {t("All fields & source", "全部欄位與來源")}
+                  </summary>
+                  <dl>
+                    {recordRows(selected).map((row) => (
+                      <div key={row.key}>
+                        <dt>{row.label}</dt>
+                        <dd>
+                          {row.value}
+                          {row.note && <small> {row.note}</small>}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <a href={dataset.sourceUrl} target="_blank" rel="noreferrer">
+                    {t("Original source", "原始來源")} ↗ · {dataset.licence}
+                  </a>
+                </details>
+              </section>
+            )}
+          </div>
+          {dataset?.raster ? (
+            <div
+              className="atlas-key atlas-raster-legend"
+              aria-label={t("Land-cover legend", "土地覆蓋圖例")}
+            >
+              {dataset.raster.legend.map((item) => (
+                <span key={item.color}>
+                  <i style={{ background: item.color }} />
+                  {item.label[language]}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="atlas-key">
+              {dataset?.id === "live-aqi" && metric === "aqi" && (
+                <span className="atlas-aqi-key">
+                  {Object.keys(aqiColours).map((band) => (
+                    <span key={band}>
+                      <i style={{ background: aqiColours[band] }} />
+                      {language === "zh" ? band : aqiStatusEnglish[band]}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span>
+                <i
+                  className="atlas-key-dot"
+                  style={{ background: sectionColors[section] }}
+                />
+                {stationLayer
+                  ? t(
+                      "Each circle is one monitoring station. Select it for its latest reading.",
+                      "每個圓圈代表一個測站，點選可看最新讀數。",
+                    )
+                  : t(
+                      "Bigger circle = more included records at that spot. Select one for details; zoom in to split it.",
+                      "圓圈越大＝該處收錄紀錄越多。點選可看詳情，放大可拆分。",
+                    )}
+              </span>
+            </p>
+          )}
+          <p className="atlas-map-note">
+            {dataset?.raster
+              ? t(
+                  "The overview is generalized for the map. County statistics use original source pixels; selecting a county retains the full research raster as geographic context.",
+                  "地圖概覽經簡化；縣市統計使用原始像素。選取縣市後仍保留完整研究影像作地理參考。",
+                )
+              : stationLayer
+                ? t(
+                    "Readings are point measurements at stations, not area averages. Use two fingers or Ctrl + scroll to move and zoom the map.",
+                    "讀數為測站點位實測，並非區域平均。以雙指或 Ctrl + 滾輪移動及縮放地圖。",
+                  )
+                : t(
+                    "Circles and density show included record counts, not abundance, incident risk or area coverage. Use two fingers or Ctrl + scroll to move and zoom the map.",
+                    "圓圈與密度呈現收錄紀錄數，並非族群數量、事件風險或面積覆蓋。以雙指或 Ctrl + 滾輪移動及縮放地圖。",
+                  )}
+          </p>
         </div>
-        <div>
-          <span>{t("Included record dates", "收錄資料日期")}</span>
-          <strong className="atlas-date-stat">
-            {result.data?.dateRange?.join(" → ") ||
-              t("Not a dated observation series", "非具日期的觀測序列")}
-          </strong>
-        </div>
-        <div>
-          <span>{t("Source state", "來源狀態")}</span>
-          <Status
-            loading={result.isLoading}
-            status={
-              (result.data?.status === "available"
-                ? "historical-only"
-                : result.data?.status || "unavailable") as Freshness
-            }
-          />
-          {result.data?.retrievedAt && (
-            <small>
-              {dataset?.id.startsWith("live-") ||
-              dataset?.id === "river-quality"
-                ? t("Last retrieval", "最後擷取")
-                : t("Catalogue reference", "目錄參考日期")}
-              {": "}
-              {dataset?.id.startsWith("live-") ||
-              dataset?.id === "river-quality"
-                ? `${formatTime(result.data.retrievedAt)}${t(" (Taiwan time)", "（臺灣時間）")}`
-                : result.data.retrievedAt.slice(0, 10)}
-            </small>
+
+        <div className="atlas-browse">
+          {countyList.rows.length > 0 && (
+            <section
+              className="atlas-counties"
+              aria-labelledby={`${tabId}-counties`}
+            >
+              <div className="atlas-block-head">
+                <h2 id={`${tabId}-counties`}>
+                  {t("Browse by county", "依縣市瀏覽")}
+                </h2>
+                <span>
+                  {countyList.byValue
+                    ? `${t("Average", "平均")} · ${metricLabel}`
+                    : t("Records", "紀錄數")}
+                </span>
+              </div>
+              <ul>
+                <li>
+                  <button
+                    type="button"
+                    className="atlas-county-all"
+                    aria-pressed={!filters.county}
+                    onClick={() => change("county", "")}
+                  >
+                    {t("All Taiwan & offshore islands", "全臺灣與離島")}
+                  </button>
+                </li>
+                {shownCounties.map((row) => {
+                  const amount = countyList.byValue
+                    ? (row.value ?? 0)
+                    : row.count;
+                  const bar =
+                    dataset?.id === "live-aqi" &&
+                    metric === "aqi" &&
+                    row.value !== null
+                      ? aqiColorForValue(row.value)
+                      : "var(--accent)";
+                  return (
+                    <li key={row.code}>
+                      <button
+                        type="button"
+                        aria-pressed={filters.county === row.code}
+                        onClick={() => change("county", row.code)}
+                      >
+                        <span className="atlas-county-name">{row.name}</span>
+                        <span className="atlas-county-num">
+                          {countyList.byValue
+                            ? row.value === null
+                              ? "—"
+                              : Number(row.value.toFixed(1)).toLocaleString()
+                            : row.count.toLocaleString()}
+                        </span>
+                        <i
+                          className="atlas-county-bar"
+                          aria-hidden="true"
+                          style={
+                            {
+                              "--w": `${countyList.top ? Math.max(2, (Math.max(0, amount) / countyList.top) * 100) : 0}%`,
+                              "--bar": bar,
+                            } as CSSProperties
+                          }
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {countyList.rows.length > COUNTY_PREVIEW && (
+                <button
+                  type="button"
+                  className="atlas-more-toggle"
+                  onClick={() => setAllCounties((open) => !open)}
+                >
+                  {allCounties
+                    ? t("Show fewer", "顯示較少")
+                    : t(
+                        `Show all ${countyList.rows.length} counties`,
+                        `顯示全部 ${countyList.rows.length} 個縣市`,
+                      )}
+                </button>
+              )}
+            </section>
+          )}
+          {dataset && (
+            <details
+              className="atlas-scope"
+              key={dataset.id}
+              open={unavailable || undefined}
+            >
+              <summary>
+                <Info size={15} />
+                {t("About this data", "關於此資料")}
+              </summary>
+              <p>{dataset.limitation[language]}</p>
+              {dataset.id === "river-quality" &&
+                result.data?.sourceRows !== undefined && (
+                  <p>
+                    {t("Provider extract before filters: ", "篩選前來源擷取：")}
+                    {result.data.sourceRows.toLocaleString()}
+                    {t(
+                      " indicator rows; grouped by station and sampling date.",
+                      " 筆指標資料；依測站與採樣日期合併。",
+                    )}
+                  </p>
+                )}
+              {section === "forests" && (
+                <p>
+                  {t(
+                    "The public archive contains a 2023 raster and a file labelled 2015; a verified 2013 baseline is not supplied. No 2013–2023 change or deforestation estimate is fabricated.",
+                    "公開典藏含 2023 影像與標示為 2015 的檔案，未提供可確認的 2013 基準。本平台不捏造 2013–2023 變遷或毀林估計。",
+                  )}
+                </p>
+              )}
+            </details>
           )}
         </div>
       </div>
+
       <ContinuousTabs
         id={tabId}
         label={t("Subject views", "專題檢視")}
         value={tab}
         onChange={setTab}
         items={[
-          {
-            value: "map" as const,
-            label: (
-              <>
-                <MapPin size={16} />
-                {t("Map & records", "地圖與紀錄")}
-              </>
-            ),
-          },
+          { value: "records" as const, label: t("Records", "紀錄") },
           {
             value: "charts" as const,
-            label: (
-              <>
-                <ChartNoAxesCombined size={16} />
-                {t("Compare & charts", "比較與圖表")}
-              </>
-            ),
+            label: t("Compare & charts", "比較與圖表"),
           },
           {
             value: "sources" as const,
-            label: (
-              <>
-                <Info size={16} />
-                {t("Sources & scope", "來源與範圍")}
-              </>
-            ),
+            label: t("Sources & scope", "來源與範圍"),
           },
         ]}
       />
       <div
         role="tabpanel"
-        id={`${tabId}-map-panel`}
-        aria-labelledby={`${tabId}-map-tab`}
-        hidden={tab !== "map"}
+        id={`${tabId}-records-panel`}
+        aria-labelledby={`${tabId}-records-tab`}
+        hidden={tab !== "records"}
         className="atlas-tab-panel"
       >
-        <div className="atlas-map-toolbar">
-          {dataset?.raster ? (
-            <span>
-              {t(
-                "Raster overview · nearest-neighbour display",
-                "網格概覽・最近鄰呈現",
-              )}
-            </span>
-          ) : (
-            <label>
-              {t("Map display", "地圖呈現")}
-              <select
-                aria-label={t("Map display", "地圖呈現")}
-                value={mode}
-                onChange={(event) =>
-                  setMode(event.target.value as "clusters" | "heatmap")
-                }
-              >
-                <option value="clusters">
-                  {t("Clusters / route geometry", "群聚／實際路線")}
-                </option>
-                <option value="heatmap">
-                  {t("Included-record density", "收錄紀錄密度")}
-                </option>
-              </select>
-            </label>
-          )}
-          <Link href={`/explore?layers=${dataset?.id || ""}`}>
-            {t("Open central atlas", "開啟中央地圖")} ↗
-          </Link>
-        </div>
-        <div className="atlas-map">
-          {counties ? (
-            <MapCanvas
-              compact
-              counties={counties}
-              selectedCounty={filters.county}
-              boundariesVisible
-              aqi={[]}
-              weather={[]}
-              aqiVisible={false}
-              weatherVisible={false}
-              focusedObservation={null}
-              aqiRetrievedAt={null}
-              weatherRetrievedAt={null}
-              language={language}
-              resetToken={0}
-              onSelect={(code) => change("county", code)}
-              overlays={overlays}
-              onViewport={onViewport}
-              focusedAtlas={focusedAtlas}
-              onAtlasSelect={(_, feature) => setSelected(feature)}
-            />
-          ) : (
-            <div className="map-loading">
-              {boundaryError ? (
-                <button className="button secondary" onClick={retryBoundaries}>
-                  {t("Retry official boundaries", "重試官方界線")}
-                </button>
-              ) : (
-                t("Loading official county boundaries…", "載入官方縣市界線…")
-              )}
-            </div>
-          )}
-        </div>
-        {dataset?.raster && (
-          <div
-            className="atlas-raster-legend"
-            aria-label={t("Land-cover legend", "土地覆蓋圖例")}
-          >
-            {dataset.raster.legend.map((item) => (
-              <span key={item.color}>
-                <i style={{ background: item.color }} />
-                {item.label[language]}
-              </span>
-            ))}
-          </div>
-        )}
-        <p className="atlas-map-note">
-          {dataset?.raster
-            ? t(
-                "The overview is generalized for the map. County statistics use original source pixels; selecting a county retains the full research raster as geographic context.",
-                "地圖概覽經簡化；縣市統計使用原始像素。選取縣市後仍保留完整研究影像作地理參考。",
-              )
-            : t(
-                "Clusters and heatmaps show included record counts, not abundance, incident risk or area coverage. Zoom to inspect a smaller area; large inventories are grouped for the map. The table retains original record identities.",
-                "群聚及熱區呈現收錄紀錄數，並非族群數量、事件風險或面積覆蓋。縮放可檢視小範圍；大量盤點會於地圖彙整，列表仍保留原紀錄編號。",
-              )}
-        </p>
-        {selected && dataset && (
-          <article id="atlas-record-details" className="atlas-record-detail">
-            <div className="atlas-detail-heading">
-              <div>
-                <span className="eyebrow">
-                  {t("RECORD DETAILS", "紀錄詳情")}
-                </span>
-                <h2>
-                  {language === "zh" && selected.properties.titleZh
-                    ? selected.properties.titleZh
-                    : selected.properties.title}
-                </h2>
-              </div>
-              <button
-                className="icon-button"
-                aria-label={t("Close record details", "關閉紀錄詳情")}
-                onClick={() => setSelected(null)}
-              >
-                <X size={19} />
-              </button>
-            </div>
-            <dl>
-              <div>
-                <dt>{t("Original identifier", "原始編號")}</dt>
-                <dd>{valueText(selected.properties.id)}</dd>
-              </div>
-              <div>
-                <dt>{t("Source", "來源")}</dt>
-                <dd>{selected.properties.sourceId}</dd>
-              </div>
-              <div>
-                <dt>
-                  {dataset.id === "river-quality"
-                    ? t("Sampling date", "採樣日期")
-                    : dataset.id.startsWith("live-")
-                      ? t("Observation time", "觀測時間")
-                      : t("Record date", "紀錄日期")}
-                </dt>
-                <dd>{valueText(selected.properties.date)}</dd>
-              </div>
-              {(dataset.id === "river-quality" ||
-                dataset.id.startsWith("live-")) && (
-                <div>
-                  <dt>{t("Publication time", "發布時間")}</dt>
-                  <dd>
-                    {selected.properties.publishedAt
-                      ? valueText(selected.properties.publishedAt)
-                      : t(
-                          "Not supplied by this source record",
-                          "此來源紀錄未提供",
-                        )}
-                  </dd>
-                </div>
-              )}
-              {dataset.fields.map((field) => (
-                <div key={field.key}>
-                  <dt>{field.label[language]}</dt>
-                  <dd>
-                    {valueText(selected.properties[field.key])}
-                    {selected.properties[field.key] !== null &&
-                    selected.properties[field.key] !== undefined &&
-                    field.unit
-                      ? ` ${field.unit}`
-                      : ""}
-                    {dataset.id === "river-quality" &&
-                      selected.properties[field.key] === null &&
-                      selected.properties[`${field.key}Raw`] && (
-                        <small>
-                          {t(" Source: ", " 來源：")}
-                          {valueText(
-                            selected.properties[`${field.key}Raw`],
-                          )}{" "}
-                          {valueText(selected.properties[`${field.key}Unit`])}
-                        </small>
-                      )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            {selected.properties.speciesId && (
-              <Link
-                className="text-link"
-                href={`/wildlife/species/${encodeURIComponent(String(selected.properties.speciesId))}`}
-              >
-                {t("Species information & frequencies", "物種資料與頻度")} ↗
-              </Link>
-            )}
-            {section === "culture" && !selected.properties.aggregated && (
-              <Link
-                className="text-link"
-                href={`/culture/places/${encodeURIComponent(selected.properties.id)}`}
-              >
-                {t("Open place profile", "開啟地點資料")} ↗
-              </Link>
-            )}
-            <p>{dataset.limitation[language]}</p>
-            <a href={dataset.sourceUrl} target="_blank" rel="noreferrer">
-              {t("Original source", "原始來源")} ↗ · {dataset.licence}
-            </a>
-          </article>
-        )}
         <div className="atlas-records-heading">
-          <h2>{t("Filtered records", "篩選後紀錄")}</h2>
+          <div>
+            <h2>{t("Filtered records", "篩選後紀錄")}</h2>
+            <p>
+              {t(
+                "Follows the map view. Missing measurements show as —.",
+                "依目前地圖範圍顯示。缺少的測值以 — 顯示。",
+              )}
+            </p>
+          </div>
           <div>
             {dataset && (
               <a
@@ -840,8 +1167,8 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         </div>
         <p className="atlas-map-note">
           {t(
-            "The record list follows the map viewport. CSV follows the non-viewport filters and includes up to 5,000 records; the full processed download preserves all published records. Missing measurements are shown as —.",
-            "列表依目前地圖範圍顯示。CSV 依其他篩選條件匯出最多 5,000 筆，完整處理後下載則保留所有公開紀錄。缺少的測值以 — 顯示。",
+            "CSV follows the filters except the map view and holds up to 5,000 records; the full processed download keeps every published record.",
+            "CSV 依地圖範圍以外的篩選條件匯出最多 5,000 筆，完整處理後下載則保留所有公開紀錄。",
           )}
         </p>
         <div className="atlas-table-scroll">
@@ -865,7 +1192,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                     <button
                       aria-label={`${t("View", "檢視")} ${record.properties.title}`}
                       className="atlas-record-button"
-                      onClick={() => setSelected(record)}
+                      onClick={() => viewRecord(record)}
                     >
                       {language === "zh" && record.properties.titleZh
                         ? record.properties.titleZh
@@ -911,7 +1238,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
             <Info />
             <h3>{t("No records in this selection", "此篩選範圍沒有紀錄")}</h3>
             <p>
-              {dataset?.status === "unavailable"
+              {unavailable && dataset
                 ? dataset.limitation[language]
                 : t(
                     "Try a different dataset, county, date window or map extent. Missing coverage is not a zero measurement.",

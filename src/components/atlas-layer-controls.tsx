@@ -37,8 +37,8 @@ export function AtlasLayerControls({
   datasets: AtlasDataset[];
   selected: string[];
   onToggle: (dataset: AtlasDataset) => void;
-  mode: "clusters" | "heatmap";
-  onMode: (mode: "clusters" | "heatmap") => void;
+  mode: "points" | "density";
+  onMode: (mode: "points" | "density") => void;
   filters: AtlasMapFilters;
   onFilters: (filters: AtlasMapFilters) => void;
   loading: boolean;
@@ -218,12 +218,14 @@ export function AtlasLayerControls({
               aria-label={t("Additional point-layer style", "其他點位圖層樣式")}
               value={mode}
               onChange={(event) =>
-                onMode(event.target.value as "clusters" | "heatmap")
+                onMode(event.target.value as "points" | "density")
               }
             >
-              <option value="clusters">{t("Clusters", "聚合點")}</option>
-              <option value="heatmap">
-                {t("Record-density heatmap", "紀錄密度熱圖")}
+              <option value="points">
+                {t("Points sized by record count", "點位（大小代表紀錄數）")}
+              </option>
+              <option value="density">
+                {t("Density surface", "密度分佈")}
               </option>
             </select>
           </label>
@@ -375,14 +377,14 @@ export function AtlasMapLegend({ overlays }: { overlays: AtlasOverlay[] }) {
                   "Classification overview at its full source extent; source no-data remains transparent. County and text filters select summary records, not raster pixels.",
                   "分類概覽維持來源完整範圍；缺資料處透明。縣市與文字篩選僅選取摘要紀錄，不裁切柵格像素。",
                 )
-              : overlay.mode === "clusters"
+              : overlay.mode === "points"
                 ? t(
-                    "Numbered clusters count matching records. Coincident generalized points may represent multiple records.",
-                    "數字聚合點計算符合條件的紀錄；重疊概化點可能代表多筆紀錄。",
+                    "Larger circles hold more matching records; zoom in to separate them. Coincident generalized points may represent multiple records.",
+                    "圓圈越大代表符合條件的紀錄越多，放大可分開檢視；重疊概化點可能代表多筆紀錄。",
                   )
                 : t(
-                    "Heatmap weights are matching record counts, not population or risk.",
-                    "熱圖權重為符合條件的紀錄數，並非族群數量或風險。",
+                    "Density weights are matching record counts, not population or risk.",
+                    "密度權重為符合條件的紀錄數，並非族群數量或風險。",
                   )}
           </p>
           <p>

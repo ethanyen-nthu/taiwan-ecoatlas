@@ -45,15 +45,15 @@ On this session's machine, Node/pnpm/Git were absent from PATH or blocked by Xco
 
 ## Environment
 
-| Variable                        | Purpose                                                          | Browser exposure               |
-| ------------------------------- | ---------------------------------------------------------------- | ------------------------------ |
-| `MOENV_API_KEY`                 | AQX_P_432 observations and WQX_P_01 river sample queries         | Never                          |
-| `CWA_API_KEY`                   | O-A0003-001 and O-A0001-001                                      | Never                          |
-| `NEXT_PUBLIC_BASEMAP_STYLE`     | Configurable MapLibre style URL; defaults to OpenFreeMap Liberty | Public, build time             |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project HTTPS URL                                       | Safe public project identifier |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Reserved for later read-only clients; currently unused           | Safe only with RLS             |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Optional durable snapshots and sync logging                      | Never                          |
-| `CRON_SECRET`                   | Bearer authentication for POST `/api/ingest`                     | Never                          |
+| Variable                        | Purpose                                                           | Browser exposure               |
+| ------------------------------- | ----------------------------------------------------------------- | ------------------------------ |
+| `MOENV_API_KEY`                 | AQX_P_432 observations and WQX_P_01 river sample queries          | Never                          |
+| `CWA_API_KEY`                   | O-A0003-001 and O-A0001-001                                       | Never                          |
+| `NEXT_PUBLIC_BASEMAP_STYLE`     | Configurable MapLibre style URL; defaults to OpenFreeMap Positron | Public, build time             |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project HTTPS URL                                        | Safe public project identifier |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Reserved for later read-only clients; currently unused            | Safe only with RLS             |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Optional durable snapshots and sync logging                       | Never                          |
+| `CRON_SECRET`                   | Bearer authentication for POST `/api/ingest`                      | Never                          |
 
 Get MOENV credentials from [MOENV Open Data](https://data.moenv.gov.tw/) and CWA credentials from [CWA Open Data](https://opendata.cwa.gov.tw/). Keep keys in server environment settings. Do not paste them into client code, commit them, or give them `NEXT_PUBLIC_` names.
 

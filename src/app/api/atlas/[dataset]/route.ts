@@ -80,9 +80,21 @@ export async function GET(
         },
       });
     }
+    const result = queryAtlas(loaded.dataset, loaded.collection, filter);
+    // summary=1 keeps the per-county and timeline totals but drops geometry and
+    // record rows, so the county navigator can ask for them cheaply.
+    const body =
+      search.get("summary") === "1"
+        ? {
+            ...result,
+            collection: { type: "FeatureCollection" as const, features: [] },
+            records: [],
+            nextOffset: null,
+          }
+        : result;
     return NextResponse.json(
       {
-        ...queryAtlas(loaded.dataset, loaded.collection, filter),
+        ...body,
         status: loaded.status,
         retrievedAt: loaded.retrievedAt,
         ...("sourceRows" in loaded ? { sourceRows: loaded.sourceRows } : {}),

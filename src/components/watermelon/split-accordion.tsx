@@ -23,6 +23,7 @@ export function SplitAccordion({ items }: { items: AtlasAccordionItem[] }) {
         return (
           <article
             className={`wm-split-item ${open ? "is-open" : ""}`}
+            data-tone={item.id}
             key={item.id}
           >
             <h3>

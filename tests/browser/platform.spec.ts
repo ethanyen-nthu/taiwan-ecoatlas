@@ -115,7 +115,7 @@ test.describe("integrated atlas platform", () => {
         )
         .toBeLessThanOrEqual(1);
       const mapTab = workbench.getByRole("tab", {
-        name: "Map & records",
+        name: "Records",
         exact: true,
       });
       const chartsTab = workbench.getByRole("tab", {
@@ -164,7 +164,7 @@ test.describe("integrated atlas platform", () => {
         /coverage|missing|comparison/i,
       );
       await workbench
-        .getByRole("tab", { name: "Map & records", exact: true })
+        .getByRole("tab", { name: "Records", exact: true })
         .click();
       if (section.route === "/forests") {
         await expect(
@@ -184,13 +184,13 @@ test.describe("integrated atlas platform", () => {
         ).toBeVisible();
         await workbench
           .getByLabel("Map display", { exact: true })
-          .selectOption("heatmap");
+          .selectOption("density");
         await expect(
           workbench.getByLabel("Map display", { exact: true }),
-        ).toHaveValue("heatmap");
+        ).toHaveValue("density");
         await workbench
           .getByLabel("Map display", { exact: true })
-          .selectOption("clusters");
+          .selectOption("points");
       }
       await page.screenshot({
         path: testInfo.outputPath(`${section.dataset}-desktop.png`),
@@ -221,6 +221,7 @@ test.describe("integrated atlas platform", () => {
     await changedResult(page, "wildlife", { species, county }, () =>
       workbench.getByLabel("County", { exact: true }).selectOption(county),
     );
+    await workbench.getByText("More filters", { exact: true }).click();
     await changedResult(
       page,
       "wildlife",
@@ -375,8 +376,9 @@ test.describe("integrated atlas platform", () => {
     await page.getByRole("button", { name: "繁中", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
     await expect(page.locator(".atlas-workbench")).not.toContainText(
-      "Map & records",
+      "Compare & charts",
     );
+    await expect(page.locator(".atlas-workbench")).toContainText("比較與圖表");
     await page.screenshot({
       path: testInfo.outputPath("mobile-zh.png"),
       fullPage: true,

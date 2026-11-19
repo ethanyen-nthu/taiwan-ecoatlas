@@ -67,9 +67,11 @@ function filterObservations(
 }
 export default function Explorer({
   compact = false,
+  island = false,
   initialLayers = [],
 }: {
   compact?: boolean;
+  island?: boolean;
   initialLayers?: string[];
 }) {
   const { t, language } = useLanguage();
@@ -95,9 +97,7 @@ export default function Explorer({
   const [atlasIds, setAtlasIds] = useState<string[]>(
     initialLayers.filter((id) => !["live-aqi", "live-weather"].includes(id)),
   );
-  const [atlasMode, setAtlasMode] = useState<"clusters" | "heatmap">(
-    "clusters",
-  );
+  const [atlasMode, setAtlasMode] = useState<"points" | "density">("points");
   const [atlasFilters, setAtlasFilters] = useState<AtlasMapFilters>({});
   const [atlasFocus, setAtlasFocus] = useState<{
     datasetId: string;
@@ -198,6 +198,7 @@ export default function Explorer({
         {counties ? (
           <MapCanvas
             compact={compact}
+            island={island}
             counties={counties}
             selectedCounty={selected}
             boundariesVisible={visible.includes("counties")}
@@ -245,22 +246,9 @@ export default function Explorer({
         )}
         {!compact && (
           <div className="map-context">
-            <span className="eyebrow">
-              TAIWAN ECOATLAS <span className="live-dot" />
-            </span>
             <h1>{t("Explore the island", "探索這座島嶼")}</h1>
-            <p>
-              {t(
-                "Environment. Ecology. People. Place.",
-                "環境、生態、人與地方。",
-              )}
-            </p>
           </div>
         )}
-        <div className="map-coordinate">
-          23°42′ N &nbsp; 120°58′ E<br />
-          <span>{t("TAIWAN & OFFSHORE ISLANDS", "臺灣與離島")}</span>
-        </div>
         {compact && (
           <Link className="map-open button" href="/explore">
             {t("Open interactive map", "開啟互動地圖")}
@@ -674,50 +662,45 @@ export default function Explorer({
       )}
       {!compact && (
         <aside className="map-insight">
-          <div className="insight-title">
-            <span className="eyebrow">{t("REGIONAL VIEW", "區域檢視")}</span>
-            <span className="outline-dot" />
-          </div>
           <h2>{selectedName}</h2>
-          <p>
-            {county
-              ? language === "en"
-                ? county.properties.COUNTYNAME
-                : county.properties.COUNTYENG
-              : t(
-                  "A shared landscape, many stories.",
-                  "共同的地景，多元的故事。",
-                )}
-          </p>
-          <div className="insight-metrics">
-            <div>
-              <Wind size={16} />
-              <strong>
-                {aqi.data?.status === "not-configured" || !aqi.data
-                  ? "—"
-                  : filteredAqi.length}
-              </strong>
-              <span>{t("AQI stations", "空品測站")}</span>
-            </div>
-            <div>
-              <Thermometer size={16} />
-              <strong>
-                {weather.data?.status === "not-configured" || !weather.data
-                  ? "—"
-                  : filteredWeather.length}
-              </strong>
-              <span>{t("Weather stations", "氣象測站")}</span>
-            </div>
-          </div>
-          <div className="insight-notice">
-            <Info size={14} />
+          {county && (
             <p>
-              {t(
-                "Station counts reflect loaded reports within your filters, not all existing stations.",
-                "測站數為篩選後已載入的報告數，不代表所有既有測站。",
-              )}
+              {language === "en"
+                ? county.properties.COUNTYNAME
+                : county.properties.COUNTYENG}
             </p>
-          </div>
+          )}
+          {aqi.data?.status === "not-configured" &&
+          weather.data?.status === "not-configured" ? null : (
+            <>
+              <div className="insight-metrics">
+                <div>
+                  <Wind size={16} />
+                  <strong>
+                    {aqi.data?.status === "not-configured" || !aqi.data
+                      ? "—"
+                      : filteredAqi.length}
+                  </strong>
+                  <span>{t("AQI stations", "空品測站")}</span>
+                </div>
+                <div>
+                  <Thermometer size={16} />
+                  <strong>
+                    {weather.data?.status === "not-configured" || !weather.data
+                      ? "—"
+                      : filteredWeather.length}
+                  </strong>
+                  <span>{t("Weather stations", "氣象測站")}</span>
+                </div>
+              </div>
+              <p className="insight-note">
+                {t(
+                  "Counts are loaded reports within your filters, not every station.",
+                  "數字為篩選後已載入的報告數，非所有測站。",
+                )}
+              </p>
+            </>
+          )}
           <details className="time-filter">
             <summary>
               <Settings2 size={14} />
@@ -796,8 +779,8 @@ export default function Explorer({
               </div>
               <p>
                 {t(
-                  "Numbered circles group nearby stations; zoom in to see individual status colours.",
-                  "數字圓圈聚合鄰近測站；放大可查看個別狀態顏色。",
+                  "Each circle is one station, coloured by its own official AQI status.",
+                  "每個圓圈代表一個測站，顏色為其官方 AQI 狀態。",
                 )}
               </p>
             </details>

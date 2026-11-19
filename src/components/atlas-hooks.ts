@@ -9,11 +9,11 @@ import type {
   AtlasOverlay,
 } from "@/lib/atlas-types";
 export const sectionColors = {
-  environment: "#397e9c",
-  forests: "#347a4b",
-  wildlife: "#a66a32",
-  culture: "#866198",
-  urban: "#557b46",
+  environment: "#1a7cb0",
+  forests: "#4b853e",
+  wildlife: "#a06a08",
+  culture: "#ae5843",
+  urban: "#0a8685",
 };
 export const emptyAtlas: AtlasCollection = {
   type: "FeatureCollection",
@@ -41,7 +41,7 @@ export function useAtlasOverlays(
   ids: string[],
   viewport: { bbox: [number, number, number, number]; zoom: number } | null,
   county: string,
-  mode: "clusters" | "heatmap",
+  mode: "points" | "density",
   filters: AtlasMapFilters = {},
 ) {
   const params = new URLSearchParams({ layers: ids.join(","), county });

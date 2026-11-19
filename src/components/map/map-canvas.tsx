@@ -15,8 +15,18 @@ import type {
   Observation,
   ObservationKind,
 } from "@/lib/types";
-import { boundsOfCoordinates, ISLAND_BOUNDS, TAIWAN_BOUNDS } from "@/lib/geo";
-import { aqiColor, aqiStatusEnglish } from "@/lib/transform";
+import {
+  boundsOfCoordinates,
+  inCounty,
+  ISLAND_BOUNDS,
+  TAIWAN_BOUNDS,
+} from "@/lib/geo";
+import {
+  aqiColor,
+  aqiColorForValue,
+  aqiColours,
+  aqiStatusEnglish,
+} from "@/lib/transform";
 import { observationFreshness } from "@/lib/freshness";
 import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
 
@@ -27,8 +37,17 @@ interface Props {
     zoom: number;
   }) => void;
   onAtlasSelect?: (datasetId: string, feature: AtlasFeature) => void;
-  focusedAtlas?: { datasetId: string; feature: AtlasFeature } | null;
+  focusedAtlas?: {
+    datasetId: string;
+    feature: AtlasFeature;
+    /** False when the click came from the map itself, so the view stays put. */
+    fly?: boolean;
+  } | null;
   compact?: boolean;
+  /** The page shows the selected record itself, so the map draws no popup. */
+  externalInspector?: boolean;
+  /** Frame the main island instead of all offshore islands (home preview). */
+  island?: boolean;
   counties: Counties;
   selectedCounty: string;
   boundariesVisible: boolean;
@@ -58,7 +77,7 @@ const fallbackStyle: StyleSpecification = {
     {
       id: "ocean",
       type: "background",
-      paint: { "background-color": "#e8f0f0" },
+      paint: { "background-color": "#e6eaee" },
     },
   ],
 };
@@ -66,9 +85,11 @@ const fallbackStyle: StyleSpecification = {
 maplibregl.setWorkerUrl(
   new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).href,
 );
-function homeBounds(compact?: boolean) {
-  return compact ? ISLAND_BOUNDS : TAIWAN_BOUNDS;
+function homeBounds(island?: boolean) {
+  return island ? ISLAND_BOUNDS : TAIWAN_BOUNDS;
 }
+const weatherColor = "#0a4d74";
+const neutralCounty = "#5f6b77";
 function fitPadding(compact?: boolean) {
   return {
     top: compact ? 20 : 60,
@@ -86,7 +107,7 @@ function pointData(rows: Observation[]): FeatureCollection<Point> {
       properties: {
         ...o,
         values: JSON.stringify(o.values),
-        color: o.source === "aqi" ? aqiColor(o.status) : "#4384ac",
+        color: o.source === "aqi" ? aqiColor(o.status) : weatherColor,
       },
     })),
   };
@@ -270,7 +291,7 @@ export default function MapCanvas(props: Props) {
       try {
         const response = await fetch(
           process.env.NEXT_PUBLIC_BASEMAP_STYLE ||
-            "https://tiles.openfreemap.org/styles/liberty",
+            "https://tiles.openfreemap.org/styles/positron",
           {
             signal: AbortSignal.any([
               controller.signal,
@@ -288,7 +309,7 @@ export default function MapCanvas(props: Props) {
         const map = new maplibregl.Map({
           container: container.current,
           style,
-          bounds: homeBounds(latest.current.compact),
+          bounds: homeBounds(latest.current.island),
           fitBoundsOptions: {
             padding: fitPadding(latest.current.compact),
             duration: 0,
@@ -296,6 +317,20 @@ export default function MapCanvas(props: Props) {
           attributionControl: false,
           minZoom: 3,
           maxZoom: 18,
+          // Embedded maps sit inside a scrolling page. Two-finger / ctrl+scroll
+          // keeps the page scrollable instead of trapping the pointer.
+          cooperativeGestures: !!latest.current.compact,
+          locale:
+            latest.current.language === "zh"
+              ? {
+                  "CooperativeGesturesHandler.WindowsHelpText":
+                    "按住 Ctrl 並滾動即可縮放地圖",
+                  "CooperativeGesturesHandler.MacHelpText":
+                    "按住 ⌘ 並滾動即可縮放地圖",
+                  "CooperativeGesturesHandler.MobileHelpText":
+                    "請用雙指移動地圖",
+                }
+              : undefined,
         });
         mapRef.current = map;
         const reportViewport = () => {
@@ -384,12 +419,18 @@ export default function MapCanvas(props: Props) {
             type: "fill",
             source: "counties",
             paint: {
-              "fill-color": "#40927c",
+              "fill-color": [
+                "coalesce",
+                ["feature-state", "tint"],
+                neutralCounty,
+              ],
               "fill-opacity": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
-                0.28,
-                0.1,
+                0.3,
+                ["boolean", ["feature-state", "tinted"], false],
+                0.42,
+                0.04,
               ],
             },
           });
@@ -398,9 +439,9 @@ export default function MapCanvas(props: Props) {
             type: "line",
             source: "counties",
             paint: {
-              "line-color": "#568e7d",
-              "line-width": 1,
-              "line-opacity": 0.7,
+              "line-color": "#7a8591",
+              "line-width": 0.9,
+              "line-opacity": 0.75,
             },
           });
           map.addLayer({
@@ -408,14 +449,14 @@ export default function MapCanvas(props: Props) {
             type: "fill",
             source: "counties",
             filter: ["==", ["get", "COUNTYCODE"], ""],
-            paint: { "fill-color": "#18765e", "fill-opacity": 0.26 },
+            paint: { "fill-color": "#16202b", "fill-opacity": 0.07 },
           });
           map.addLayer({
             id: "county-selected-line",
             type: "line",
             source: "counties",
             filter: ["==", ["get", "COUNTYCODE"], ""],
-            paint: { "line-color": "#0d6c52", "line-width": 2.5 },
+            paint: { "line-color": "#16202b", "line-width": 2.4 },
           });
           let hovered: string | number | undefined;
           const hoverPopup = new maplibregl.Popup({
@@ -459,12 +500,10 @@ export default function MapCanvas(props: Props) {
           map.on("click", "county-fill", (event) => {
             const hits = map.queryRenderedFeatures(event.point, {
               layers: [
-                "aqi-points",
-                "weather-points",
-                "aqi-clusters",
-                "weather-clusters",
+                "aqi-hit",
+                "weather-hit",
                 ...(latest.current.overlays || []).flatMap((overlay) =>
-                  ["points", "clusters", "line", "fill"].map(
+                  ["hit", "line", "fill"].map(
                     (suffix) => `atlas-${overlay.dataset.id}-${suffix}`,
                   ),
                 ),
@@ -474,73 +513,53 @@ export default function MapCanvas(props: Props) {
               latest.current.onSelect(event.features[0].properties.COUNTYCODE);
           });
           for (const kind of ["aqi", "weather"] as ObservationKind[]) {
-            map.addSource(kind, {
-              type: "geojson",
-              data: emptyPoints,
-              cluster: true,
-              clusterMaxZoom: 11,
-              clusterRadius: 42,
-            });
-            map.addLayer({
-              id: `${kind}-clusters`,
-              type: "circle",
-              source: kind,
-              filter: ["has", "point_count"],
-              paint: {
-                "circle-color": kind === "aqi" ? "#d69a47" : "#4384ac",
-                "circle-radius": [
-                  "step",
-                  ["get", "point_count"],
-                  17,
-                  20,
-                  22,
-                  100,
-                  28,
-                ],
-                "circle-stroke-color": "#ffffff",
-                "circle-stroke-width": 2,
-              },
-            });
-            map.addLayer({
-              id: `${kind}-cluster-label`,
-              type: "symbol",
-              source: kind,
-              filter: ["has", "point_count"],
-              layout: {
-                "text-field": ["get", "point_count_abbreviated"],
-                "text-size": 12,
-              },
-              paint: { "text-color": "#ffffff" },
-            });
+            map.addSource(kind, { type: "geojson", data: emptyPoints });
             map.addLayer({
               id: `${kind}-points`,
               type: "circle",
               source: kind,
-              filter: ["!", ["has", "point_count"]],
               paint: {
                 "circle-color": ["get", "color"],
-                "circle-radius": 6.5,
-                "circle-stroke-color": "#fff",
+                "circle-radius": [
+                  "interpolate",
+                  ["linear"],
+                  ["zoom"],
+                  5,
+                  5,
+                  9,
+                  7.5,
+                  13,
+                  10,
+                ],
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 1.6,
+              },
+            });
+            map.addLayer({
+              id: `${kind}-ring`,
+              type: "circle",
+              source: kind,
+              filter: ["==", ["get", "id"], ""],
+              paint: {
+                "circle-color": "rgba(0,0,0,0)",
+                "circle-radius": 13,
+                "circle-stroke-color": "#16202b",
                 "circle-stroke-width": 2,
               },
             });
-            map.on("click", `${kind}-clusters`, async (event) => {
-              const feature = event.features?.[0];
-              if (!feature || feature.geometry.type !== "Point") return;
-              try {
-                const zoom = await (
-                  map.getSource(kind) as GeoJSONSource
-                ).getClusterExpansionZoom(feature.properties.cluster_id);
-                if (!disposed)
-                  map.easeTo({
-                    center: feature.geometry.coordinates as [number, number],
-                    zoom,
-                  });
-              } catch {
-                /* Source may be removed during navigation. */
-              }
+            // Wider invisible target so stations are easy to hit with a mouse or finger.
+            map.addLayer({
+              id: `${kind}-hit`,
+              type: "circle",
+              source: kind,
+              // Nearly invisible, and white: stacked black hit areas read as grey smudges.
+              paint: {
+                "circle-radius": 16,
+                "circle-color": "#ffffff",
+                "circle-opacity": 0.01,
+              },
             });
-            map.on("click", `${kind}-points`, (event) => {
+            map.on("click", `${kind}-hit`, (event) => {
               const feature = event.features?.[0];
               if (!feature || feature.geometry.type !== "Point") return;
               const raw = feature.properties;
@@ -567,15 +586,17 @@ export default function MapCanvas(props: Props) {
                 )
                 .addTo(map);
             });
-            for (const layer of [`${kind}-points`, `${kind}-clusters`]) {
-              map.on("mouseenter", layer, () => {
-                hoverPopup.remove();
-                map.getCanvas().style.cursor = "pointer";
-              });
-              map.on("mouseleave", layer, () => {
-                map.getCanvas().style.cursor = "";
-              });
-            }
+            map.on("mouseenter", `${kind}-hit`, (event) => {
+              hoverPopup.remove();
+              map.getCanvas().style.cursor = "pointer";
+              const id = event.features?.[0]?.properties?.id;
+              if (id !== undefined)
+                map.setFilter(`${kind}-ring`, ["==", ["get", "id"], id]);
+            });
+            map.on("mouseleave", `${kind}-hit`, () => {
+              map.getCanvas().style.cursor = "";
+              map.setFilter(`${kind}-ring`, ["==", ["get", "id"], ""]);
+            });
           }
           setReady(true);
           reportViewport();
@@ -624,9 +645,10 @@ export default function MapCanvas(props: Props) {
         atlasPopupDataset.current = null;
       }
       for (const suffix of [
-        "label",
+        "selected",
+        "ring",
+        "hit",
         "points",
-        "clusters",
         "heat",
         "line",
         "fill",
@@ -645,23 +667,13 @@ export default function MapCanvas(props: Props) {
       const shape = overlay.data.features.some(
         (feature) => feature.geometry.type !== "Point",
       );
-      const spec = `${overlay.mode}:${shape}:${!!overlay.dataset.raster}`;
+      const spec = `${overlay.mode}:${shape}:${!!overlay.dataset.raster}:${overlay.colorBy || ""}`;
       if (overlaySpecs.current.has(id) && overlaySpecs.current.get(id) !== spec)
         remove(id);
       if (!map.getSource(id)) {
-        const clusters = !shape && overlay.mode === "clusters";
         map.addSource(id, {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
-          cluster: clusters,
-          clusterRadius: 42,
-          ...(clusters
-            ? {
-                clusterProperties: {
-                  records: ["+", ["coalesce", ["get", "count"], 1]],
-                },
-              }
-            : {}),
         });
         if (overlay.dataset.raster) {
           map.addSource(`${id}-image`, {
@@ -703,64 +715,185 @@ export default function MapCanvas(props: Props) {
             },
           });
         }
-        if (clusters) {
-          map.addLayer({
-            id: `${id}-clusters`,
-            type: "circle",
-            source: id,
-            filter: ["has", "point_count"],
-            paint: {
-              "circle-color": overlay.color,
-              "circle-radius": 21,
-              "circle-stroke-color": "#fff",
-              "circle-stroke-width": 2,
-            },
-          });
-          map.addLayer({
-            id: `${id}-label`,
-            type: "symbol",
-            source: id,
-            filter: ["has", "point_count"],
-            layout: {
-              "text-field": ["to-string", ["get", "records"]],
-              "text-size": 11,
-            },
-            paint: { "text-color": "#fff" },
-          });
-        }
-        if (overlay.mode === "heatmap")
+        const pointFilter = ["==", ["geometry-type"], "Point"] as const;
+        const density = overlay.mode === "density";
+        const byAqi = overlay.colorBy === "aqi";
+        if (density)
           map.addLayer({
             id: `${id}-heat`,
             type: "heatmap",
             source: id,
+            maxzoom: 10,
+            filter: pointFilter as never,
             paint: {
-              "heatmap-weight": ["coalesce", ["get", "count"], 1],
-              "heatmap-radius": 25,
-              "heatmap-opacity": 0.65,
+              "heatmap-weight": [
+                "interpolate",
+                ["linear"],
+                ["sqrt", ["coalesce", ["get", "count"], 1]],
+                1,
+                0.25,
+                30,
+                1,
+              ],
+              "heatmap-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                4,
+                14,
+                9,
+                30,
+              ],
+              "heatmap-intensity": 1.1,
+              "heatmap-color": [
+                "interpolate",
+                ["linear"],
+                ["heatmap-density"],
+                0,
+                "rgba(255,255,255,0)",
+                0.25,
+                `${overlay.color}40`,
+                0.6,
+                `${overlay.color}99`,
+                1,
+                overlay.color,
+              ],
+              "heatmap-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                8,
+                0.95,
+                10,
+                0,
+              ],
             },
           });
+        // Size encodes how many records a grid cell holds; no numbers on the map.
+        const base = [
+          "interpolate",
+          ["linear"],
+          ["sqrt", ["coalesce", ["get", "count"], 1]],
+          1,
+          5,
+          10,
+          10,
+          40,
+          16,
+        ];
         map.addLayer({
           id: `${id}-points`,
           type: "circle",
           source: id,
-          filter: [
-            "all",
-            ["==", ["geometry-type"], "Point"],
-            ["!", ["has", "point_count"]],
-          ],
+          minzoom: density ? 7 : 0,
+          filter: pointFilter as never,
           paint: {
-            "circle-color": overlay.color,
-            "circle-radius": overlay.mode === "heatmap" ? 3 : 5,
-            "circle-opacity": overlay.mode === "heatmap" ? 0.4 : 0.9,
-            "circle-stroke-color": "#fff",
-            "circle-stroke-width": 1.2,
+            "circle-color": (byAqi
+              ? [
+                  "case",
+                  ["==", ["typeof", ["get", "aqi"]], "number"],
+                  [
+                    "step",
+                    ["get", "aqi"],
+                    aqiColours["良好"],
+                    51,
+                    aqiColours["普通"],
+                    101,
+                    aqiColours["對敏感族群不健康"],
+                    151,
+                    aqiColours["對所有族群不健康"],
+                    201,
+                    aqiColours["非常不健康"],
+                    301,
+                    aqiColours["危害"],
+                  ],
+                  overlay.color,
+                ]
+              : overlay.color) as never,
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              5,
+              ["*", 0.9, base],
+              12,
+              ["*", 1.4, base],
+            ] as never,
+            "circle-opacity": byAqi ? 0.92 : 0.62,
+            "circle-stroke-color": byAqi ? "#16202b" : "#ffffff",
+            "circle-stroke-width": 1,
+          },
+        });
+        map.addLayer({
+          id: `${id}-ring`,
+          type: "circle",
+          source: id,
+          filter: ["==", ["get", "id"], ""],
+          paint: {
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-radius": 14,
+            "circle-stroke-color": "#16202b",
+            "circle-stroke-width": 2,
+          },
+        });
+        // Persistent mark for the record whose details are open.
+        map.addLayer({
+          id: `${id}-selected`,
+          type: "circle",
+          source: id,
+          filter: ["==", ["get", "id"], ""],
+          paint: {
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-radius": 16,
+            "circle-stroke-color": "#16202b",
+            "circle-stroke-width": 3,
+          },
+        });
+        map.addLayer({
+          id: `${id}-hit`,
+          type: "circle",
+          source: id,
+          minzoom: density ? 7 : 0,
+          filter: pointFilter as never,
+          paint: {
+            "circle-radius": 16,
+            "circle-color": "#ffffff",
+            "circle-opacity": 0.01,
           },
         });
         const handlers: {
           layerId: string;
           listener: (event: MapLayerMouseEvent) => void;
         }[] = [];
-        for (const suffix of ["points", "line", "fill", "clusters"])
+        const tip = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          className: "county-tooltip",
+          offset: 14,
+        });
+        map.on("mousemove", `${id}-hit`, (event) => {
+          const raw = event.features?.[0];
+          if (!raw) return;
+          map.getCanvas().style.cursor = "pointer";
+          map.setFilter(`${id}-ring`, ["==", ["get", "id"], raw.properties.id]);
+          if (raw.properties.aggregated) {
+            const n = Number(raw.properties.count || 0).toLocaleString();
+            tip
+              .setLngLat(event.lngLat)
+              .setText(
+                latest.current.language === "zh"
+                  ? `${n} 筆紀錄・點擊放大`
+                  : `${n} records · click to zoom in`,
+              )
+              .addTo(map);
+          } else tip.remove();
+        });
+        map.on("mouseleave", `${id}-hit`, () => {
+          map.getCanvas().style.cursor = "";
+          map.setFilter(`${id}-ring`, ["==", ["get", "id"], ""]);
+          tip.remove();
+        });
+        for (const suffix of ["hit", "line", "fill"])
           if (map.getLayer(`${id}-${suffix}`)) {
             const layerId = `${id}-${suffix}`;
             const listener = (event: MapLayerMouseEvent) => {
@@ -769,25 +902,21 @@ export default function MapCanvas(props: Props) {
                 (item) => item.dataset.id === overlay.dataset.id,
               );
               if (!raw || !current) return;
-              if (raw.properties.cluster_id !== undefined) {
-                const source = map.getSource(id) as GeoJSONSource | undefined;
-                if (!source) return;
-                void source
-                  .getClusterExpansionZoom(raw.properties.cluster_id)
-                  .then((zoom) => {
-                    if (
-                      mapRef.current === map &&
-                      map.getSource(id) === source &&
-                      raw.geometry.type === "Point"
-                    )
-                      map.easeTo({
-                        center: raw.geometry.coordinates as [number, number],
-                        zoom,
-                      });
-                  })
-                  .catch(() => {});
+              if (
+                raw.properties.aggregated &&
+                raw.geometry.type === "Point" &&
+                map.getZoom() < 12
+              ) {
+                tip.remove();
+                map.easeTo({
+                  center: raw.geometry.coordinates as [number, number],
+                  zoom: Math.min(map.getZoom() + 2.4, 13),
+                  duration: 600,
+                });
                 return;
               }
+              // Past this zoom, records that still share one point are
+              // co-located (generalized positions); report the group itself.
               const feature = {
                 type: "Feature",
                 geometry: raw.geometry,
@@ -795,12 +924,13 @@ export default function MapCanvas(props: Props) {
               } as AtlasFeature;
               pointPopup.current?.remove();
               atlasPopupDataset.current = current.dataset.id;
-              pointPopup.current = new maplibregl.Popup({ maxWidth: "340px" })
-                .setLngLat(event.lngLat)
-                .setDOMContent(
-                  atlasPopup(feature, current, latest.current.language),
-                )
-                .addTo(map);
+              if (!latest.current.externalInspector)
+                pointPopup.current = new maplibregl.Popup({ maxWidth: "340px" })
+                  .setLngLat(event.lngLat)
+                  .setDOMContent(
+                    atlasPopup(feature, current, latest.current.language),
+                  )
+                  .addTo(map);
               latest.current.onAtlasSelect?.(current.dataset.id, feature);
             };
             map.on("click", layerId, listener);
@@ -816,6 +946,29 @@ export default function MapCanvas(props: Props) {
       );
     }
   }, [ready, props.overlays]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    for (const overlay of props.overlays || []) {
+      const layer = `atlas-${overlay.dataset.id}-selected`;
+      if (!map.getLayer(layer)) continue;
+      const focus =
+        props.focusedAtlas?.datasetId === overlay.dataset.id
+          ? props.focusedAtlas.feature
+          : null;
+      // A record that shares its position is drawn as a grid cell, keyed by
+      // coordinates, so mark either the record itself or the cell holding it.
+      const cell =
+        focus?.geometry.type === "Point"
+          ? `cell:${focus.geometry.coordinates[0]}:${focus.geometry.coordinates[1]}`
+          : "";
+      map.setFilter(layer, [
+        "any",
+        ["==", ["get", "id"], focus?.properties.id ?? ""],
+        ["==", ["get", "id"], cell],
+      ]);
+    }
+  }, [ready, props.overlays, props.focusedAtlas]);
   const focusedOverlayAvailable =
     !!props.focusedAtlas &&
     !!props.overlays?.some(
@@ -845,13 +998,15 @@ export default function MapCanvas(props: Props) {
             focus.feature.geometry.coordinates[1],
           ]
         : [(box[0][0] + box[1][0]) / 2, (box[0][1] + box[1][1]) / 2];
-    map.fitBounds(box, {
-      maxZoom: 13,
-      padding: fitPadding(props.compact),
-      duration: 500,
-    });
+    if (focus.fly !== false)
+      map.fitBounds(box, {
+        maxZoom: 13,
+        padding: fitPadding(props.compact),
+        duration: 500,
+      });
     pointPopup.current?.remove();
     atlasPopupDataset.current = overlay.dataset.id;
+    if (latest.current.externalInspector) return;
     pointPopup.current = new maplibregl.Popup({ maxWidth: "340px" })
       .setLngLat(center)
       .setDOMContent(atlasPopup(focus.feature, overlay, props.language))
@@ -882,7 +1037,7 @@ export default function MapCanvas(props: Props) {
       ["weather", weather, weatherVisible],
     ] as const) {
       (map.getSource(kind) as GeoJSONSource).setData(pointData(rows));
-      for (const suffix of ["points", "clusters", "cluster-label"])
+      for (const suffix of ["points", "hit", "ring"])
         map.setLayoutProperty(
           `${kind}-${suffix}`,
           "visibility",
@@ -891,6 +1046,25 @@ export default function MapCanvas(props: Props) {
     }
     for (const id of ["county-selected", "county-selected-line"])
       map.setFilter(id, ["==", ["get", "COUNTYCODE"], selectedCounty]);
+    // County shading: mean AQI of the loaded stations inside each county.
+    for (const county of props.counties.features) {
+      const code = county.properties.COUNTYCODE;
+      const values = aqiVisible
+        ? aqi
+            .filter((o) => inCounty(o, code, props.counties))
+            .map((o) => o.values.aqi)
+            .filter((v): v is number => typeof v === "number")
+        : [];
+      const mean = values.length
+        ? values.reduce((sum, v) => sum + v, 0) / values.length
+        : null;
+      map.setFeatureState(
+        { source: "counties", id: code },
+        mean === null
+          ? { tint: null, tinted: false }
+          : { tint: aqiColorForValue(mean), tinted: true },
+      );
+    }
   }, [
     ready,
     aqi,
@@ -899,6 +1073,7 @@ export default function MapCanvas(props: Props) {
     weatherVisible,
     boundariesVisible,
     selectedCounty,
+    props.counties,
   ]);
   useEffect(() => {
     const map = mapRef.current;
@@ -915,11 +1090,11 @@ export default function MapCanvas(props: Props) {
   }, [ready, props.selectedCounty, props.counties, props.compact]);
   useEffect(() => {
     if (ready)
-      mapRef.current?.fitBounds(homeBounds(props.compact), {
+      mapRef.current?.fitBounds(homeBounds(props.island), {
         padding: fitPadding(props.compact),
         duration: 800,
       });
-  }, [ready, props.resetToken, props.compact]);
+  }, [ready, props.resetToken, props.compact, props.island]);
   useEffect(() => {
     const map = mapRef.current,
       focus = props.focusedObservation;
@@ -1021,7 +1196,7 @@ export default function MapCanvas(props: Props) {
       <button
         className="map-reset icon-button"
         onClick={() =>
-          mapRef.current?.fitBounds(homeBounds(props.compact), {
+          mapRef.current?.fitBounds(homeBounds(props.island), {
             padding: fitPadding(props.compact),
             duration: 800,
           })

@@ -186,3 +186,20 @@ export const aqiStatusEnglish: Record<string, string> = {
 export function aqiColor(status: string | null) {
   return aqiColours[status || ""] || "#7c868d";
 }
+
+/** Official AQI bands (MOENV): 0–50, 51–100, 101–150, 151–200, 201–300, 301+. */
+export function aqiColorForValue(value: number) {
+  const status =
+    value <= 50
+      ? "良好"
+      : value <= 100
+        ? "普通"
+        : value <= 150
+          ? "對敏感族群不健康"
+          : value <= 200
+            ? "對所有族群不健康"
+            : value <= 300
+              ? "非常不健康"
+              : "危害";
+  return aqiColours[status];
+}

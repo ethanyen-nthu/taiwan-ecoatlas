@@ -160,7 +160,7 @@ export function Home() {
           </Link>
         </div>
         <div className="hero-map">
-          <Explorer compact />
+          <Explorer compact island />
           <div className="map-caption">
             {t(
               "22 official counties and cities · Taiwan and its offshore islands",
