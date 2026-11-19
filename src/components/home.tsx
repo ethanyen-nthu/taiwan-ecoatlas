@@ -4,14 +4,10 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bird,
-  BookOpen,
   CircleCheck,
-  Layers3,
-  MapPin,
   Mountain,
   Sprout,
   TreePine,
-  Waves,
   Wind,
 } from "lucide-react";
 import Explorer from "./map/explorer";
@@ -104,106 +100,87 @@ export function Home() {
     <main id="main">
       <section className="home-hero">
         <div className="hero-copy">
-          <div className="eyebrow">
-            <span className="live-dot" />
-            {t("AN OPEN ATLAS FOR TAIWAN", "臺灣的開放環境地圖")}
-          </div>
           <h1>
-            {t("One island.", "一座島嶼。 ")}
-            <br />
-            <em>{t("Many perspectives.", "多元視角。")}</em>
+            {t(
+              "What the open data says about Taiwan’s environment,",
+              "開放資料怎麼說臺灣的環境，",
+            )}
+            <em>{t("and what it leaves out.", "以及它沒說的部分。")}</em>
           </h1>
           <p>
             {t(
-              "See how nature, people and a changing environment connect. Explore Taiwan through open data, one layer at a time.",
-              "看見自然、人與變遷環境的連結。透過開放資料，一層一層探索臺灣。",
+              "Air quality and weather from MOENV and CWA, 2023 forest cover, a screened wildlife subset, 730 villages and Taipei’s park trees. Every layer shows its source, its date and its gaps.",
+              "環境部與中央氣象署的空品與氣象、2023 年森林覆蓋、經篩選的野生動物子集、730 個部落與臺北市公園樹木。每個圖層都標明來源、日期與缺口。",
             )}
           </p>
           <div className="hero-actions">
             <Link href="/explore" className="button">
-              {t("Explore the map", "探索地圖")}
+              {t("Open the map", "開啟地圖")}
               <ArrowUpRight size={18} />
             </Link>
             <Link className="text-link" href="/about">
-              {t("Meet the atlas", "認識 EcoAtlas")}
+              {t("How the atlas works", "EcoAtlas 如何運作")}
               <ArrowRight size={16} />
             </Link>
           </div>
-          <div className="hero-footnote">
-            <CircleCheck size={15} />
+        </div>
+        <div className="hero-status">
+          <p className="hero-status-title">
+            {t("Source status right now", "目前的資料來源狀態")}
+          </p>
+          <dl>
+            <div>
+              <dt>{t("County geography", "縣市地理")}</dt>
+              <dd>
+                <span className="verified-inline">
+                  <CircleCheck size={14} />
+                  22 {t("verified units", "已驗證行政區")}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>{t("Air quality · MOENV", "空氣品質・環境部")}</dt>
+              <dd>
+                <Status status={aqi.data?.status} loading={aqi.loading} />
+              </dd>
+            </div>
+            <div>
+              <dt>{t("Weather · CWA", "氣象・中央氣象署")}</dt>
+              <dd>
+                <Status
+                  status={weather.data?.status}
+                  loading={weather.loading}
+                />
+              </dd>
+            </div>
+          </dl>
+          <Link className="text-link" href="/sources">
+            {t("All sources and licences", "所有來源與授權")}
+            <ArrowUpRight size={16} />
+          </Link>
+        </div>
+        <div className="hero-map">
+          <Explorer compact />
+          <div className="map-caption">
             {t(
-              "Real sources. Clear limitations. A shared understanding.",
-              "真實來源、透明限制，共同認識這片土地。",
+              "22 official counties and cities · Taiwan and its offshore islands",
+              "22 個官方縣市・臺灣本島與離島",
             )}
           </div>
         </div>
-        <div className="hero-map">
-          <div className="hero-map-heading">
-            <span>
-              <span className="live-dot" />
-              {t("THE ISLAND, IN CONTEXT", "在脈絡中看見島嶼")}
-            </span>
-            <span>
-              22 {t("official counties & cities", "官方縣市")} / WGS84
-            </span>
-          </div>
-          <Explorer compact />
-          <div className="map-caption">
-            <span>
-              <MapPin size={13} />
-              {t("Taiwan & its offshore islands", "臺灣與離島")}
-            </span>
-            <span>22 {t("counties & cities", "縣市")}</span>
-          </div>
-        </div>
-      </section>
-      <section
-        className="status-strip"
-        aria-label={t("Data connection status", "資料連線狀態")}
-      >
-        <div className="status-intro">
-          <DatabaseIcon />
-          <span>
-            {t("From source to understanding", "從資料來源到理解")}
-            <small>
-              {t("A transparent view of what’s available", "透明呈現可用資料")}
-            </small>
-          </span>
-        </div>
-        <div>
-          <span>{t("County geography", "縣市地理")}</span>
-          <span className="verified-inline">
-            <CircleCheck size={14} />
-            22 {t("verified units", "已驗證行政區")}
-          </span>
-        </div>
-        <div>
-          <span>{t("Air quality · MOENV", "空氣品質・環境部")}</span>
-          <Status status={aqi.data?.status} loading={aqi.loading} />
-        </div>
-        <div>
-          <span>{t("Weather · CWA", "氣象・中央氣象署")}</span>
-          <Status status={weather.data?.status} loading={weather.loading} />
-        </div>
-        <Link
-          href="/sources"
-          aria-label={t("View all sources", "檢視所有來源")}
-        >
-          <ArrowUpRight size={19} />
-        </Link>
       </section>
       <section className="themes-section">
         <div className="section-heading">
-          <div>
-            <span className="eyebrow">
-              {t("FIVE WAYS TO SEE TAIWAN", "看見臺灣的五種方式")}
-            </span>
-            <h2>{t("Every layer tells a story.", "每個圖層，都有故事。")}</h2>
-          </div>
+          <h2>
+            {t(
+              "Five subjects, each with its own limits.",
+              "五個主題，各有各的資料限制。",
+            )}
+          </h2>
           <p>
             {t(
-              "Start with a question. Find a connection.",
-              "從一個問題出發，找到彼此的連結。",
+              "Open one to see what it covers, how old it is and what is missing.",
+              "展開任一主題，查看涵蓋範圍、資料年代與缺漏。",
             )}
           </p>
         </div>
@@ -227,50 +204,32 @@ export function Home() {
         />
       </section>
       <section className="principles">
-        <div>
-          <span className="eyebrow">
-            {t("BUILT ON TRANSPARENCY", "以透明為基礎")}
-          </span>
-          <h2>
+        <h2>
+          {t(
+            "Every dataset keeps its own date, coverage and gaps.",
+            "每個資料集都保留自己的年代、範圍與缺口。",
+          )}
+        </h2>
+        <div className="principles-body">
+          <p>
             {t(
-              "A map is only as useful\nas the trust behind it.",
-              "值得信任的地圖，\n才有真正的價值。",
+              "Historical archives stay historical. Station measurements stay local. Missing data stays visible instead of being filled in.",
+              "歷史典藏保留其年代，測站數據反映當地實測，資料缺口保持可見而不補造。",
             )}
-          </h2>
+          </p>
+          <p>
+            {t(
+              "Each available dataset lists its agency, observation time, retrieval status and licence.",
+              "每個可用資料集都列出機關、觀測時間、擷取狀態與授權。",
+            )}
+          </p>
           <Link className="text-link" href="/sources">
-            {t("Read our source notes", "閱讀資料來源說明")}
+            {t("Read the source notes", "閱讀資料來源說明")}
             <ArrowUpRight size={16} />
           </Link>
         </div>
-        <article>
-          <BookOpen size={23} />
-          <h3>{t("Trace every observation", "追溯每筆觀測")}</h3>
-          <p>
-            {t(
-              "See the agency, observation time, retrieval status and licence behind every available dataset.",
-              "查閱每個可用資料集的機關、觀測時間、擷取狀態與授權。",
-            )}
-          </p>
-        </article>
-        <article>
-          <Layers3 size={23} />
-          <h3>{t("Keep the context", "保留資料脈絡")}</h3>
-          <p>
-            {t(
-              "Historical archives stay historical. Station measurements stay local. Missing data stays visible.",
-              "歷史典藏保留其年代，測站數據反映當地實測，資料缺口保持可見。",
-            )}
-          </p>
-        </article>
       </section>
       <Footer />
     </main>
-  );
-}
-function DatabaseIcon() {
-  return (
-    <span className="status-intro-icon">
-      <Waves size={23} strokeWidth={1.4} />
-    </span>
   );
 }

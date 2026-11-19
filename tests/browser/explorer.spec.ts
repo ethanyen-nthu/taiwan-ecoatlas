@@ -195,7 +195,7 @@ test("homepage, source registry and all theme routes render on desktop and mobil
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "One island. Many perspectives." }),
+    page.getByRole("heading", { name: /What the open data says about Taiwan/ }),
   ).toBeVisible();
   await expect(page.locator("[data-map-ready=true]")).toBeVisible();
   await expect(page.locator("[data-map-idle=true]")).toBeVisible();

@@ -72,7 +72,6 @@ export default function Explorer({
   compact?: boolean;
   initialLayers?: string[];
 }) {
-  const MapHeading = compact ? "h2" : "h1";
   const { t, language } = useLanguage();
   const panelId = useId();
   const { counties, boundaryError, retryBoundaries } = useCounties();
@@ -244,22 +243,20 @@ export default function Explorer({
             )}
           </div>
         )}
-        <div className="map-context">
-          <span className="eyebrow">
-            TAIWAN ECOATLAS <span className="live-dot" />
-          </span>
-          <MapHeading>
-            {compact
-              ? t("An island, connected.", "一座島嶼，彼此相連。")
-              : t("Explore the island", "探索這座島嶼")}
-          </MapHeading>
-          <p>
-            {t(
-              "Environment. Ecology. People. Place.",
-              "環境、生態、人與地方。",
-            )}
-          </p>
-        </div>
+        {!compact && (
+          <div className="map-context">
+            <span className="eyebrow">
+              TAIWAN ECOATLAS <span className="live-dot" />
+            </span>
+            <h1>{t("Explore the island", "探索這座島嶼")}</h1>
+            <p>
+              {t(
+                "Environment. Ecology. People. Place.",
+                "環境、生態、人與地方。",
+              )}
+            </p>
+          </div>
+        )}
         <div className="map-coordinate">
           23°42′ N &nbsp; 120°58′ E<br />
           <span>{t("TAIWAN & OFFSHORE ISLANDS", "臺灣與離島")}</span>

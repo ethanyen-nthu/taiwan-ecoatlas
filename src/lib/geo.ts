@@ -4,6 +4,11 @@ export const TAIWAN_BOUNDS: [[number, number], [number, number]] = [
   [117.8, 21.7],
   [122.2, 26.6],
 ];
+/** Main island, Penghu and the northern islands; the homepage preview frames this so Taiwan fills the map. */
+export const ISLAND_BOUNDS: [[number, number], [number, number]] = [
+  [119.1, 21.8],
+  [122.3, 26.5],
+];
 export function validCoordinate(
   longitude: unknown,
   latitude: unknown,

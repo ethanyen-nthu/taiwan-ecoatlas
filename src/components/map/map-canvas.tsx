@@ -15,7 +15,7 @@ import type {
   Observation,
   ObservationKind,
 } from "@/lib/types";
-import { boundsOfCoordinates, TAIWAN_BOUNDS } from "@/lib/geo";
+import { boundsOfCoordinates, ISLAND_BOUNDS, TAIWAN_BOUNDS } from "@/lib/geo";
 import { aqiColor, aqiStatusEnglish } from "@/lib/transform";
 import { observationFreshness } from "@/lib/freshness";
 import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
@@ -66,6 +66,9 @@ const fallbackStyle: StyleSpecification = {
 maplibregl.setWorkerUrl(
   new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).href,
 );
+function homeBounds(compact?: boolean) {
+  return compact ? ISLAND_BOUNDS : TAIWAN_BOUNDS;
+}
 function fitPadding(compact?: boolean) {
   return {
     top: compact ? 20 : 60,
@@ -285,7 +288,7 @@ export default function MapCanvas(props: Props) {
         const map = new maplibregl.Map({
           container: container.current,
           style,
-          bounds: TAIWAN_BOUNDS,
+          bounds: homeBounds(latest.current.compact),
           fitBoundsOptions: {
             padding: fitPadding(latest.current.compact),
             duration: 0,
@@ -912,7 +915,7 @@ export default function MapCanvas(props: Props) {
   }, [ready, props.selectedCounty, props.counties, props.compact]);
   useEffect(() => {
     if (ready)
-      mapRef.current?.fitBounds(TAIWAN_BOUNDS, {
+      mapRef.current?.fitBounds(homeBounds(props.compact), {
         padding: fitPadding(props.compact),
         duration: 800,
       });
@@ -1018,7 +1021,7 @@ export default function MapCanvas(props: Props) {
       <button
         className="map-reset icon-button"
         onClick={() =>
-          mapRef.current?.fitBounds(TAIWAN_BOUNDS, {
+          mapRef.current?.fitBounds(homeBounds(props.compact), {
             padding: fitPadding(props.compact),
             duration: 800,
           })

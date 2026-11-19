@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 export const metadata: Metadata = {
   title: {
-    default: "Taiwan EcoAtlas — A clearer picture of our island",
+    default: "Taiwan EcoAtlas — Open environmental data, with its limits shown",
     template: "%s · Taiwan EcoAtlas",
   },
   description:
