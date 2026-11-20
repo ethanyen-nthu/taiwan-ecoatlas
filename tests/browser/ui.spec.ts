@@ -26,20 +26,29 @@ test("Watermelon explorer tabs support arrow keys and hidden panels leave the ta
   await expect(page.getByRole("tab", { name: /Layers/ })).toHaveCount(0);
 });
 
-test("Watermelon subject index and methodology disclosures work with the keyboard", async ({
+test("home subject tiles lead with counted numbers and link to each subject; methodology disclosures work with the keyboard", async ({
   page,
 }) => {
   await page.goto("/");
-  const air = page.getByRole("button", { name: /The air we share/ });
-  const forest = page.getByRole("button", { name: /A changing landscape/ });
-  await expect(air).toHaveAttribute("aria-expanded", "true");
-  await forest.focus();
-  await forest.press("Enter");
-  await expect(forest).toHaveAttribute("aria-expanded", "true");
-  await expect(air).toHaveAttribute("aria-expanded", "false");
+  const tiles = page.locator(".subject-tiles a");
+  await expect(tiles).toHaveCount(5);
+  for (const [name, href] of [
+    [/The air we share/, "/environment"],
+    [/A changing landscape/, "/forests"],
+    [/Life along the roads/, "/wildlife"],
+    [/People & place/, "/culture"],
+    [/Greener everyday spaces/, "/urban"],
+  ] as const)
+    await expect(page.getByRole("link", { name })).toHaveAttribute(
+      "href",
+      href,
+    );
   await expect(
-    page.getByRole("link", { name: "Explore this subject" }),
-  ).toHaveAttribute("href", "/forests");
+    page.locator(".subject-tiles li[data-tone=wildlife] .subject-tile-number"),
+  ).toHaveText(/^10,841$/);
+  await expect(
+    page.locator(".subject-tiles li[data-tone=culture] .subject-tile-number"),
+  ).toHaveText(/^730$/);
   await page.goto("/about");
   const question = page
     .locator("summary")

@@ -63,8 +63,9 @@ export interface AtlasOverlay {
   data: AtlasCollection;
   mode: "points" | "density";
   color: string;
-  /** Colour each point by the official AQI band of its own reading. */
-  colorBy?: "aqi";
+  /** "aqi" colours each point by the official AQI band of its own reading;
+   *  "ink" draws neutral dark points so a county choropleth stays readable. */
+  colorBy?: "aqi" | "ink";
 }
 export interface AtlasResult {
   dataset: AtlasDataset;

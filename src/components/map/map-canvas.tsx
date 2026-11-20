@@ -48,6 +48,8 @@ interface Props {
   externalInspector?: boolean;
   /** Frame the main island instead of all offshore islands (home preview). */
   island?: boolean;
+  /** County code to fill colour: a choropleth drawn under the data layers. */
+  countyTint?: Record<string, string> | null;
   counties: Counties;
   selectedCounty: string;
   boundariesVisible: boolean;
@@ -424,14 +426,23 @@ export default function MapCanvas(props: Props) {
                 ["feature-state", "tint"],
                 neutralCounty,
               ],
+              "fill-color-transition": { duration: 700, delay: 0 },
               "fill-opacity": [
                 "case",
+                ["boolean", ["feature-state", "strong"], false],
+                [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  0.96,
+                  0.84,
+                ],
                 ["boolean", ["feature-state", "hover"], false],
                 0.3,
                 ["boolean", ["feature-state", "tinted"], false],
                 0.42,
                 0.04,
               ],
+              "fill-opacity-transition": { duration: 500, delay: 0 },
             },
           });
           map.addLayer({
@@ -718,6 +729,7 @@ export default function MapCanvas(props: Props) {
         const pointFilter = ["==", ["geometry-type"], "Point"] as const;
         const density = overlay.mode === "density";
         const byAqi = overlay.colorBy === "aqi";
+        const byInk = overlay.colorBy === "ink";
         if (density)
           map.addLayer({
             id: `${id}-heat`,
@@ -809,17 +821,19 @@ export default function MapCanvas(props: Props) {
                   ],
                   overlay.color,
                 ]
-              : overlay.color) as never,
+              : byInk
+                ? "#16202b"
+                : overlay.color) as never,
             "circle-radius": [
               "interpolate",
               ["linear"],
               ["zoom"],
               5,
-              ["*", 0.9, base],
+              ["*", byInk ? 0.72 : 0.9, base],
               12,
-              ["*", 1.4, base],
+              ["*", byInk ? 1.1 : 1.4, base],
             ] as never,
-            "circle-opacity": byAqi ? 0.92 : 0.62,
+            "circle-opacity": byAqi ? 0.92 : byInk ? 0.6 : 0.62,
             "circle-stroke-color": byAqi ? "#16202b" : "#ffffff",
             "circle-stroke-width": 1,
           },
@@ -1046,9 +1060,20 @@ export default function MapCanvas(props: Props) {
     }
     for (const id of ["county-selected", "county-selected-line"])
       map.setFilter(id, ["==", ["get", "COUNTYCODE"], selectedCounty]);
-    // County shading: mean AQI of the loaded stations inside each county.
+    // County shading: a supplied choropleth, otherwise the mean AQI of the
+    // loaded stations inside each county.
+    const choropleth = props.countyTint;
     for (const county of props.counties.features) {
       const code = county.properties.COUNTYCODE;
+      if (choropleth) {
+        map.setFeatureState(
+          { source: "counties", id: code },
+          choropleth[code]
+            ? { tint: choropleth[code], tinted: true, strong: true }
+            : { tint: null, tinted: false, strong: false },
+        );
+        continue;
+      }
       const values = aqiVisible
         ? aqi
             .filter((o) => inCounty(o, code, props.counties))
@@ -1061,8 +1086,8 @@ export default function MapCanvas(props: Props) {
       map.setFeatureState(
         { source: "counties", id: code },
         mean === null
-          ? { tint: null, tinted: false }
-          : { tint: aqiColorForValue(mean), tinted: true },
+          ? { tint: null, tinted: false, strong: false }
+          : { tint: aqiColorForValue(mean), tinted: true, strong: false },
       );
     }
   }, [
@@ -1074,6 +1099,7 @@ export default function MapCanvas(props: Props) {
     boundariesVisible,
     selectedCounty,
     props.counties,
+    props.countyTint,
   ]);
   useEffect(() => {
     const map = mapRef.current;

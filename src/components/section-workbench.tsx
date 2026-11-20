@@ -16,7 +16,9 @@ import useSWRImmutable from "swr/immutable";
 import {
   ArrowDownToLine,
   ArrowUpRight,
+  Check,
   Info,
+  Link2,
   RefreshCw,
   X,
 } from "lucide-react";
@@ -27,6 +29,8 @@ import type {
   AtlasSection,
 } from "@/lib/atlas-types";
 import type { Freshness } from "@/lib/types";
+import { buildChoropleth } from "@/lib/choropleth";
+import { islandPath, islandViewBox } from "@/lib/island-path";
 import {
   aqiColorForValue,
   aqiColours,
@@ -148,19 +152,35 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     tabId = useId();
   const catalogue = useAtlasCatalogue(),
     { counties, boundaryError, retryBoundaries } = useCounties();
+  // Every choice below can arrive in the link, so a map view can be shared.
   const [chosen, setChosen] = useState<string | null>(null),
-    [chosenMetric, setChosenMetric] = useState<string | null>(null);
-  const [tab, setTab] = useState<"records" | "charts" | "sources">("records"),
-    [mode, setMode] = useState<"points" | "density">("points"),
-    [allCounties, setAllCounties] = useState(false);
+    [chosenMetric, setChosenMetric] = useState<string | null>(() => {
+      const raw = search.get("metric");
+      return raw === null ? null : raw === "none" ? "" : raw;
+    });
+  const [tab, setTab] = useState<"records" | "charts" | "sources">(() => {
+      const raw = search.get("tab");
+      return raw === "charts" || raw === "sources" ? raw : "records";
+    }),
+    [mode, setMode] = useState<"points" | "density">(
+      search.get("mode") === "density" ? "density" : "points",
+    ),
+    [allCounties, setAllCounties] = useState(false),
+    [shadeChoice, setShadeChoice] = useState<boolean | null>(() => {
+      const raw = search.get("shade");
+      return raw === "1" ? true : raw === "0" ? false : null;
+    }),
+    [copied, setCopied] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     county: search.get("county") || "",
-    q: "",
-    category: "",
-    species: "",
-    start: "",
-    end: "",
-    period: "month",
+    q: search.get("q") || "",
+    category: search.get("category") || "",
+    species: search.get("species") || "",
+    start: search.get("start") || "",
+    end: search.get("end") || "",
+    period: ["day", "month", "year"].includes(search.get("period") || "")
+      ? (search.get("period") as string)
+      : "month",
     offset: 0,
   });
   const [viewport, setViewport] = useState<{
@@ -262,24 +282,6 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         ]),
       ),
     [counties, language],
-  );
-  const overlays = useMemo<AtlasOverlay[]>(
-    () =>
-      dataset
-        ? [
-            {
-              dataset: result.data?.dataset || dataset,
-              data: result.data?.collection || emptyAtlas,
-              color: sectionColors[dataset.section],
-              mode,
-              colorBy:
-                dataset.id === "live-aqi" && metric === "aqi"
-                  ? ("aqi" as const)
-                  : undefined,
-            },
-          ]
-        : [],
-    [dataset, result.data?.dataset, result.data?.collection, mode, metric],
   );
   const focusedAtlas = useMemo(
     () =>
@@ -395,6 +397,92 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     : countyList.rows.filter(
         (row, index) => index < COUNTY_PREVIEW || row.code === filters.county,
       );
+  const choropleth = useMemo(
+    () =>
+      dataset && dataset.status !== "unavailable"
+        ? buildChoropleth(countyList.rows, section, {
+            aqi: dataset.id === "live-aqi" && metric === "aqi",
+          })
+        : null,
+    [countyList.rows, dataset, section, metric],
+  );
+  // Image datasets start on the image; every other dataset starts shaded.
+  const shadeOn = !!choropleth && (shadeChoice ?? !dataset?.raster);
+  const overlays = useMemo<AtlasOverlay[]>(
+    () =>
+      dataset && !(shadeOn && dataset.raster)
+        ? [
+            {
+              dataset: result.data?.dataset || dataset,
+              data: result.data?.collection || emptyAtlas,
+              color: sectionColors[dataset.section],
+              mode,
+              colorBy:
+                dataset.id === "live-aqi" && metric === "aqi"
+                  ? ("aqi" as const)
+                  : shadeOn
+                    ? ("ink" as const)
+                    : undefined,
+            },
+          ]
+        : [],
+    [
+      dataset,
+      result.data?.dataset,
+      result.data?.collection,
+      mode,
+      metric,
+      shadeOn,
+    ],
+  );
+  const fmtNum = (value: number) =>
+    Number(
+      value.toFixed(Math.abs(value) < 10 && !Number.isInteger(value) ? 1 : 0),
+    ).toLocaleString(language === "en" ? "en" : "zh-TW");
+  useEffect(() => {
+    if (!dataset) return;
+    const next = new URLSearchParams();
+    if (dataset.id !== defaults[section]) next.set("dataset", dataset.id);
+    if (filters.county) next.set("county", filters.county);
+    if (filters.q) next.set("q", filters.q);
+    if (filters.species) next.set("species", filters.species);
+    if (filters.category) next.set("category", filters.category);
+    if (filters.start) next.set("start", filters.start);
+    if (filters.end) next.set("end", filters.end);
+    if (filters.period !== "month") next.set("period", filters.period);
+    if (chosenMetric !== null) next.set("metric", chosenMetric || "none");
+    if (mode === "density") next.set("mode", "density");
+    if (tab !== "records") next.set("tab", tab);
+    if (shadeChoice !== null) next.set("shade", shadeChoice ? "1" : "0");
+    const qs = next.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    if (
+      url !==
+      `${window.location.pathname}${window.location.search}${window.location.hash}`
+    )
+      window.history.replaceState(null, "", url);
+  }, [dataset, section, filters, chosenMetric, mode, tab, shadeChoice]);
+  const copyLink = async () => {
+    const href = window.location.href;
+    try {
+      await navigator.clipboard.writeText(href);
+    } catch {
+      const box = document.createElement("textarea");
+      box.value = href;
+      box.setAttribute("readonly", "");
+      box.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(box);
+      box.select();
+      try {
+        document.execCommand("copy");
+      } catch {
+        /* the address bar still holds the same link */
+      }
+      box.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2400);
+  };
   const extraFilters =
     (filters.start ? 1 : 0) +
     (filters.end ? 1 : 0) +
@@ -512,6 +600,14 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
             {t("All layers", "全部圖層")} ↗
           </Link>
         </nav>
+        <svg
+          className="atlas-head-island"
+          viewBox={islandViewBox}
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d={islandPath} />
+        </svg>
       </header>
       {catalogue.error && (
         <div className="atlas-notice" role="alert">
@@ -746,10 +842,15 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           <div className="atlas-map-toolbar">
             {dataset?.raster ? (
               <span>
-                {t(
-                  "Raster overview · nearest-neighbour display",
-                  "網格概覽・最近鄰呈現",
-                )}
+                {shadeOn
+                  ? t(
+                      "County statistics from source pixels",
+                      "縣市統計（來源像素）",
+                    )
+                  : t(
+                      "Raster overview · nearest-neighbour display",
+                      "網格概覽・最近鄰呈現",
+                    )}
               </span>
             ) : (
               <label>
@@ -770,6 +871,26 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                 </select>
               </label>
             )}
+            {choropleth && (
+              <label className="atlas-shade">
+                <input
+                  type="checkbox"
+                  checked={shadeOn}
+                  onChange={(event) => setShadeChoice(event.target.checked)}
+                />
+                {t("Shade counties", "縣市著色")}
+              </label>
+            )}
+            <button
+              type="button"
+              className="atlas-share"
+              onClick={() => void copyLink()}
+            >
+              {copied ? <Check size={15} /> : <Link2 size={15} />}
+              {copied
+                ? t("Link copied", "已複製連結")
+                : t("Copy link to this view", "複製此檢視連結")}
+            </button>
             <Link href={`/explore?layers=${dataset?.id || ""}`}>
               {t("Open central atlas", "開啟中央地圖")} ↗
             </Link>
@@ -781,6 +902,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                 externalInspector
                 counties={counties}
                 selectedCounty={filters.county}
+                countyTint={shadeOn ? choropleth?.tint : null}
                 boundariesVisible
                 aqi={[]}
                 weather={[]}
@@ -937,18 +1059,67 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               </section>
             )}
           </div>
-          {dataset?.raster ? (
+          {shadeOn && choropleth && (
             <div
-              className="atlas-key atlas-raster-legend"
-              aria-label={t("Land-cover legend", "土地覆蓋圖例")}
+              className="atlas-choro"
+              role="group"
+              aria-label={t("County shading key", "縣市著色圖例")}
             >
-              {dataset.raster.legend.map((item) => (
-                <span key={item.color}>
-                  <i style={{ background: item.color }} />
-                  {item.label[language]}
-                </span>
-              ))}
+              <strong>
+                {choropleth.measured
+                  ? `${t("County mean", "縣市平均")} · ${metricLabel}`
+                  : t("Included records per county", "各縣市收錄紀錄數")}
+              </strong>
+              {!choropleth.official && (
+                <ol>
+                  {choropleth.classes.map((item) => (
+                    <li key={item.color}>
+                      <i style={{ background: item.color }} />
+                      {item.from === item.to
+                        ? fmtNum(item.from)
+                        : `${fmtNum(item.from)}–${fmtNum(item.to)}`}
+                    </li>
+                  ))}
+                  {choropleth.missing > 0 && (
+                    <li>
+                      <i className="atlas-choro-none" />
+                      {t("No data", "無資料")}
+                    </li>
+                  )}
+                </ol>
+              )}
+              <p>
+                {choropleth.official
+                  ? t(
+                      "Each county takes the official AQI colour of the mean of its stations' latest readings. The mean hides the spread between stations.",
+                      "各縣市以其測站最新讀數平均值對應官方 AQI 顏色；平均會掩蓋測站間的差異。",
+                    )
+                  : choropleth.measured
+                    ? t(
+                        "Five classes with about the same number of counties each. Counties with few records or stations give a less certain mean.",
+                        "分為五級，每級縣市數大致相同。紀錄或測站少的縣市，平均值較不確定。",
+                      )
+                    : t(
+                        "Counts, not rates: counties differ in size, population and survey effort, so a darker county is not necessarily a worse one.",
+                        "此為數量而非比率：各縣市面積、人口與調查投入不同，顏色較深不代表情況較嚴重。",
+                      )}
+              </p>
             </div>
+          )}
+          {dataset?.raster ? (
+            shadeOn ? null : (
+              <div
+                className="atlas-key atlas-raster-legend"
+                aria-label={t("Land-cover legend", "土地覆蓋圖例")}
+              >
+                {dataset.raster.legend.map((item) => (
+                  <span key={item.color}>
+                    <i style={{ background: item.color }} />
+                    {item.label[language]}
+                  </span>
+                ))}
+              </div>
+            )
           ) : (
             <p className="atlas-key">
               {dataset?.id === "live-aqi" && metric === "aqi" && (
@@ -1032,7 +1203,9 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                     metric === "aqi" &&
                     row.value !== null
                       ? aqiColorForValue(row.value)
-                      : "var(--accent)";
+                      : shadeOn && choropleth?.tint[row.code]
+                        ? choropleth.tint[row.code]
+                        : "var(--accent)";
                   return (
                     <li key={row.code}>
                       <button

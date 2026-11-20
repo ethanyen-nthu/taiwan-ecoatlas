@@ -16,9 +16,10 @@ Sources, dependencies and the upstream MIT licence are recorded in `THIRD_PARTY_
 
 ## Colour
 
-- **60 % paper**: warm off-white surfaces (`--paper`, `--white`, `--soft`) and hairline rules. Nothing decorative is coloured.
-- **30 % ink**: one blue-black (`--ink`) for text, chrome, primary buttons and the header. Muted text is a single grey (`--muted`) that passes 4.5:1 on paper.
-- **10 % subject colour**: each subject owns one hue at matched lightness and chroma, so none outranks another: environment blue, urban teal, forests green, wildlife amber, culture clay. A page sets `data-subject` on `<main>` and the accent roles (`--accent` for marks and bars, `--accent-ink` for filled controls and text, `--accent-soft` for selected rows) follow. The same hue colours that subject's points on the map, its county bars and its row on the homepage index.
+- **Neutral base**: warm off-white surfaces (`--paper`, `--white`, `--soft`) and hairline rules carry the controls, lists and tables, so reading stays calm. On a subject page the paper itself is tinted a little towards that subject's `--accent-soft`.
+- **Ink for text and chrome**: one blue-black (`--ink`) for text, the site header and primary buttons. Muted text is a single grey (`--muted`) that passes 4.5:1 on paper.
+- **Subject colour in large fields**: a section page opens on a full-width block of its `--accent-ink` with the island outline as a tonal shape, then a band of `--accent-soft` carrying the headline numbers in `--accent-ink`. The homepage is five tiles, one per subject, each a mix of the hue and its ink (so white type holds 4.5:1) led by a number counted from the data. Colour is therefore the first thing a reader meets, not a 10 % accent.
+- **Subject colour in the data**: each subject owns one hue at matched lightness and chroma, so none outranks another: environment blue, urban teal, forests green, wildlife amber, culture clay. A page sets `data-subject` on `<main>` only (links use `data-tone`) and the accent roles (`--accent` for marks and bars, `--accent-ink` for filled controls and text, `--accent-soft` for selected rows) follow. The same hue colours that subject's points on the map, its county bars and its row on the homepage index.
 - **AQI is the exception**: the official six-band palette appears only where an AQI reading does (station circles, county bars, legend). Because it is a reserved scale, it is never reused as decoration.
 - The basemap is a quiet light style (OpenFreeMap Positron) and county outlines stay neutral, so data colour is the loudest thing on the map.
 
@@ -29,3 +30,11 @@ Sources, dependencies and the upstream MIT licence are recorded in `THIRD_PARTY_
 - Records that share one public position (generalized grid centres) cannot be split by zooming. Past zoom 12 the cell reports "N records at this spot" and points to the list instead of zooming forever.
 - Embedded maps use cooperative gestures (two-finger pan on touch, Ctrl + scroll to zoom) so the page keeps scrolling.
 - Section pages are map-first: filters and a clickable county list on the left, one sticky map on the right, with the table, charts and sources one tab below. Rare filters (dates, metric, aggregation, category) sit behind "More filters", and dataset caveats behind "About this data", opened by default only when a dataset is unavailable.
+
+## County shading and sharing
+
+- Every dataset with three or more counties of data can shade the map by county ("Shade counties"). A measurement (air quality, river index, temperature, forest share) is shaded by the county mean; otherwise the shading is the record count. Classes are quantiles (five, near-equal counts of counties) on a one-hue ramp that changes in lightness, so the map still reads without colour vision. AQI uses its official bands instead.
+- While shading is on, points turn to translucent ink with a white edge so the colours underneath stay readable. Image datasets (forests) start on the image and switch to the county shares when shading is turned on.
+- Count shading always carries the caveat that counties differ in size and survey effort: a darker county is not a worse one. Counties with no data stay unshaded and the key says so.
+- A section map view (dataset, county, search, species, dates, metric, display, shading, tab) is written to the address bar with `history.replaceState`, so "Copy link to this view" gives a lecturer a link that reopens exactly what they were showing.
+- Motion is limited to entrances, the county bars growing and the shading cross-fading, and all of it is off under `prefers-reduced-motion`.

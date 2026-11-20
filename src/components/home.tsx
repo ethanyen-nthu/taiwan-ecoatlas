@@ -11,10 +11,23 @@ import {
   Wind,
 } from "lucide-react";
 import Explorer from "./map/explorer";
-import { SplitAccordion } from "./watermelon/split-accordion";
 import { useLanguage, useObservations } from "./providers";
 import { Footer } from "./footer";
 import { Status } from "./status";
+import { islandPath, islandViewBox } from "@/lib/island-path";
+
+/** Numbers counted from the published data files on the server. */
+export interface HomeFacts {
+  wildlifeRecords: number;
+  species: number;
+  firstYear: string;
+  lastYear: string;
+  villages: number;
+  groups: number;
+  parks: number;
+  parkTrees: number;
+  forestTop: { en: string; zh: string; sharePct: number } | null;
+}
 const themes = [
   {
     href: "/environment",
@@ -57,28 +70,6 @@ const themes = [
     Icon: Sprout,
   },
 ];
-const themeNotes = [
-  [
-    "Compare loaded air-quality and weather reports and explore monthly river samples. Check observation and sampling dates before comparing counties; monthly water samples are not live river conditions.",
-    "比較已載入空品與氣象報告，探索每月河川採樣。比較縣市前請確認觀測與採樣日期；月採樣不代表即時河川水況。",
-  ],
-  [
-    "Explore the verified 2023 land-cover raster and county forest summaries. Offshore gaps and unresolved classes stay visible; a verified 2013 baseline is unavailable, so no 2013 change statistic is invented.",
-    "探索驗證之 2023 土地覆蓋影像及縣市森林摘要。離島缺口與未區分類別保持可見；尚無已驗證 2013 基準，不虛構 2013 變遷統計。",
-  ],
-  [
-    "Filter a limited 2014–2017 public roadkill subset by species, county and date. Locations are generalized to 10 km grid centres. Recorded frequency reflects observer effort, not animal abundance or roadkill risk.",
-    "依物種、縣市與日期篩選有限之 2014–2017 公開路死子集。位置概化為 10 公里網格中心；頻次受觀察投入影響，不代表動物數量或路死風險。",
-  ],
-  [
-    "Explore 730 validated village reference points, source-listed traditional names and groups, public historical trails and original historical studies. Public points do not define traditional territories or access rights.",
-    "探索 730 筆驗證之部落定位點、來源傳統名制與族別、公開古道及原始歷史研究。公開點位不代表傳統領域或進入權利。",
-  ],
-  [
-    "Explore Taipei park and tree inventories alongside measured CWA air temperatures. Tree survey records are not proof of current survival or nationwide coverage; satellite surface temperature remains a separate, unavailable source.",
-    "將臺北市公園與樹木清冊和 CWA 實測氣溫分別探索。樹木調查紀錄不證明目前存活，也非全國完整覆蓋；衛星地表溫度為尚未匯入之獨立來源。",
-  ],
-];
 const themeStatus = [
   ["Station reports & monthly river samples", "測站報告與每月河川採樣"],
   ["2023 research raster · offshore gaps", "2023 研究影像・離島有缺口"],
@@ -92,10 +83,55 @@ const themeStatus = [
     "臺北市清冊・測站實測氣溫",
   ],
 ];
-export function Home() {
-  const { t } = useLanguage(),
+export function Home({ facts }: { facts: HomeFacts }) {
+  const { t, language } = useLanguage(),
     aqi = useObservations("aqi"),
     weather = useObservations("weather");
+  const locale = language === "en" ? "en" : "zh-TW";
+  const stations = aqi.data?.observations.length || 0;
+  const tiles = [
+    {
+      number: stations ? stations.toLocaleString(locale) : t("Live", "即時"),
+      label: stations
+        ? t("air-quality stations reporting now", "個空品測站目前回報")
+        : t(
+            "air, weather and river data, as the agencies report them",
+            "空品、氣象與河川資料，依機關回報",
+          ),
+    },
+    {
+      number: facts.forestTop
+        ? `${Math.round(facts.forestTop.sharePct)}%`
+        : "—",
+      label: facts.forestTop
+        ? t(
+            `of ${facts.forestTop.en} is forest in the 2023 map, the highest of the counties with data`,
+            `${facts.forestTop.zh}的面積在 2023 年地圖中為森林，為有資料縣市中最高`,
+          )
+        : "",
+    },
+    {
+      number: facts.wildlifeRecords.toLocaleString(locale),
+      label: t(
+        `roadside records of ${facts.species} species, ${facts.firstYear}–${facts.lastYear}`,
+        `筆路旁紀錄，涵蓋 ${facts.species} 種，${facts.firstYear}–${facts.lastYear}`,
+      ),
+    },
+    {
+      number: facts.villages.toLocaleString(locale),
+      label: t(
+        `village reference points, filed under ${facts.groups} group labels in the source`,
+        `個部落定位點，來源列有 ${facts.groups} 個族別標示`,
+      ),
+    },
+    {
+      number: facts.parkTrees.toLocaleString(locale),
+      label: t(
+        `surveyed park trees in Taipei, plus ${facts.parks} parks`,
+        `棵臺北市公園樹木調查紀錄，另有 ${facts.parks} 座公園`,
+      ),
+    },
+  ];
   return (
     <main id="main">
       <section className="home-hero">
@@ -179,29 +215,45 @@ export function Home() {
           </h2>
           <p>
             {t(
-              "Open one to see what it covers, how old it is and what is missing.",
-              "展開任一主題，查看涵蓋範圍、資料年代與缺漏。",
+              "Pick one to explore the map. Each page says what its data cover, how old they are and what is missing.",
+              "選一個主題探索地圖。每頁都說明資料涵蓋什麼、年代多久，以及缺了什麼。",
             )}
           </p>
         </div>
-        <SplitAccordion
-          items={themes.map((theme, index) => ({
-            id: theme.href.slice(1),
-            title: t(theme.en, theme.zh),
-            subtitle: t(theme.enSub, theme.zhSub),
-            icon: <theme.Icon size={24} strokeWidth={1.5} />,
-            status: t(themeStatus[index][0], themeStatus[index][1]),
-            content: (
-              <>
-                <p>{t(themeNotes[index][0], themeNotes[index][1])}</p>
-                <Link href={theme.href} className="text-link">
-                  {t("Explore this subject", "探索這個主題")}
-                  <ArrowUpRight size={16} />
+        <ul className="subject-tiles">
+          {themes.map((theme, index) => {
+            const stat = tiles[index];
+            return (
+              <li key={theme.href} data-tone={theme.href.slice(1)}>
+                <Link href={theme.href}>
+                  <svg
+                    className="subject-tile-island"
+                    viewBox={islandViewBox}
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d={islandPath} />
+                  </svg>
+                  <span className="subject-tile-icon" aria-hidden="true">
+                    <theme.Icon size={22} strokeWidth={1.6} />
+                  </span>
+                  <span className="subject-tile-title">
+                    {t(theme.en, theme.zh)}
+                  </span>
+                  <span className="subject-tile-number">{stat.number}</span>
+                  <span className="subject-tile-label">{stat.label}</span>
+                  <span className="subject-tile-note">
+                    {t(themeStatus[index][0], themeStatus[index][1])}
+                  </span>
+                  <span className="subject-tile-go">
+                    {t("Explore this subject", "探索這個主題")}
+                    <ArrowUpRight size={16} />
+                  </span>
                 </Link>
-              </>
-            ),
-          }))}
-        />
+              </li>
+            );
+          })}
+        </ul>
       </section>
       <section className="principles">
         <h2>
