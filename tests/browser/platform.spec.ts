@@ -320,16 +320,18 @@ test.describe("integrated atlas platform", () => {
       .getByRole("button", { name: /^View / })
       .first()
       .click();
-    const profile = workbench.locator('a[href^="/culture/"]').first();
+    const profile = workbench.getByRole("link", {
+      name: /Open the village profile/,
+    });
     await expect(profile).toBeVisible();
     const href = await profile.getAttribute("href");
+    expect(href).toMatch(/^\/culture\/places\/village-\d+$/);
     await profile.click();
     await expect(page).toHaveURL(href!);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Source" })).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Published place record" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Original dataset / official page" }),
+      page.getByRole("link", { name: "Original dataset" }),
     ).toHaveAttribute("href", /^https:\/\//);
   });
 

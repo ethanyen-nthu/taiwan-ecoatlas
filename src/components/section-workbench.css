@@ -472,10 +472,10 @@
   z-index: 5;
   left: 12px;
   bottom: 12px;
-  width: min(340px, calc(100% - 24px));
+  width: min(440px, calc(100% - 24px));
   max-height: calc(100% - 24px);
   overflow: auto;
-  padding: 14px 14px 6px;
+  padding: 18px 20px 10px;
   background: var(--white);
   border: 1px solid var(--line-strong);
   border-top: 3px solid var(--accent);
@@ -493,35 +493,35 @@
 }
 .atlas-peek-kind {
   display: block;
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   color: var(--accent-ink);
   font-weight: 600;
 }
 .atlas-peek h2 {
   margin-top: 3px;
-  font-size: 1.0625rem;
+  font-size: 1.375rem;
   font-weight: 600;
   line-height: 1.3;
 }
 .atlas-peek-text {
-  margin: 8px 0 2px;
-  font-size: 0.8125rem;
+  margin: 10px 0 4px;
+  font-size: 0.9375rem;
   color: var(--muted);
   line-height: 1.55;
 }
 .atlas-peek-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
-  margin: 12px 0 4px;
+  gap: 12px 18px;
+  margin: 14px 0 6px;
 }
 .atlas-peek dt {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .atlas-peek dd {
   margin: 2px 0 0;
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   overflow-wrap: anywhere;
 }
 .atlas-peek-links {
@@ -892,6 +892,20 @@
   border-radius: 3px;
   border: 1px solid rgb(22 32 43 / 0.28);
 }
+.atlas-tiles p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.atlas-tiles .atlas-stack-mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: var(--white);
+}
 .atlas-choro .atlas-choro-none {
   background: repeating-linear-gradient(135deg, #e8e4dc 0 3px, #ffffff 3px 6px);
 }
@@ -964,4 +978,82 @@
   .atlas-section-nav a:not([aria-current]):hover {
     transform: translateY(-1px);
   }
+}
+
+/* People named by a village record, and the members of a stack of records. */
+.atlas-peek-people {
+  margin: 12px 0 2px;
+  padding: 10px 14px 8px;
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+.atlas-peek-people strong {
+  font-size: 0.9375rem;
+}
+.atlas-peek-people p {
+  margin: 2px 0 6px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.atlas-peek-open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 4px 0;
+  padding: 8px 18px;
+  background: var(--accent-ink);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.atlas-peek-open:hover {
+  background: var(--accent);
+}
+.atlas-peek-members {
+  display: grid;
+  gap: 0;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.atlas-peek-members li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9375rem;
+}
+.atlas-peek-members a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atlas-peek-members b {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .atlas-peek {
+    padding: 14px 14px 8px;
+  }
+  .atlas-peek h2 {
+    font-size: 1.1875rem;
+  }
+}
+
+.atlas-head-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }

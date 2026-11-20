@@ -25,16 +25,27 @@ Sources, dependencies and the upstream MIT licence are recorded in `THIRD_PARTY_
 
 ## Map interaction
 
-- Circles never carry numbers. Size encodes how many records sit at that spot (square-root scale, so area tracks count), and the legend says so. Overlapping translucent circles still read as density.
-- Every circle has a larger invisible hit area. Hover draws a ring; selection leaves a persistent ring and opens a card on the map where the click happened.
-- Records that share one public position (generalized grid centres) cannot be split by zooming. Past zoom 12 the cell reports "N records at this spot" and points to the list instead of zooming forever.
+- **Marks say what the data is.** Big circles are gone. Where a dataset has thousands of positions, or publishes positions only as coarse cells (the wildlife archive: 10 km grid centres), the server groups records and the map draws **squares**: each square is the real extent of its cell, shaded in up to four classes on the subject ramp (light to dark, quantile breaks, never an empty class). A circle there would claim precision the source withholds. The key says "Records per square (each about N km wide)" and carries the caveat that squares are counts, not places.
+- **Single records are small dots.** Every dot is the same size (2.6 px at island zoom, 6.5 px up close, with a white edge), so size never competes with colour. Records that share one public position and have no published cell are drawn as a **hollow ring** (white centre, thick subject-colour outline) so they read as "more than one here", not as a quantity.
+- **Squares stay put.** Grid cells snap to 0.8 degrees halved some whole number of times (`gridStep`), so panning does not reshuffle tiles. Clicking a square made of finer cells zooms to it; clicking a square the source published as one coarse cell, or a stack, opens its details instead of zooming forever.
+- **Bigger information, in layers.** Hover gives a one-line tooltip ("N records · click to zoom in"). Click opens a roomy panel (440 px, 15 px body text) beside the map: for a square or stack, what it stands for and the list of who is inside; for a village, its people, a one-paragraph orientation and a primary button to the full village profile. The panel is a summary; the profile page is where the reading happens.
+- Every mark has a larger invisible hit area. Hover outlines a square or rings a dot; selection leaves a persistent outline and moves focus to the panel.
 - Embedded maps use cooperative gestures (two-finger pan on touch, Ctrl + scroll to zoom) so the page keeps scrolling.
 - Section pages are map-first: filters and a clickable county list on the left, one sticky map on the right, with the table, charts and sources one tab below. Rare filters (dates, metric, aggregation, category) sit behind "More filters", and dataset caveats behind "About this data", opened by default only when a dataset is unavailable.
+
+## Village and people pages
+
+`/culture/places/village-N` is a reading page for one village record; `/culture/peoples` and `/culture/peoples/[slug]` are guides to the sixteen peoples. They are bilingual and built from the same open data as the map.
+
+- **What is on a village page:** where it sits (a small SVG outline map drawn from `public/data/county-outlines.json`, no tiles or scripts, dots for the village, its neighbours and others of the same people), an at-a-glance fact list, the people (history, living culture, words worth knowing), the nearest villages by straight-line distance, a township summary, how to read the record, and the source with its licence.
+- **What is not, and why.** The open government data holds a name, a county, a township, a public reference point and a catalogue date. It holds no photographs, no founding dates and no per-village history, so the page does not invent them. Photographs of identifiable people need their consent, so the page points to Wikimedia Commons (each photograph carries its own credit and licence) instead of hotlinking unverified images. The history shown is the people's, written in our own words and hedged where scholars differ.
+- **Honest numbers.** Only the Amis, Atayal and Paiwan populations are taken directly from the Ministry of the Interior's end-of-2025 release; the other figures are rounded and labelled as estimates in the code (`official`).
+- **Outline maps** are a drawing aid, simplified with Douglas-Peucker (`scripts/build-county-outlines.mjs`, about 84 KB). They never decide which county a record belongs to.
 
 ## County shading and sharing
 
 - Every dataset with three or more counties of data can shade the map by county ("Shade counties"). A measurement (air quality, river index, temperature, forest share) is shaded by the county mean; otherwise the shading is the record count. Classes are quantiles (five, near-equal counts of counties) on a one-hue ramp that changes in lightness, so the map still reads without colour vision. AQI uses its official bands instead.
-- While shading is on, points turn to translucent ink with a white edge so the colours underneath stay readable. Image datasets (forests) start on the image and switch to the county shares when shading is turned on.
+- Datasets drawn as squares start with county shading off, because two filled encodings on one map fight. If shading is turned on, squares switch to a neutral ink ramp so the two never share a hue. Other points turn to translucent ink with a white edge so the colours underneath stay readable. Image datasets (forests) start on the image and switch to the county shares when shading is turned on.
 - Count shading always carries the caveat that counties differ in size and survey effort: a darker county is not a worse one. Counties with no data stay unshaded and the key says so.
 - A section map view (dataset, county, search, species, dates, metric, display, shading, tab) is written to the address bar with `history.replaceState`, so "Copy link to this view" gives a lecturer a link that reopens exactly what they were showing.
 - Motion is limited to entrances, the county bars growing and the shading cross-fading, and all of it is off under `prefers-reduced-motion`.

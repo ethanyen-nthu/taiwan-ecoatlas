@@ -29,6 +29,7 @@ import {
 } from "@/lib/transform";
 import { observationFreshness } from "@/lib/freshness";
 import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
+import { tileCollection } from "@/lib/atlas-tiles";
 
 interface Props {
   overlays?: AtlasOverlay[];
@@ -656,10 +657,15 @@ export default function MapCanvas(props: Props) {
         atlasPopupDataset.current = null;
       }
       for (const suffix of [
+        "cellsel",
+        "cellhover",
         "selected",
         "ring",
         "hit",
         "points",
+        "cellline",
+        "cells",
+        "stacks",
         "heat",
         "line",
         "fill",
@@ -707,7 +713,11 @@ export default function MapCanvas(props: Props) {
             id: `${id}-fill`,
             type: "fill",
             source: id,
-            filter: ["==", ["geometry-type"], "Polygon"],
+            filter: [
+              "all",
+              ["==", ["geometry-type"], "Polygon"],
+              ["!=", ["get", "tile"], true],
+            ],
             paint: { "fill-color": overlay.color, "fill-opacity": 0.25 },
           });
           map.addLayer({
@@ -715,9 +725,9 @@ export default function MapCanvas(props: Props) {
             type: "line",
             source: id,
             filter: [
-              "in",
-              ["geometry-type"],
-              ["literal", ["LineString", "Polygon"]],
+              "all",
+              ["in", ["geometry-type"], ["literal", ["LineString", "Polygon"]]],
+              ["!=", ["get", "tile"], true],
             ],
             paint: {
               "line-color": overlay.color,
@@ -726,7 +736,31 @@ export default function MapCanvas(props: Props) {
             },
           });
         }
-        const pointFilter = ["==", ["geometry-type"], "Point"] as const;
+        const heatFilter = ["==", ["geometry-type"], "Point"] as const;
+        // Single records only: grid cells are drawn as tiles, not dots.
+        const dotFilter = [
+          "all",
+          ["==", ["geometry-type"], "Point"],
+          ["!=", ["get", "aggregated"], true],
+        ] as const;
+        // Records that share one exact point (for example villages whose public
+        // reference point is the same) are drawn as a hollow ring: "several".
+        const stackFilter = [
+          "all",
+          ["==", ["geometry-type"], "Point"],
+          ["==", ["get", "aggregated"], true],
+          ["!", ["has", "x0"]],
+        ] as const;
+        const hitFilter = [
+          "all",
+          ["==", ["geometry-type"], "Point"],
+          ["!", ["has", "x0"]],
+        ] as const;
+        const tileFilter = [
+          "all",
+          ["==", ["geometry-type"], "Polygon"],
+          ["==", ["get", "tile"], true],
+        ] as const;
         const density = overlay.mode === "density";
         const byAqi = overlay.colorBy === "aqi";
         const byInk = overlay.colorBy === "ink";
@@ -736,7 +770,7 @@ export default function MapCanvas(props: Props) {
             type: "heatmap",
             source: id,
             maxzoom: 10,
-            filter: pointFilter as never,
+            filter: heatFilter as never,
             paint: {
               "heatmap-weight": [
                 "interpolate",
@@ -781,24 +815,56 @@ export default function MapCanvas(props: Props) {
               ],
             },
           });
-        // Size encodes how many records a grid cell holds; no numbers on the map.
-        const base = [
-          "interpolate",
-          ["linear"],
-          ["sqrt", ["coalesce", ["get", "count"], 1]],
-          1,
-          5,
-          10,
-          10,
-          40,
-          16,
-        ];
+        // A square tile per grid cell, shaded by how many records it holds.
+        // Squares never overlap and carry no number, so a crowded coast reads
+        // as a pattern instead of a pile of circles.
+        map.addLayer({
+          id: `${id}-cells`,
+          type: "fill",
+          source: id,
+          filter: tileFilter as never,
+          paint: {
+            "fill-color": ["get", "tileColor"],
+            "fill-opacity": (density
+              ? ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 0.88]
+              : 0.88) as never,
+          },
+        });
+        map.addLayer({
+          id: `${id}-cellline`,
+          type: "line",
+          source: id,
+          filter: tileFilter as never,
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": 1,
+            "line-opacity": (density
+              ? ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 0.9]
+              : 0.9) as never,
+          },
+        });
+        map.addLayer({
+          id: `${id}-cellhover`,
+          type: "line",
+          source: id,
+          filter: ["==", ["get", "id"], ""],
+          paint: { "line-color": "#16202b", "line-width": 2.5 },
+        });
+        map.addLayer({
+          id: `${id}-cellsel`,
+          type: "line",
+          source: id,
+          filter: ["==", ["get", "id"], ""],
+          paint: { "line-color": "#16202b", "line-width": 3.5 },
+        });
+        // One small, crisp dot per record. Every dot is the same size, so size
+        // never competes with colour; the hit area below stays generous.
         map.addLayer({
           id: `${id}-points`,
           type: "circle",
           source: id,
           minzoom: density ? 7 : 0,
-          filter: pointFilter as never,
+          filter: dotFilter as never,
           paint: {
             "circle-color": (byAqi
               ? [
@@ -829,13 +895,38 @@ export default function MapCanvas(props: Props) {
               ["linear"],
               ["zoom"],
               5,
-              ["*", byInk ? 0.72 : 0.9, base],
-              12,
-              ["*", byInk ? 1.1 : 1.4, base],
+              2.6,
+              9,
+              3.8,
+              13,
+              6.5,
             ] as never,
-            "circle-opacity": byAqi ? 0.92 : byInk ? 0.6 : 0.62,
+            "circle-opacity": 0.95,
             "circle-stroke-color": byAqi ? "#16202b" : "#ffffff",
-            "circle-stroke-width": 1,
+            "circle-stroke-width": 1.2,
+          },
+        });
+        map.addLayer({
+          id: `${id}-stacks`,
+          type: "circle",
+          source: id,
+          minzoom: density ? 7 : 0,
+          filter: stackFilter as never,
+          paint: {
+            "circle-color": "#ffffff",
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              5,
+              4,
+              9,
+              5.2,
+              13,
+              8,
+            ] as never,
+            "circle-stroke-color": byInk ? "#16202b" : overlay.color,
+            "circle-stroke-width": 2.5,
           },
         });
         map.addLayer({
@@ -845,7 +936,7 @@ export default function MapCanvas(props: Props) {
           filter: ["==", ["get", "id"], ""],
           paint: {
             "circle-color": "rgba(0,0,0,0)",
-            "circle-radius": 14,
+            "circle-radius": 9,
             "circle-stroke-color": "#16202b",
             "circle-stroke-width": 2,
           },
@@ -858,7 +949,7 @@ export default function MapCanvas(props: Props) {
           filter: ["==", ["get", "id"], ""],
           paint: {
             "circle-color": "rgba(0,0,0,0)",
-            "circle-radius": 16,
+            "circle-radius": 11,
             "circle-stroke-color": "#16202b",
             "circle-stroke-width": 3,
           },
@@ -868,9 +959,9 @@ export default function MapCanvas(props: Props) {
           type: "circle",
           source: id,
           minzoom: density ? 7 : 0,
-          filter: pointFilter as never,
+          filter: hitFilter as never,
           paint: {
-            "circle-radius": 16,
+            "circle-radius": 12,
             "circle-color": "#ffffff",
             "circle-opacity": 0.01,
           },
@@ -885,29 +976,47 @@ export default function MapCanvas(props: Props) {
           className: "county-tooltip",
           offset: 14,
         });
-        map.on("mousemove", `${id}-hit`, (event) => {
-          const raw = event.features?.[0];
-          if (!raw) return;
-          map.getCanvas().style.cursor = "pointer";
-          map.setFilter(`${id}-ring`, ["==", ["get", "id"], raw.properties.id]);
-          if (raw.properties.aggregated) {
-            const n = Number(raw.properties.count || 0).toLocaleString();
-            tip
-              .setLngLat(event.lngLat)
-              .setText(
-                latest.current.language === "zh"
-                  ? `${n} 筆紀錄・點擊放大`
-                  : `${n} records · click to zoom in`,
-              )
-              .addTo(map);
-          } else tip.remove();
-        });
-        map.on("mouseleave", `${id}-hit`, () => {
-          map.getCanvas().style.cursor = "";
-          map.setFilter(`${id}-ring`, ["==", ["get", "id"], ""]);
-          tip.remove();
-        });
-        for (const suffix of ["hit", "line", "fill"])
+        const hover = (raw: { properties: Record<string, unknown> } | null) => {
+          const tile = !!raw?.properties.tile,
+            key = raw ? String(raw.properties.id) : "";
+          map.setFilter(`${id}-ring`, ["==", ["get", "id"], tile ? "" : key]);
+          map.setFilter(`${id}-cellhover`, [
+            "==",
+            ["get", "id"],
+            tile ? key : "",
+          ]);
+        };
+        for (const layerId of [`${id}-hit`, `${id}-cells`]) {
+          map.on("mousemove", layerId, (event) => {
+            const raw = event.features?.[0];
+            if (!raw) return;
+            map.getCanvas().style.cursor = "pointer";
+            hover(raw);
+            if (raw.properties.aggregated) {
+              const n = Number(raw.properties.count || 0).toLocaleString(),
+                zh = latest.current.language === "zh",
+                split = raw.properties.split === true;
+              tip
+                .setLngLat(event.lngLat)
+                .setText(
+                  split
+                    ? zh
+                      ? `${n} 筆紀錄・點擊放大`
+                      : `${n} records · click to zoom in`
+                    : zh
+                      ? `${n} 筆紀錄・點擊查看`
+                      : `${n} records · click for details`,
+                )
+                .addTo(map);
+            } else tip.remove();
+          });
+          map.on("mouseleave", layerId, () => {
+            map.getCanvas().style.cursor = "";
+            hover(null);
+            tip.remove();
+          });
+        }
+        for (const suffix of ["hit", "cells", "line", "fill"])
           if (map.getLayer(`${id}-${suffix}`)) {
             const layerId = `${id}-${suffix}`;
             const listener = (event: MapLayerMouseEvent) => {
@@ -916,25 +1025,40 @@ export default function MapCanvas(props: Props) {
                 (item) => item.dataset.id === overlay.dataset.id,
               );
               if (!raw || !current) return;
-              if (
-                raw.properties.aggregated &&
-                raw.geometry.type === "Point" &&
-                map.getZoom() < 12
-              ) {
-                tip.remove();
-                map.easeTo({
-                  center: raw.geometry.coordinates as [number, number],
-                  zoom: Math.min(map.getZoom() + 2.4, 13),
-                  duration: 600,
-                });
-                return;
+              let geometry = raw.geometry as AtlasFeature["geometry"];
+              if (raw.properties.tile) {
+                const x0 = Number(raw.properties.x0),
+                  y0 = Number(raw.properties.y0),
+                  x1 = Number(raw.properties.x1),
+                  y1 = Number(raw.properties.y1);
+                geometry = {
+                  type: "Point",
+                  coordinates: [(x0 + x1) / 2, (y0 + y1) / 2],
+                };
+                // A tile made of finer grid cells opens up; a tile the source
+                // published as one coarse cell cannot be split, so it opens
+                // its details instead.
+                if (raw.properties.split === true && map.getZoom() < 12) {
+                  tip.remove();
+                  map.fitBounds(
+                    [
+                      [x0, y0],
+                      [x1, y1],
+                    ],
+                    { padding: 40, maxZoom: 14, duration: 600 },
+                  );
+                  return;
+                }
               }
               // Past this zoom, records that still share one point are
               // co-located (generalized positions); report the group itself.
+              const properties = { ...raw.properties };
+              delete properties.tile;
+              delete properties.tileColor;
               const feature = {
                 type: "Feature",
-                geometry: raw.geometry,
-                properties: raw.properties,
+                geometry,
+                properties,
               } as AtlasFeature;
               pointPopup.current?.remove();
               atlasPopupDataset.current = current.dataset.id;
@@ -956,7 +1080,11 @@ export default function MapCanvas(props: Props) {
       (map.getSource(id) as GeoJSONSource).setData(
         overlay.dataset.raster
           ? { type: "FeatureCollection", features: [] }
-          : overlay.data,
+          : tileCollection(
+              overlay.data,
+              overlay.dataset.section,
+              overlay.colorBy === "ink",
+            ).data,
       );
     }
   }, [ready, props.overlays]);
@@ -970,17 +1098,17 @@ export default function MapCanvas(props: Props) {
         props.focusedAtlas?.datasetId === overlay.dataset.id
           ? props.focusedAtlas.feature
           : null;
-      // A record that shares its position is drawn as a grid cell, keyed by
-      // coordinates, so mark either the record itself or the cell holding it.
-      const cell =
-        focus?.geometry.type === "Point"
-          ? `cell:${focus.geometry.coordinates[0]}:${focus.geometry.coordinates[1]}`
-          : "";
+      const id = focus?.properties.id ?? "";
+      // A selected square is outlined by its own layer; only dots and stacks
+      // get the circle, so the two never stack into a double ring.
       map.setFilter(layer, [
-        "any",
-        ["==", ["get", "id"], focus?.properties.id ?? ""],
-        ["==", ["get", "id"], cell],
+        "all",
+        ["==", ["get", "id"], id],
+        ["!", ["has", "x0"]],
       ]);
+      const cellLayer = layer.replace(/-selected$/, "-cellsel");
+      if (map.getLayer(cellLayer))
+        map.setFilter(cellLayer, ["==", ["get", "id"], id]);
     }
   }, [ready, props.overlays, props.focusedAtlas]);
   const focusedOverlayAvailable =

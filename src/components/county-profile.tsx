@@ -101,7 +101,7 @@ export function CountyProfile({
             </p>
             <Link
               className="subject-tile-go"
-              href={`/wildlife?county=${county.code}&shade=1`}
+              href={`/wildlife?county=${county.code}`}
             >
               {t("Open on the wildlife map", "在野生動物地圖開啟")}
               <ArrowUpRight size={16} />

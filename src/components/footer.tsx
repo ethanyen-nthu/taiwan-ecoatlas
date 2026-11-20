@@ -15,6 +15,9 @@ export function Footer() {
       </span>
       <nav aria-label={t("Project links", "專案連結")}>
         <Link href="/teach">{t("Teach with the atlas", "教學")}</Link>
+        <Link href="/culture/peoples">
+          {t("Sixteen peoples", "十六個族群")}
+        </Link>
         <Link href="/data">{t("Open data", "開放資料")}</Link>
         <Link href="/sources">{t("Sources & licences", "來源與授權")}</Link>
         <Link href="/about">

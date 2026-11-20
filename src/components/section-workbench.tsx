@@ -30,6 +30,8 @@ import type {
 } from "@/lib/atlas-types";
 import type { Freshness } from "@/lib/types";
 import { buildChoropleth } from "@/lib/choropleth";
+import { tileKey } from "@/lib/atlas-tiles";
+import { peoplesOfLabel } from "@/content/peoples-index";
 import { islandPath, islandViewBox } from "@/lib/island-path";
 import {
   aqiColorForValue,
@@ -407,8 +409,28 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         : null,
     [countyList.rows, dataset, section, metric],
   );
-  // Image datasets start on the image; every other dataset starts shaded.
-  const shadeOn = !!choropleth && (shadeChoice ?? !dataset?.raster);
+  const mapFeatures = result.data?.collection.features;
+  const hasTiles = !!mapFeatures?.some(
+    (feature) => feature.properties.x0 != null,
+  );
+  // Image datasets start on the image, and so do datasets drawn as count
+  // tiles (tiles already show where records fall, so a second count shading
+  // would only repeat them). Every other dataset starts shaded.
+  const shadeOn =
+    !!choropleth &&
+    (shadeChoice ?? (!dataset?.raster && !!result.data && !hasTiles));
+  const tiles = useMemo(
+    () => (mapFeatures ? tileKey(mapFeatures, section, shadeOn) : null),
+    [mapFeatures, section, shadeOn],
+  );
+  const stackCount = useMemo(
+    () =>
+      mapFeatures?.filter(
+        (feature) =>
+          feature.properties.aggregated && feature.properties.x0 == null,
+      ).length ?? 0,
+    [mapFeatures],
+  );
   const overlays = useMemo<AtlasOverlay[]>(
     () =>
       dataset && !(shadeOn && dataset.raster)
@@ -545,6 +567,21 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     }
     return rows;
   };
+  const stackMembers = useMemo(() => {
+    const raw = selected?.properties.members;
+    if (typeof raw !== "string") return [];
+    try {
+      const list = JSON.parse(raw) as {
+        t: string;
+        z: string | null;
+        id: string;
+        n: number;
+      }[];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }, [selected]);
   const peekFacts = (feature: AtlasFeature) => {
     const p = feature.properties;
     const facts: { label: string; value: string }[] = [];
@@ -582,6 +619,11 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         <div className="atlas-head-copy">
           <h1>{title[language]}</h1>
           <p>{title.description[language === "en" ? 0 : 1]}</p>
+          {section === "culture" && (
+            <Link className="atlas-head-link" href="/culture/peoples">
+              {t("Meet the sixteen peoples", "認識十六個族群")} →
+            </Link>
+          )}
         </div>
         <nav
           className="atlas-section-nav"
@@ -951,9 +993,13 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                       {dataset.title[language]}
                     </span>
                     <h2>
-                      {language === "zh"
-                        ? `此處有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
-                        : `${Number(selected.properties.count || 0).toLocaleString("en")} records at this spot`}
+                      {selected.properties.x0 != null
+                        ? language === "zh"
+                          ? `此方格有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
+                          : `${Number(selected.properties.count || 0).toLocaleString("en")} records in this square`
+                        : language === "zh"
+                          ? `此處有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
+                          : `${Number(selected.properties.count || 0).toLocaleString("en")} records at this spot`}
                     </h2>
                   </div>
                   <button
@@ -965,11 +1011,49 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                   </button>
                 </div>
                 <p className="atlas-peek-text">
-                  {t(
-                    "These records share one public map position, so they cannot be told apart on the map. They are listed under Records below.",
-                    "這些紀錄共用同一個公開地圖位置，無法在地圖上區分，已列於下方「紀錄」。",
-                  )}
+                  {selected.properties.x0 != null
+                    ? t(
+                        `The source publishes positions only as cells about ${Number(selected.properties.cellKm || 10)} km wide, so this square stands for every record inside it. It is a count, not the place where any one thing happened.`,
+                        `來源只公開約 ${Number(selected.properties.cellKm || 10)} 公里寬的網格位置，因此這個方格代表其中所有紀錄；它是數量，不是任何單一事件發生的地點。`,
+                      )
+                    : t(
+                        "These records share one public map position, so they cannot be told apart on the map.",
+                        "這些紀錄共用同一個公開地圖位置，無法在地圖上區分。",
+                      )}
                 </p>
+                {stackMembers.length > 0 && (
+                  <ul className="atlas-peek-members">
+                    {stackMembers.map((member) => (
+                      <li key={`${member.t}-${member.id}`}>
+                        {section === "culture" ? (
+                          <Link
+                            href={`/culture/places/${encodeURIComponent(member.id)}`}
+                          >
+                            {language === "zh" && member.z
+                              ? member.z
+                              : member.t}
+                          </Link>
+                        ) : (
+                          <span>
+                            {language === "zh" && member.z
+                              ? member.z
+                              : member.t}
+                          </span>
+                        )}
+                        {member.n > 1 && <b>{member.n.toLocaleString()}</b>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {Number(selected.properties.memberKinds || 0) >
+                  stackMembers.length && (
+                  <p className="atlas-peek-text">
+                    {t(
+                      `…and ${Number(selected.properties.memberKinds) - stackMembers.length} more kinds. All of them are in the list below.`,
+                      `…另有 ${Number(selected.properties.memberKinds) - stackMembers.length} 種，皆列於下方列表。`,
+                    )}
+                  </p>
+                )}
                 <button
                   type="button"
                   className="atlas-more-toggle"
@@ -1019,6 +1103,27 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                     </div>
                   ))}
                 </dl>
+                {section === "culture" &&
+                  peoplesOfLabel(selected.properties.group).map((people) => (
+                    <div className="atlas-peek-people" key={people.slug}>
+                      <strong>
+                        {language === "zh" ? people.name.zh : people.name.en}
+                      </strong>
+                      <p>
+                        {language === "zh" ? people.line.zh : people.line.en}
+                      </p>
+                      <Link
+                        className="text-link"
+                        href={`/culture/peoples/${people.slug}`}
+                      >
+                        {t(
+                          `About the ${people.name.en}`,
+                          `認識${people.name.zh}`,
+                        )}{" "}
+                        ↗
+                      </Link>
+                    </div>
+                  ))}
                 <div className="atlas-peek-links">
                   {selected.properties.speciesId && (
                     <Link
@@ -1031,10 +1136,10 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                   )}
                   {section === "culture" && !selected.properties.aggregated && (
                     <Link
-                      className="text-link"
+                      className="atlas-peek-open"
                       href={`/culture/places/${encodeURIComponent(selected.properties.id)}`}
                     >
-                      {t("Open place profile", "開啟地點資料")} ↗
+                      {t("Open the village profile", "開啟部落介紹")} →
                     </Link>
                   )}
                 </div>
@@ -1105,6 +1210,51 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                         "此為數量而非比率：各縣市面積、人口與調查投入不同，顏色較深不代表情況較嚴重。",
                       )}
               </p>
+            </div>
+          )}
+          {!dataset?.raster && (tiles || stackCount > 0) && (
+            <div
+              className="atlas-choro atlas-tiles"
+              role="group"
+              aria-label={t("Map marker key", "地圖標記圖例")}
+            >
+              {tiles && (
+                <>
+                  <strong>
+                    {t(
+                      `Records per square (each about ${tiles.km} km wide)`,
+                      `每格紀錄數（每格約 ${tiles.km} 公里寬）`,
+                    )}
+                  </strong>
+                  <ol>
+                    {tiles.classes.map((item) => (
+                      <li key={item.color}>
+                        <i style={{ background: item.color }} />
+                        {item.from === item.to
+                          ? fmtNum(item.from)
+                          : `${fmtNum(item.from)}–${fmtNum(item.to)}`}
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              )}
+              {stackCount > 0 && (
+                <p>
+                  <i className="atlas-stack-mark" />
+                  {t(
+                    "A hollow ring means several records share one public point; click it to list them.",
+                    "空心圓環代表數筆紀錄共用同一個公開定位點，點擊即可列出。",
+                  )}
+                </p>
+              )}
+              {tiles && (
+                <p>
+                  {t(
+                    "A square is a count of records in that area, not a place where one thing happened. Click a square to open it.",
+                    "方格是該範圍內的紀錄數量，並非單一事件發生的位置。點擊方格即可展開。",
+                  )}
+                </p>
+              )}
             </div>
           )}
           {dataset?.raster ? (

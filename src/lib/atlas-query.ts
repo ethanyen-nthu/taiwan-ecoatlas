@@ -5,6 +5,13 @@ import type {
   AtlasResult,
 } from "./atlas-types";
 
+/** Snap the aggregation cell size to 0.8° halved k times. The grid then stays
+ *  put while the person pans, so tiles do not reshuffle on every map move. */
+export function gridStep(raw: number) {
+  const k = Math.max(0, Math.round(Math.log2(0.8 / Math.max(raw, 1e-6))));
+  return 0.8 / 2 ** k;
+}
+
 export interface AtlasFilters {
   county?: string;
   start?: string;
@@ -164,48 +171,120 @@ export function queryAtlas(
   ).size;
   const view = filter.bbox || [117.8, 21.7, 122.2, 26.6],
     step =
-      unique > 3000 ? Math.max(view[2] - view[0], view[3] - view[1]) / 45 : 0;
+      unique > 3000
+        ? gridStep(Math.max(view[2] - view[0], view[3] - view[1]) / 45)
+        : 0;
+  type Label = { t: string; z: string | null; id: string; n: number };
   const groups = new Map<
     string,
-    { first: AtlasFeature; count: number; x: number; y: number }
+    {
+      first: AtlasFeature;
+      count: number;
+      x: number;
+      y: number;
+      ix: number;
+      iy: number;
+      labels: Map<string, Label>;
+    }
   >();
   for (const feature of points) {
     if (feature.geometry.type !== "Point") continue;
     const [x, y] = feature.geometry.coordinates,
+      grid = feature.properties.gridId,
+      // Records published against a coarse grid cell belong together even
+      // when their stored coordinates differ in the fifth decimal.
       key = step
         ? `${Math.floor(x / step)}:${Math.floor(y / step)}`
-        : `${x}:${y}`;
-    const group = groups.get(key) || { first: feature, count: 0, x: 0, y: 0 };
+        : typeof grid === "string"
+          ? `g:${grid}`
+          : `${x}:${y}`;
+    const group = groups.get(key) || {
+      first: feature,
+      count: 0,
+      x: 0,
+      y: 0,
+      ix: step ? Math.floor(x / step) : 0,
+      iy: step ? Math.floor(y / step) : 0,
+      labels: new Map<string, Label>(),
+    };
     group.count++;
     group.x += x;
     group.y += y;
+    if (!step) {
+      const name = String(
+        feature.properties.species || feature.properties.title,
+      );
+      const label = group.labels.get(name) || {
+        t: name,
+        z: feature.properties.titleZh || null,
+        id: feature.properties.id,
+        n: 0,
+      };
+      label.n++;
+      group.labels.set(name, label);
+    }
     groups.set(key, group);
   }
+  const round = (value: number) => Math.round(value * 1e6) / 1e6;
   const mapFeatures: AtlasFeature[] = [
     ...shapes.slice(0, 3000),
-    ...[...groups.entries()].map(([key, group]) =>
-      group.count === 1
-        ? group.first
-        : {
-            type: "Feature" as const,
-            id: `cell:${key}`,
-            geometry: {
-              type: "Point" as const,
-              coordinates: [group.x / group.count, group.y / group.count],
-            },
-            properties: {
-              id: `cell:${key}`,
-              sourceId: dataset.sourceId,
-              title: `${group.count.toLocaleString("en")} matching records`,
-              titleZh: `${group.count.toLocaleString("zh-TW")} 筆符合資料`,
-              countyCode: filter.county || null,
-              date: null,
-              category: null,
-              count: group.count,
-              aggregated: true,
-            },
-          },
-    ),
+    ...[...groups.entries()].map(([key, group]): AtlasFeature => {
+      if (group.count === 1) return group.first;
+      const cx = group.x / group.count,
+        cy = group.y / group.count,
+        radius = Number(group.first.properties.generalizationRadiusM);
+      // Where a position is published as a coarse cell, draw the cell itself;
+      // a dot would claim a precision the source deliberately withholds.
+      let bounds: Record<string, number | boolean> = {};
+      if (step) {
+        bounds = {
+          x0: round(group.ix * step),
+          y0: round(group.iy * step),
+          x1: round((group.ix + 1) * step),
+          y1: round((group.iy + 1) * step),
+          cellKm: Math.round(step * 111),
+          split: true,
+        };
+      } else if (Number.isFinite(radius) && radius > 0) {
+        const side = radius * Math.SQRT2,
+          hy = side / 2 / 111000,
+          hx = hy / Math.cos((cy * Math.PI) / 180);
+        bounds = {
+          x0: round(cx - hx),
+          y0: round(cy - hy),
+          x1: round(cx + hx),
+          y1: round(cy + hy),
+          cellKm: Math.round(side / 1000),
+          split: false,
+        };
+      }
+      const members = [...group.labels.values()]
+        .sort((a, b) => b.n - a.n)
+        .slice(0, 8);
+      return {
+        type: "Feature",
+        id: `cell:${key}`,
+        geometry: { type: "Point", coordinates: [cx, cy] },
+        properties: {
+          id: `cell:${key}`,
+          sourceId: dataset.sourceId,
+          title: `${group.count.toLocaleString("en")} matching records`,
+          titleZh: `${group.count.toLocaleString("zh-TW")} 筆符合資料`,
+          countyCode: filter.county || null,
+          date: null,
+          category: null,
+          count: group.count,
+          aggregated: true,
+          ...bounds,
+          ...(members.length
+            ? {
+                members: JSON.stringify(members),
+                memberKinds: group.labels.size,
+              }
+            : {}),
+        },
+      };
+    }),
   ];
   const offset = filter.offset || 0,
     limit = filter.limit || 40;

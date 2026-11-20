@@ -21,7 +21,7 @@ test("copy link confirms, and shading counties can be turned off and stays off i
   context,
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/wildlife");
+  await page.goto("/culture");
   await expect(page.locator("[data-map-ready=true]")).toBeVisible();
   const shade = page.getByRole("checkbox", { name: "Shade counties" });
   await expect(shade).toBeChecked();

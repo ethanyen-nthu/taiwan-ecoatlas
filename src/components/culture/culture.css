@@ -1,0 +1,555 @@
+/* Village and people pages. Same logic as the other subject pages: a full field
+   of the culture hue in the head, a neutral reading surface, the hue returning
+   only where it carries meaning (rules, the people's own dots, bars). */
+.cp-kicker {
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  color: rgb(255 255 255 / 0.88);
+}
+.teach-head h1 + .cp-subtitle,
+.cp-subtitle {
+  margin-top: 8px;
+  font-size: 1.125rem;
+  color: rgb(255 255 255 / 0.9);
+}
+.cp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: 32px clamp(32px, 5vw, 64px);
+  margin-top: 30px;
+  align-items: start;
+}
+.cp-main {
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.cp-main > section,
+.cp-block {
+  margin-bottom: 40px;
+}
+.cp-main h2,
+.cp-block h2 {
+  margin: 0 0 14px;
+  padding-top: 14px;
+  border-top: 3px solid var(--accent);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.cp-main h3 {
+  margin: 20px 0 8px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.cp-main p {
+  max-width: 68ch;
+}
+.cp-main p + p {
+  margin-top: 1em;
+}
+.cp-main a,
+.cp-block a:not(.cp-button) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cp-lead {
+  margin-top: 16px;
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+.cp-lede {
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.cp-note {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Facts */
+.cp-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 28px;
+  margin: 0;
+}
+.cp-facts dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cp-facts dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.cp-facts small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.cp-callout {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  font-size: 0.9375rem;
+}
+.cp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cp-chips li {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 8px 14px 9px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.cp-chips li span {
+  font-size: 0.6875rem;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* The people a village belongs to */
+.cp-people .cp-chips {
+  margin-bottom: 4px;
+}
+.cp-people .cp-button {
+  margin-top: 18px;
+}
+.cp-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.cp-terms > div {
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.cp-terms dt {
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.cp-terms dd {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.cp-discuss {
+  padding: 4px 22px 14px;
+  background: var(--accent-soft);
+  border-radius: 12px;
+}
+.cp-discuss h2 {
+  border-top: 0;
+  padding-top: 14px;
+}
+
+/* Nearby villages */
+.cp-nearby {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.cp-nearby li {
+  border-bottom: 1px solid var(--line);
+}
+.cp-nearby li[data-same] {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.cp-nearby a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 16px;
+  padding: 12px 12px 12px 16px;
+  text-decoration: none !important;
+}
+.cp-nearby a:hover {
+  background: var(--accent-soft);
+}
+.cp-nearby strong {
+  font-weight: 600;
+}
+.cp-nearby span {
+  grid-column: 1;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.cp-nearby b {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Lists, links, buttons */
+.cp-list {
+  padding-left: 1.3em;
+  list-style: disc;
+}
+.cp-list li + li {
+  margin-top: 8px;
+}
+.cp-list li::marker {
+  color: var(--accent-ink);
+}
+.cp-links {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cp-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+}
+.cp-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 18px;
+  background: var(--accent-ink);
+  border: 1px solid var(--accent-ink);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none !important;
+}
+.cp-button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.cp-button-quiet {
+  background: transparent;
+  color: var(--accent-ink);
+}
+.cp-button-quiet:hover {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* Map column */
+.cp-aside {
+  position: sticky;
+  top: calc(var(--header-height) + 16px);
+  min-width: 0;
+}
+.cp-aside-title {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 10px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.cp-aside-title span {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.cp-map {
+  margin: 0;
+  padding: 12px;
+  background: #e9edf1;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.cp-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 64vh;
+  margin: 0 auto;
+}
+.cp-shape {
+  fill: #f7f4ee;
+  stroke: #b9b4aa;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+.cp-shape-focus {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.2;
+}
+.cp-dot {
+  stroke: #ffffff;
+  stroke-width: 1;
+}
+.cp-dot-same {
+  fill: var(--accent);
+}
+.cp-dot-self {
+  fill: var(--accent-ink);
+  stroke-width: 2.2;
+}
+.cp-dot-other {
+  fill: #ffffff;
+  stroke: #5b6672;
+  stroke-width: 1.4;
+}
+.cp-dot-link {
+  cursor: pointer;
+}
+.cp-dot-link:hover .cp-dot,
+.cp-dot-link:focus-visible .cp-dot {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+}
+.cp-dot-link:focus-visible {
+  outline: none;
+}
+.cp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+.cp-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cp-key {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 0 1px rgb(22 32 43 / 0.25);
+}
+.cp-key-self {
+  background: var(--accent-ink);
+}
+.cp-key-same {
+  background: var(--accent);
+}
+.cp-key-other {
+  background: #ffffff;
+  border-color: #5b6672;
+  box-shadow: none;
+}
+.cp-map-note {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.cp-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.cp-actions .cp-button {
+  justify-content: center;
+}
+
+/* Index of peoples */
+.cp-block {
+  margin-top: 36px;
+}
+.cp-timeline {
+  display: grid;
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+.cp-timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0 8px 22px;
+}
+.cp-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 15px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--paper);
+}
+.cp-timeline b {
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+.cp-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cp-cards a {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  height: 100%;
+  padding: 16px 18px 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: 12px;
+  text-decoration: none;
+}
+.cp-block .cp-cards a,
+.cp-block .cp-cards a:hover {
+  text-decoration: none;
+}
+.cp-cards a:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.cp-card-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cp-card-name strong {
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.cp-card-name span {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.cp-card-line {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.cp-card-meta {
+  display: grid;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cp-bar {
+  display: block;
+  height: 6px;
+  background: var(--soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cp-bar i {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.cp-card-count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+/* Villages by county */
+.cp-counties details {
+  border-top: 1px solid var(--line);
+}
+.cp-counties details:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.cp-counties summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.cp-counties summary b {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+.cp-counties ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2px 18px;
+  margin: 0;
+  padding: 0 4px 14px;
+  list-style: none;
+}
+.cp-counties li {
+  display: grid;
+  min-width: 0;
+}
+.cp-counties li span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cp-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+.cp-pager a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+@media (max-width: 960px) {
+  .cp-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cp-aside {
+    position: static;
+    order: -1;
+  }
+  .cp-map svg {
+    max-height: 340px;
+  }
+}
+@media (max-width: 560px) {
+  .cp-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cp-timeline li {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}

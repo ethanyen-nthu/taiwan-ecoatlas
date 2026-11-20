@@ -8,7 +8,10 @@ import {
   AtlasProfile,
   type AtlasProfileData,
 } from "@/components/atlas-profile";
+import { VillageProfile } from "@/components/culture/village-profile";
 import { Providers } from "@/components/providers";
+import type { VillageData } from "@/lib/culture-types";
+import { villageData } from "@/server/culture";
 
 const readJson = (name: string) =>
   JSON.parse(readFileSync(`public/data/atlas/${name}`, "utf8"));
@@ -21,20 +24,37 @@ it("resolves a source village without supplying invented history", async () => {
   const page = await CulturalPage({
     params: Promise.resolve({ id: "village-1" }),
   });
-  const profile = page.props.profile as Extract<
-    AtlasProfileData,
-    { kind: "culture" }
-  >;
-  expect(profile.kind).toBe("culture");
-  expect(profile.properties).toMatchObject({
+  const data = page.props.data as VillageData;
+  expect(data).toMatchObject({
+    title: "Tampya",
     traditionalName: "Tampya",
     group: "泰雅族",
-    date: null,
+    listedAt: "2022-07-25",
+    sourceUrl: "https://data.gov.tw/dataset/156632",
   });
-  const html = render(profile);
+  expect(data.peoples.map((people) => people.slug)).toEqual(["atayal"]);
+  expect(data.nearby.length).toBeGreaterThan(0);
+  const html = renderToStaticMarkup(
+    createElement(Providers, null, createElement(VillageProfile, { data })),
+  );
   expect(html).toContain("Tampya");
-  expect(html).toContain("not founding date");
+  expect(html).toContain("not a founding date");
   expect(html).toContain("https://data.gov.tw/dataset/156632");
+  expect(html).toContain("/culture/peoples/atayal");
+});
+
+it("builds a profile for every village in the source", async () => {
+  const villages = readJson("villages.geojson");
+  for (const feature of villages.features) {
+    const data = await villageData(feature.properties.id);
+    expect(data, feature.properties.id).not.toBeNull();
+    expect(data!.peoples.length, feature.properties.id).toBeGreaterThan(0);
+    expect(data!.map.dots.length).toBeGreaterThan(0);
+  }
+});
+
+it("does not invent a profile for an unknown village", async () => {
+  expect(await villageData("village-999999")).toBeNull();
 });
 
 it("resolves genuine public route records by original source id", async () => {

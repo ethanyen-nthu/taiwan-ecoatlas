@@ -606,11 +606,11 @@ export function buildLessons(facts: AtlasFacts): Lesson[] {
         {
           title: both("See where the records are", "看紀錄在哪裡"),
           body: both(
-            "Open the map with counties shaded by record count. Which counties are darkest? Find Lienchiang County in the list.",
-            "開啟依紀錄數著色的地圖。哪些縣市最深？在列表找出連江縣。",
+            "Open the map. Each square is a 10 km grid cell, shaded by how many records it holds. Which areas are darkest? Then tick “Shade counties” and find Lienchiang County in the list.",
+            "開啟地圖。每個方格是一個 10 公里網格，顏色依其紀錄數加深。哪些區域最深？接著勾選「縣市著色」，並在列表找出連江縣。",
           ),
-          href: "/wildlife?shade=1",
-          hrefLabel: both("Open the shaded map", "開啟著色地圖"),
+          href: "/wildlife",
+          hrefLabel: both("Open the map", "開啟地圖"),
         },
         {
           title: both("Compare years", "比較年份"),
@@ -645,8 +645,8 @@ export function buildLessons(facts: AtlasFacts): Lesson[] {
         {
           title: both("Click a grid cell", "點選一個網格"),
           body: both(
-            "Zoom in and select a dot. Read the precision note on the record card. What can you say about where an animal was found, and what can you not?",
-            "放大並點選一個點，閱讀紀錄卡上的精確度說明。關於動物被發現的位置，你能說什麼、不能說什麼？",
+            "Select a square and read what it says about its cell. What can you say about where an animal was found, and what can you not?",
+            "點選一個方格，閱讀它對該網格的說明。關於動物被發現的位置，你能說什麼、不能說什麼？",
           ),
         },
       ],
@@ -720,8 +720,8 @@ export function buildLessons(facts: AtlasFacts): Lesson[] {
           "不要把紀錄增加說成路死增加。",
         ),
         both(
-          "Do not point to a grid dot as the place where an animal was found; it is a 10 km cell centre.",
-          "不要把網格點說成動物被發現的地點；它是 10 公里網格的中心。",
+          "Do not point to a square as the place where an animal was found; the source only gives a 10 km cell.",
+          "不要把方格說成動物被發現的地點；來源只提供 10 公里網格。",
         ),
       ],
       assess: both(
@@ -802,6 +802,15 @@ export function buildLessons(facts: AtlasFacts): Lesson[] {
           ),
           href: "/culture?q=%E9%98%BF%E7%BE%8E%E6%97%8F",
           hrefLabel: both("Open Amis example", "開啟阿美族範例"),
+        },
+        {
+          title: both("Meet the people behind a group", "認識族群背後的人"),
+          body: both(
+            "Open the guide to the sixteen peoples and read the profile of one of them: its history, the words worth knowing and the discussion question. Then open the profile of one of its villages. What did the profile tell you that the dot could not?",
+            "開啟十六族介紹，閱讀其中一個族群的歷史、值得認識的詞彙與討論題，再開啟該族群某個部落的介紹頁。介紹頁告訴了你哪些「點」無法告訴你的事？",
+          ),
+          href: "/culture/peoples",
+          hrefLabel: both("Open the peoples guide", "開啟族群介紹"),
         },
         {
           title: both("Compare with routes and studies", "對照路線與歷史研究"),
