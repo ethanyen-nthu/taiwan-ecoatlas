@@ -81,6 +81,21 @@ test("plants page filters 496 kinds and opens a tree with live photo, credit and
   const gallery = page.locator(".wiki-gallery");
   await expect(gallery).toHaveAttribute("data-state", "photos");
   await expect(gallery.locator("figure img")).toBeVisible();
+  // The stored photo leads, with its photographer and licence...
+  await expect(gallery.locator("figure img")).toHaveAttribute(
+    "src",
+    /thumb\/2\/24\/Ficus_microcarpa_-_La_Gomera_01\.jpg\/960px-/,
+  );
+  await expect(gallery.locator("figcaption")).toContainText("H. Zell");
+  await expect(gallery.locator("figcaption")).toContainText("CC BY-SA 3.0");
+  await expect(gallery.locator("figcaption a").last()).toHaveAttribute(
+    "href",
+    "https://commons.wikimedia.org/wiki/File:Ficus_microcarpa_-_La_Gomera_01.jpg",
+  );
+  // ...and the photos found live follow it.
+  const thumbs = gallery.locator(".wiki-gallery-thumbs button");
+  await expect(thumbs).toHaveCount(2);
+  await thumbs.nth(1).click();
   await expect(gallery.locator("figcaption")).toContainText(
     "Jane Photographer",
   );
@@ -99,11 +114,39 @@ test("plants page filters 496 kinds and opens a tree with live photo, credit and
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("榕樹");
 });
 
+test("tree cards carry a photo, or a quiet tile where Commons has none", async ({
+  page,
+}) => {
+  await page.goto("/plants");
+  const banyan = page.locator(".plants-cards li", { hasText: "榕樹" }).first();
+  await expect(banyan.locator(".photo-thumb img")).toHaveAttribute(
+    "src",
+    /thumb\/2\/24\/Ficus_microcarpa_-_La_Gomera_01\.jpg\/500px-/,
+  );
+  await page.getByRole("searchbox").fill("小葉欖仁");
+  const plain = page.locator(".plants-cards li").first();
+  await expect(plain).toContainText("小葉欖仁");
+  await expect(plain.locator(".photo-thumb")).toHaveAttribute(
+    "data-photo",
+    "none",
+  );
+});
+
 test("a tree page still works when Wikimedia is unreachable, and an unknown tree is a 404", async ({
   page,
 }) => {
   await mockWikimedia(page, { fail: true });
+  // A tree with a stored photo keeps its picture and credit without Wikipedia.
   await page.goto("/plants/" + encodeURIComponent("茄苳"));
+  await expect(page.locator(".wiki-gallery")).toHaveAttribute(
+    "data-state",
+    "photos",
+  );
+  await expect(page.locator(".wiki-gallery figcaption")).toContainText(
+    "Geographer",
+  );
+  // One with none says so plainly.
+  await page.goto("/plants/" + encodeURIComponent("小葉欖仁"));
   await expect(page.locator(".wiki-gallery")).toHaveAttribute(
     "data-state",
     "none",
@@ -139,8 +182,9 @@ test("an animal page leads with its Chinese and English names, a photo and a cre
     "photos",
   );
   await expect(page.locator(".wiki-gallery figcaption")).toContainText(
-    "Jane Photographer",
+    "LiCheng Shih",
   );
+  await expect(page.locator(".wiki-gallery-thumbs button")).toHaveCount(2);
   await expect(page.locator("main")).toContainText("黑眶蟾蜍");
   await page.getByRole("button", { name: "繁中", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("黑眶蟾蜍");

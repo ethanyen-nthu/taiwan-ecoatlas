@@ -623,12 +623,34 @@
   text-underline-offset: 3px;
   text-align: start;
 }
+.atlas-record-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 0;
+  color: var(--ink);
+  font-weight: 560;
+  text-decoration: none;
+}
+.atlas-record-link > span:not(.photo-thumb) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atlas-record-link:hover {
+  color: var(--accent-ink);
+}
 .atlas-profile-link {
   display: block;
-  font-size: 0.6875rem;
+  font: inherit;
+  font-size: 0.75rem;
   color: var(--muted);
   padding: 4px 0;
+  border: 0;
+  background: none;
+  text-align: start;
   text-decoration: underline;
+  cursor: pointer;
 }
 .atlas-empty {
   padding: 32px 20px;
@@ -1135,9 +1157,10 @@
   background: var(--accent-soft);
 }
 
-/* The county view is taller than the viewport, so the pane scrolls with the
-   page instead of sticking; the view switch stays above it on small screens. */
-.atlas-map-pane:has(.atlas-map-flat) {
+/* The county view adds a panel under the map, so the pane is taller than the
+   viewport and scrolls with the page instead of sticking; the view switch
+   stays above it on small screens. */
+.atlas-map-pane.atlas-map-pane-flow {
   position: static;
 }
 @media (min-width: 1101px) {
@@ -1149,5 +1172,13 @@
   .atlas-map-toolbar:has(.atlas-view-switch) {
     order: 0;
     margin: 0 0 12px;
+  }
+  /* County view on a phone: switch, map, key, then the details. */
+  .atlas-map-pane-flow .atlas-choro {
+    order: 2;
+    margin-top: 12px;
+  }
+  .atlas-map-pane-flow .cp {
+    order: 3;
   }
 }

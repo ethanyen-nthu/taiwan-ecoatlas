@@ -68,6 +68,9 @@ function plain(html: string | undefined): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+/** Wikimedia now serves resized photos from thumb.wikimedia.org as well as
+ *  upload.wikimedia.org, so both are accepted. */
+const imageHost = /(^|\.)(upload|thumb)\.wikimedia\.org$/;
 const safeUrl = (value: string | undefined | null, host: RegExp) => {
   try {
     const url = new URL(String(value));
@@ -154,7 +157,7 @@ async function photos(
     const info = page?.imageinfo?.[0];
     // Only freely licensed files hosted on Commons are shown.
     if (!page || !info || page.imagerepository !== "shared") continue;
-    const src = safeUrl(info.thumburl, /(^|\.)upload\.wikimedia\.org$/);
+    const src = safeUrl(info.thumburl, imageHost);
     const filePage = safeUrl(info.descriptionurl, /(^|\.)wikimedia\.org$/);
     if (!src || !filePage || !info.thumbwidth || !info.thumbheight) continue;
     const meta = info.extmetadata || {};

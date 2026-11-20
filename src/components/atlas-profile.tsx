@@ -478,6 +478,7 @@ function SpeciesContent({
         </ul>
         <WikiGallery
           latin={sci}
+          photoKey={sci}
           zhName={info?.zh}
           enName={info?.en}
           lead={
@@ -501,8 +502,8 @@ function SpeciesContent({
         />
         <p className={styles.note}>
           {t(
-            "Photos and the summary are loaded live from Wikipedia and Wikimedia Commons in your browser; each photo keeps its photographer’s credit and licence. Chinese names follow TaiCOL conventions.",
-            "照片與摘要由你的瀏覽器即時從維基百科與維基共享資源載入，每張照片保留攝影者署名與授權；中文名依 TaiCOL 慣例。",
+            "Photos come from Wikimedia Commons and the summary from Wikipedia; each photo keeps its photographer’s credit and licence, and more photos load live in your browser. Chinese names follow TaiCOL conventions.",
+            "照片取自維基共享資源、摘要取自維基百科，每張照片保留攝影者署名與授權，更多照片由你的瀏覽器即時載入；中文名依 TaiCOL 慣例。",
           )}
         </p>
       </article>

@@ -31,6 +31,7 @@ import { observationFreshness } from "@/lib/freshness";
 import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
 import { tileCollection } from "@/lib/atlas-tiles";
 import { subjectRamps } from "@/lib/choropleth";
+import { labelWidth, type CountyLabel } from "@/lib/wildlife-map";
 
 interface Props {
   overlays?: AtlasOverlay[];
@@ -52,6 +53,9 @@ interface Props {
   island?: boolean;
   /** County code to fill colour: a choropleth drawn under the data layers. */
   countyTint?: Record<string, string> | null;
+  /** A number printed inside each county, hidden while the county is too small
+   *  on screen to hold it. Only the tint is drawn by the map itself. */
+  countyLabels?: CountyLabel[];
   counties: Counties;
   selectedCounty: string;
   boundariesVisible: boolean;
@@ -506,7 +510,13 @@ export default function MapCanvas(props: Props) {
               latest.current.language === "en"
                 ? feature.properties.COUNTYENG
                 : feature.properties.COUNTYNAME;
-            hoverPopup.setLngLat(event.lngLat).setText(name).addTo(map);
+            const note = latest.current.countyLabels?.find(
+              (label) => label.code === feature.properties.COUNTYCODE,
+            )?.text;
+            hoverPopup
+              .setLngLat(event.lngLat)
+              .setText(note ? `${name} · ${note}` : name)
+              .addTo(map);
           });
           map.on("mouseleave", "county-fill", () => {
             if (hovered !== undefined)
@@ -1260,6 +1270,40 @@ export default function MapCanvas(props: Props) {
     props.counties,
     props.countyTint,
   ]);
+  // Count labels: plain DOM markers, because the basemap style carries no font
+  // files and so cannot draw text itself. They ignore the pointer, so a click
+  // on a number still selects the county underneath it.
+  useEffect(() => {
+    const map = mapRef.current;
+    const labels = props.countyLabels;
+    if (!ready || !map || !labels?.length) return;
+    const items = labels.map((label) => {
+      const element = document.createElement("div");
+      element.className = "county-count";
+      element.textContent = label.text;
+      element.setAttribute("aria-hidden", "true");
+      if (label.code === selectedCounty) element.dataset.selected = "";
+      const marker = new maplibregl.Marker({ element, anchor: "center" })
+        .setLngLat([label.lng, label.lat])
+        .addTo(map);
+      return { label, element, marker };
+    });
+    const place = () => {
+      const perDegree = (512 * 2 ** map.getZoom()) / 360;
+      for (const { label, element } of items)
+        element.classList.toggle(
+          "is-hidden",
+          !label.alone &&
+            label.r * 2 * perDegree < labelWidth(label.text) * 0.85,
+        );
+    };
+    place();
+    map.on("zoom", place);
+    return () => {
+      map.off("zoom", place);
+      for (const { marker } of items) marker.remove();
+    };
+  }, [ready, props.countyLabels, selectedCounty]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;

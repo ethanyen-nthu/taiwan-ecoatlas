@@ -35,7 +35,13 @@ import { peoplesOfLabel } from "@/content/peoples-index";
 import { speciesLabel, speciesShortName } from "@/content/species-info";
 import { sectionGuides } from "@/content/section-guides";
 import type { OutlineFile } from "@/lib/outline-map";
-import { WildlifeCountyMap } from "./wildlife/county-map";
+import { WildlifeCountyPanel } from "./wildlife/county-panel";
+import { PhotoThumb } from "./photo-thumb";
+import {
+  countyLabelSpots,
+  countyLabels as buildCountyLabels,
+  countyTints,
+} from "@/lib/wildlife-map";
 import { SectionGuide } from "./section-guide";
 import { CityCoverage } from "./city-coverage";
 import { islandPath, islandViewBox } from "@/lib/island-path";
@@ -469,6 +475,24 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     shouldRetryOnError: false,
     keepPreviousData: true,
   });
+  // The county view hangs a count inside each county of the standard map.
+  const labelSpots = useMemo(
+    () => (outlines.data ? countyLabelSpots(outlines.data) : null),
+    [outlines.data],
+  );
+  const countyTint = useMemo(
+    () => (countyView ? countyTints(countyList.rows, choropleth) : null),
+    [countyView, countyList.rows, choropleth],
+  );
+  const countyCountLabels = useMemo(
+    () =>
+      countyView
+        ? buildCountyLabels(countyList.rows, labelSpots, (value) =>
+            value.toLocaleString(language === "en" ? "en" : "zh-TW"),
+          )
+        : [],
+    [countyView, countyList.rows, labelSpots, language],
+  );
   const mapFeatures = result.data?.collection.features;
   const hasTiles = !!mapFeatures?.some(
     (feature) => feature.properties.x0 != null,
@@ -495,7 +519,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
   );
   const overlays = useMemo<AtlasOverlay[]>(
     () =>
-      dataset && !(shadeOn && dataset.raster)
+      dataset && !countyView && !(shadeOn && dataset.raster)
         ? [
             {
               dataset: result.data?.dataset || dataset,
@@ -518,6 +542,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
       mode,
       metric,
       shadeOn,
+      countyView,
     ],
   );
   const fmtNum = (value: number) =>
@@ -962,7 +987,9 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           </details>
         </section>
 
-        <div className="atlas-map-pane">
+        <div
+          className={`atlas-map-pane${countyView ? " atlas-map-pane-flow" : ""}`}
+        >
           <div className="atlas-map-toolbar">
             {section === "wildlife" && (
               <div
@@ -1052,25 +1079,17 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               {t("Open central atlas", "開啟中央地圖")} ↗
             </Link>
           </div>
-          <div className={`atlas-map${countyView ? " atlas-map-flat" : ""}`}>
-            {countyView ? (
-              <WildlifeCountyMap
-                outlines={outlines.data}
-                rows={countyList.rows}
-                selected={filters.county}
-                onSelect={(code) => change("county", code)}
-                choropleth={choropleth}
-                animals={steady.data?.species ?? []}
-                categories={steady.data?.categories ?? []}
-                loading={!summary.data}
-              />
-            ) : counties ? (
+          <div className="atlas-map">
+            {counties ? (
               <MapCanvas
                 compact
                 externalInspector
                 counties={counties}
                 selectedCounty={filters.county}
-                countyTint={shadeOn ? choropleth?.tint : null}
+                countyTint={
+                  countyView ? countyTint : shadeOn ? choropleth?.tint : null
+                }
+                countyLabels={countyView ? countyCountLabels : undefined}
                 boundariesVisible
                 aqi={[]}
                 weather={[]}
@@ -1104,211 +1123,225 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                 )}
               </div>
             )}
-            {selected && dataset && selected.properties.aggregated && (
-              <section
-                id="atlas-record-details"
-                className="atlas-peek"
-                aria-label={t("Selected map spot", "選取的地圖位置")}
-                tabIndex={-1}
-                ref={peekRef}
-              >
-                <div className="atlas-peek-head">
-                  <div>
-                    <span className="atlas-peek-kind">
-                      {dataset.title[language]}
-                    </span>
-                    <h2>
-                      {selected.properties.x0 != null
-                        ? language === "zh"
-                          ? `此方格有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
-                          : `${Number(selected.properties.count || 0).toLocaleString("en")} records in this square`
-                        : language === "zh"
-                          ? `此處有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
-                          : `${Number(selected.properties.count || 0).toLocaleString("en")} records at this spot`}
-                    </h2>
-                  </div>
-                  <button
-                    className="icon-button"
-                    aria-label={t("Close record details", "關閉紀錄詳情")}
-                    onClick={() => setSelected(null)}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                <p className="atlas-peek-text">
-                  {selected.properties.x0 != null
-                    ? t(
-                        `The source publishes positions only as cells about ${Number(selected.properties.cellKm || 10)} km wide, so this square stands for every record inside it. It is a count, not the place where any one thing happened.`,
-                        `來源只公開約 ${Number(selected.properties.cellKm || 10)} 公里寬的網格位置，因此這個方格代表其中所有紀錄；它是數量，不是任何單一事件發生的地點。`,
-                      )
-                    : t(
-                        "These records share one public map position, so they cannot be told apart on the map.",
-                        "這些紀錄共用同一個公開地圖位置，無法在地圖上區分。",
-                      )}
-                </p>
-                {stackMembers.length > 0 && (
-                  <ul className="atlas-peek-members">
-                    {stackMembers.map((member) => {
-                      const name =
-                        language === "zh"
-                          ? member.z || member.e || member.t
-                          : member.e || member.t;
-                      const body = (
-                        <>
-                          {name}
-                          {name !== member.t && <i> {member.t}</i>}
-                        </>
-                      );
-                      return (
-                        <li key={`${member.t}-${member.id}`}>
-                          {section === "culture" ? (
-                            <Link
-                              href={`/culture/places/${encodeURIComponent(member.id)}`}
-                            >
-                              {language === "zh" && member.z
-                                ? member.z
-                                : member.t}
-                            </Link>
-                          ) : member.s ? (
-                            <Link
-                              href={`/wildlife/species/${encodeURIComponent(member.s)}`}
-                            >
-                              {body}
-                            </Link>
-                          ) : (
-                            <span>{body}</span>
-                          )}
-                          {member.n > 1 && <b>{member.n.toLocaleString()}</b>}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                {Number(selected.properties.memberKinds || 0) >
-                  stackMembers.length && (
-                  <p className="atlas-peek-text">
-                    {t(
-                      `…and ${Number(selected.properties.memberKinds) - stackMembers.length} more kinds. All of them are in the list below.`,
-                      `…另有 ${Number(selected.properties.memberKinds) - stackMembers.length} 種，皆列於下方列表。`,
-                    )}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  className="atlas-more-toggle"
-                  onClick={() => {
-                    setTab("records");
-                    document
-                      .getElementById(`${tabId}-records-panel`)
-                      ?.scrollIntoView({ block: "start", behavior: "smooth" });
-                  }}
+            {!countyView &&
+              selected &&
+              dataset &&
+              selected.properties.aggregated && (
+                <section
+                  id="atlas-record-details"
+                  className="atlas-peek"
+                  aria-label={t("Selected map spot", "選取的地圖位置")}
+                  tabIndex={-1}
+                  ref={peekRef}
                 >
-                  {t("Show them in the list", "在列表中查看")} ↓
-                </button>
-              </section>
-            )}
-            {selected && dataset && !selected.properties.aggregated && (
-              <section
-                id="atlas-record-details"
-                className="atlas-peek"
-                aria-label={t("Selected record", "選取的紀錄")}
-                tabIndex={-1}
-                ref={peekRef}
-              >
-                <div className="atlas-peek-head">
-                  <div>
-                    <span className="atlas-peek-kind">
-                      {dataset.title[language]}
-                    </span>
-                    <h2>{recordName(selected.properties, language)}</h2>
-                    {recordAlias(selected.properties, language) && (
-                      <p className="atlas-peek-alias">
-                        {recordAlias(selected.properties, language)}
-                      </p>
-                    )}
+                  <div className="atlas-peek-head">
+                    <div>
+                      <span className="atlas-peek-kind">
+                        {dataset.title[language]}
+                      </span>
+                      <h2>
+                        {selected.properties.x0 != null
+                          ? language === "zh"
+                            ? `此方格有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
+                            : `${Number(selected.properties.count || 0).toLocaleString("en")} records in this square`
+                          : language === "zh"
+                            ? `此處有 ${Number(selected.properties.count || 0).toLocaleString("zh-TW")} 筆紀錄`
+                            : `${Number(selected.properties.count || 0).toLocaleString("en")} records at this spot`}
+                      </h2>
+                    </div>
+                    <button
+                      className="icon-button"
+                      aria-label={t("Close record details", "關閉紀錄詳情")}
+                      onClick={() => setSelected(null)}
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <button
-                    className="icon-button"
-                    aria-label={t("Close record details", "關閉紀錄詳情")}
-                    onClick={() => setSelected(null)}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                <dl className="atlas-peek-facts">
-                  {peekFacts(selected).map((fact) => (
-                    <div key={fact.label}>
-                      <dt>{fact.label}</dt>
-                      <dd>{fact.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                {section === "culture" &&
-                  peoplesOfLabel(selected.properties.group).map((people) => (
-                    <div className="atlas-peek-people" key={people.slug}>
-                      <strong>
-                        {language === "zh" ? people.name.zh : people.name.en}
-                      </strong>
-                      <p>
-                        {language === "zh" ? people.line.zh : people.line.en}
-                      </p>
-                      <Link
-                        className="text-link"
-                        href={`/culture/peoples/${people.slug}`}
-                      >
-                        {t(
-                          `About the ${people.name.en}`,
-                          `認識${people.name.zh}`,
-                        )}{" "}
-                        ↗
-                      </Link>
-                    </div>
-                  ))}
-                <div className="atlas-peek-links">
-                  {selected.properties.speciesId && (
-                    <Link
-                      className="text-link"
-                      href={`/wildlife/species/${encodeURIComponent(String(selected.properties.speciesId))}`}
-                    >
+                  <p className="atlas-peek-text">
+                    {selected.properties.x0 != null
+                      ? t(
+                          `The source publishes positions only as cells about ${Number(selected.properties.cellKm || 10)} km wide, so this square stands for every record inside it. It is a count, not the place where any one thing happened.`,
+                          `來源只公開約 ${Number(selected.properties.cellKm || 10)} 公里寬的網格位置，因此這個方格代表其中所有紀錄；它是數量，不是任何單一事件發生的地點。`,
+                        )
+                      : t(
+                          "These records share one public map position, so they cannot be told apart on the map.",
+                          "這些紀錄共用同一個公開地圖位置，無法在地圖上區分。",
+                        )}
+                  </p>
+                  {stackMembers.length > 0 && (
+                    <ul className="atlas-peek-members">
+                      {stackMembers.map((member) => {
+                        const name =
+                          language === "zh"
+                            ? member.z || member.e || member.t
+                            : member.e || member.t;
+                        const body = (
+                          <>
+                            {name}
+                            {name !== member.t && <i> {member.t}</i>}
+                          </>
+                        );
+                        return (
+                          <li key={`${member.t}-${member.id}`}>
+                            {section === "culture" ? (
+                              <Link
+                                href={`/culture/places/${encodeURIComponent(member.id)}`}
+                              >
+                                {language === "zh" && member.z
+                                  ? member.z
+                                  : member.t}
+                              </Link>
+                            ) : member.s ? (
+                              <Link
+                                href={`/wildlife/species/${encodeURIComponent(member.s)}`}
+                              >
+                                {body}
+                              </Link>
+                            ) : (
+                              <span>{body}</span>
+                            )}
+                            {member.n > 1 && <b>{member.n.toLocaleString()}</b>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  {Number(selected.properties.memberKinds || 0) >
+                    stackMembers.length && (
+                    <p className="atlas-peek-text">
                       {t(
-                        "Photos, description & records for this species",
-                        "這個物種的照片、介紹與紀錄",
-                      )}{" "}
-                      ↗
-                    </Link>
+                        `…and ${Number(selected.properties.memberKinds) - stackMembers.length} more kinds. All of them are in the list below.`,
+                        `…另有 ${Number(selected.properties.memberKinds) - stackMembers.length} 種，皆列於下方列表。`,
+                      )}
+                    </p>
                   )}
-                  {section === "culture" && !selected.properties.aggregated && (
-                    <Link
-                      className="atlas-peek-open"
-                      href={`/culture/places/${encodeURIComponent(selected.properties.id)}`}
+                  <button
+                    type="button"
+                    className="atlas-more-toggle"
+                    onClick={() => {
+                      setTab("records");
+                      document
+                        .getElementById(`${tabId}-records-panel`)
+                        ?.scrollIntoView({
+                          block: "start",
+                          behavior: "smooth",
+                        });
+                    }}
+                  >
+                    {t("Show them in the list", "在列表中查看")} ↓
+                  </button>
+                </section>
+              )}
+            {!countyView &&
+              selected &&
+              dataset &&
+              !selected.properties.aggregated && (
+                <section
+                  id="atlas-record-details"
+                  className="atlas-peek"
+                  aria-label={t("Selected record", "選取的紀錄")}
+                  tabIndex={-1}
+                  ref={peekRef}
+                >
+                  <div className="atlas-peek-head">
+                    <div>
+                      <span className="atlas-peek-kind">
+                        {dataset.title[language]}
+                      </span>
+                      <h2>{recordName(selected.properties, language)}</h2>
+                      {recordAlias(selected.properties, language) && (
+                        <p className="atlas-peek-alias">
+                          {recordAlias(selected.properties, language)}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      className="icon-button"
+                      aria-label={t("Close record details", "關閉紀錄詳情")}
+                      onClick={() => setSelected(null)}
                     >
-                      {t("Open the village profile", "開啟部落介紹")} →
-                    </Link>
-                  )}
-                </div>
-                <details className="atlas-peek-all">
-                  <summary>
-                    {t("All fields & source", "全部欄位與來源")}
-                  </summary>
-                  <dl>
-                    {recordRows(selected).map((row) => (
-                      <div key={row.key}>
-                        <dt>{row.label}</dt>
-                        <dd>
-                          {row.value}
-                          {row.note && <small> {row.note}</small>}
-                        </dd>
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <dl className="atlas-peek-facts">
+                    {peekFacts(selected).map((fact) => (
+                      <div key={fact.label}>
+                        <dt>{fact.label}</dt>
+                        <dd>{fact.value}</dd>
                       </div>
                     ))}
                   </dl>
-                  <a href={dataset.sourceUrl} target="_blank" rel="noreferrer">
-                    {t("Original source", "原始來源")} ↗ · {dataset.licence}
-                  </a>
-                </details>
-              </section>
-            )}
+                  {section === "culture" &&
+                    peoplesOfLabel(selected.properties.group).map((people) => (
+                      <div className="atlas-peek-people" key={people.slug}>
+                        <strong>
+                          {language === "zh" ? people.name.zh : people.name.en}
+                        </strong>
+                        <p>
+                          {language === "zh" ? people.line.zh : people.line.en}
+                        </p>
+                        <Link
+                          className="text-link"
+                          href={`/culture/peoples/${people.slug}`}
+                        >
+                          {t(
+                            `About the ${people.name.en}`,
+                            `認識${people.name.zh}`,
+                          )}{" "}
+                          ↗
+                        </Link>
+                      </div>
+                    ))}
+                  <div className="atlas-peek-links">
+                    {selected.properties.speciesId && (
+                      <Link
+                        className="text-link"
+                        href={`/wildlife/species/${encodeURIComponent(String(selected.properties.speciesId))}`}
+                      >
+                        {t(
+                          "Photos, description & records for this species",
+                          "這個物種的照片、介紹與紀錄",
+                        )}{" "}
+                        ↗
+                      </Link>
+                    )}
+                    {section === "culture" &&
+                      !selected.properties.aggregated && (
+                        <Link
+                          className="atlas-peek-open"
+                          href={`/culture/places/${encodeURIComponent(selected.properties.id)}`}
+                        >
+                          {t("Open the village profile", "開啟部落介紹")} →
+                        </Link>
+                      )}
+                  </div>
+                  <details className="atlas-peek-all">
+                    <summary>
+                      {t("All fields & source", "全部欄位與來源")}
+                    </summary>
+                    <dl>
+                      {recordRows(selected).map((row) => (
+                        <div key={row.key}>
+                          <dt>{row.label}</dt>
+                          <dd>
+                            {row.value}
+                            {row.note && <small> {row.note}</small>}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <a
+                      href={dataset.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t("Original source", "原始來源")} ↗ · {dataset.licence}
+                    </a>
+                  </details>
+                </section>
+              )}
           </div>
-          {!countyView && shadeOn && choropleth && (
+          {(countyView || shadeOn) && choropleth && (
             <div
               className="atlas-choro"
               role="group"
@@ -1364,6 +1397,17 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                       )}
               </p>
             </div>
+          )}
+          {countyView && (
+            <WildlifeCountyPanel
+              outlines={outlines.data}
+              rows={countyList.rows}
+              selected={filters.county}
+              onSelect={(code) => change("county", code)}
+              animals={steady.data?.species ?? []}
+              categories={steady.data?.categories ?? []}
+              loading={!summary.data}
+            />
           )}
           {!countyView && !dataset?.raster && (tiles || stackCount > 0) && (
             <div
@@ -1533,7 +1577,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                     metric === "aqi" &&
                     row.value !== null
                       ? aqiBarForValue(row.value)
-                      : shadeOn && choropleth?.tint[row.code]
+                      : (shadeOn || countyView) && choropleth?.tint[row.code]
                         ? choropleth.tint[row.code]
                         : "var(--accent)";
                   return (
@@ -1692,21 +1736,42 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               {result.data?.records.map((record) => (
                 <tr key={record.properties.id}>
                   <td>
-                    <button
-                      aria-label={`${t("View", "檢視")} ${record.properties.title}`}
-                      className="atlas-record-button"
-                      onClick={() => viewRecord(record)}
-                    >
-                      {recordName(record.properties, language)}
-                      <ArrowUpRight size={13} />
-                    </button>
-                    {record.properties.speciesId && (
+                    {record.properties.speciesId ? (
+                      // An animal's name opens its page, with photos and what
+                      // is known about it; the map is a secondary action.
                       <Link
-                        className="atlas-profile-link"
+                        className="atlas-record-link"
                         href={`/wildlife/species/${encodeURIComponent(String(record.properties.speciesId))}`}
                       >
-                        {t("Species profile", "物種資料")}
+                        <PhotoThumb
+                          photoKey={String(
+                            record.properties.scientificName ?? "",
+                          )}
+                          kind="animal"
+                          size={36}
+                          radius={6}
+                        />
+                        <span>{recordName(record.properties, language)}</span>
+                        <ArrowUpRight size={13} />
                       </Link>
+                    ) : (
+                      <button
+                        aria-label={`${t("View", "檢視")} ${record.properties.title}`}
+                        className="atlas-record-button"
+                        onClick={() => viewRecord(record)}
+                      >
+                        {recordName(record.properties, language)}
+                        <ArrowUpRight size={13} />
+                      </button>
+                    )}
+                    {record.properties.speciesId && !countyView && (
+                      <button
+                        type="button"
+                        className="atlas-profile-link"
+                        onClick={() => viewRecord(record)}
+                      >
+                        {t("Show on map", "在地圖上查看")}
+                      </button>
                     )}
                     {section === "culture" && (
                       <Link

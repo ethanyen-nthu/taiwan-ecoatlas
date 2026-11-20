@@ -823,6 +823,29 @@ svg {
   padding: 8px 12px !important;
   font-size: 0.8125rem;
 }
+/* The count printed inside a county. A pale pill keeps the figures readable on
+   every shade; it ignores the pointer so the county below still takes clicks. */
+.county-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.1);
+  color: #3a2704;
+  font-size: 11px;
+  font-weight: 640;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+.county-count[data-selected] {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ink, #1f2a30);
+}
+.county-count.is-hidden {
+  display: none;
+}
 .panel-toggle {
   position: absolute;
   top: 28px;

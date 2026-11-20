@@ -9,6 +9,7 @@ import { useLanguage } from "../providers";
 import { Footer } from "../footer";
 import { Reveal } from "../reveal";
 import { SectionGuide, type GuideText } from "../section-guide";
+import { PhotoThumb } from "../photo-thumb";
 import { WikiGallery } from "../wiki-gallery";
 import "./plants.css";
 
@@ -305,16 +306,26 @@ export function PlantsGuide({
           {visible.slice(0, shown).map((row) => (
             <li key={row.name}>
               <Link href={`/plants/${encodeURIComponent(row.name)}`}>
-                <span className="plants-card-name" lang="zh-TW">
-                  {row.name}
-                </span>
-                {row.en && <span className="plants-card-en">{row.en}</span>}
-                {row.sci && <i className="plants-card-sci">{row.sci}</i>}
-                <span className="plants-card-meta">
-                  {row.habit && <HabitTag habit={row.habit} short />}
-                  <b>
-                    {format(row.count)} {t("trees", "棵")}
-                  </b>
+                <PhotoThumb
+                  photoKey={row.name}
+                  kind="plant"
+                  size={0}
+                  width={500}
+                  radius={0}
+                  className="plants-card-photo"
+                />
+                <span className="plants-card-body">
+                  <span className="plants-card-name" lang="zh-TW">
+                    {row.name}
+                  </span>
+                  {row.en && <span className="plants-card-en">{row.en}</span>}
+                  {row.sci && <i className="plants-card-sci">{row.sci}</i>}
+                  <span className="plants-card-meta">
+                    {row.habit && <HabitTag habit={row.habit} short />}
+                    <b>
+                      {format(row.count)} {t("trees", "棵")}
+                    </b>
+                  </span>
                 </span>
               </Link>
             </li>
@@ -386,6 +397,7 @@ export function PlantProfile({ row }: { row: PlantRow }) {
         <h2 id="meet-plant">{t("Meet this tree", "認識這種樹")}</h2>
         <WikiGallery
           latin={row.sci || ""}
+          photoKey={row.name}
           zhName={row.name}
           enName={row.en}
           searchTerm={row.sci || row.name}
@@ -404,8 +416,8 @@ export function PlantProfile({ row }: { row: PlantRow }) {
         />
         <p className="plants-aside">
           {t(
-            "Photos and the summary load live from Wikipedia and Wikimedia Commons in your browser, each with its photographer’s credit and licence.",
-            "照片與摘要由你的瀏覽器即時從維基百科與維基共享資源載入，每張照片保留攝影者署名與授權。",
+            "Photos come from Wikimedia Commons and the summary from Wikipedia; each photo keeps its photographer’s credit and licence. More photos load live in your browser.",
+            "照片取自維基共享資源、摘要取自維基百科，每張照片保留攝影者署名與授權；更多照片由你的瀏覽器即時載入。",
           )}
         </p>
       </section>

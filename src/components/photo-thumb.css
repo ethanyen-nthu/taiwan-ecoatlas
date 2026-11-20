@@ -1,0 +1,21 @@
+/* A small square photo for lists and cards. The picture is cropped to fill,
+   so rows line up whatever shape the original is. */
+.photo-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-soft, #efe7d8) 80%, #fff);
+  color: color-mix(in srgb, var(--accent-ink, #5b4a2a) 55%, transparent);
+}
+.photo-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-thumb svg {
+  opacity: 0.8;
+}

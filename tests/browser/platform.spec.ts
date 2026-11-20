@@ -20,11 +20,8 @@ async function openSection(page: Page, route: string, dataset: string) {
   const workbench = page.locator(".atlas-workbench");
   await expect(workbench).toHaveAttribute("data-dataset", dataset);
   await expect(workbench.getByLabel("Dataset", { exact: true })).toBeEnabled();
-  // The roadkill page opens on its county map; every other page on a tile map.
   await expect(
-    page.locator(
-      ".atlas-map .map-canvas-shell[data-map-ready=true], .atlas-map .wm svg",
-    ),
+    page.locator(".atlas-map .map-canvas-shell[data-map-ready=true]"),
   ).toBeVisible();
   await expect(
     workbench.locator(".atlas-stat-strip strong").first(),
@@ -251,16 +248,9 @@ test.describe("integrated atlas platform", () => {
       ).length,
     );
     expect(dated.total).toBeGreaterThan(0);
-    await expect(
-      workbench
-        .getByRole("button", {
-          name: `View ${dated.records[0].properties.title}`,
-          exact: true,
-        })
-        .first(),
-    ).toBeVisible();
+    // An animal's name in the table opens its page directly.
     const profile = workbench
-      .locator(`a[href="/wildlife/species/${species}"]`)
+      .locator(`a.atlas-record-link[href="/wildlife/species/${species}"]`)
       .first();
     await expect(profile).toBeVisible();
     await profile.click();

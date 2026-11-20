@@ -26,8 +26,6 @@ export interface OutlineMapData {
     code: string;
     d: string;
     focus: boolean;
-    /** Widest open spot inside the county, for a label. Only with `compact`. */
-    anchor?: { x: number; y: number; r: number };
   }[];
   dots: {
     id: string;
@@ -50,9 +48,6 @@ export interface OutlineMapOptions {
   pad?: number;
   /** Smallest view, in degrees of latitude, so a lone point does not zoom in. */
   minSpan?: number;
-  /** Leave out rings that fall outside the drawing (a county with a distant
-   *  islet would otherwise carry it along) and find a label spot per county. */
-  compact?: boolean;
 }
 
 type Box = [number, number, number, number];
@@ -156,7 +151,6 @@ export function buildOutlineMap(
     maxHeight = 520,
     pad = 0.1,
     minSpan = 0.5,
-    compact = false,
   } = options;
   const boxes: Box[] = dots.length
     ? [
@@ -200,15 +194,9 @@ export function buildOutlineMap(
   for (const [code, county] of Object.entries(outlines)) {
     const [bx0, by0, bx1, by1] = boxOf(county.rings);
     if (bx1 < x0 || bx0 > x1 || by1 < y0 || by0 > y1) continue;
-    let rings = county.rings.map((ring) =>
+    const rings = county.rings.map((ring) =>
       ring.map(([lon, lat]) => [px(lon), py(lat)] as [number, number]),
     );
-    if (compact)
-      rings = rings.filter((ring) => {
-        const [rx0, ry0, rx1, ry1] = boxOf([ring]);
-        return rx1 >= 0 && rx0 <= w && ry1 >= 0 && ry0 <= h;
-      });
-    if (!rings.length) continue;
     const d = rings
       .map((ring) => `M${ring.map(([x, y]) => `${x} ${y}`).join("L")}Z`)
       .join("");
@@ -216,7 +204,6 @@ export function buildOutlineMap(
       code,
       d,
       focus: focus.includes(code),
-      ...(compact ? { anchor: labelSpot(rings) ?? undefined } : {}),
     });
   }
   return {

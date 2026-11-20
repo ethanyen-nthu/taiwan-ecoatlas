@@ -253,10 +253,9 @@
 }
 .plants-cards a {
   display: grid;
-  gap: 0.2rem;
-  align-content: start;
+  grid-template-rows: auto 1fr;
   height: 100%;
-  padding: 0.9rem 1rem 0.8rem;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--white);
@@ -267,6 +266,19 @@
 .plants-cards a:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
+}
+.plants-card-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+.plants-card-photo img {
+  object-position: 50% 42%;
+}
+.plants-card-body {
+  display: grid;
+  gap: 0.2rem;
+  align-content: start;
+  padding: 0.8rem 1rem 0.85rem;
 }
 .plants-card-name {
   font-size: 1.1875rem;

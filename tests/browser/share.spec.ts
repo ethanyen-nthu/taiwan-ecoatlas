@@ -4,7 +4,7 @@ test("a section map view lives in the link and reopens exactly", async ({
   page,
 }) => {
   await page.goto("/wildlife");
-  await expect(page.locator(".wm svg")).toBeVisible();
+  await expect(page.locator(".cp")).toBeVisible();
   await page.getByLabel("County", { exact: true }).selectOption("10008");
   await expect.poll(() => page.url()).toContain("county=10008");
   await page.getByLabel("Search records").fill("Suncus");

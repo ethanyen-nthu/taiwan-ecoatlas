@@ -1,71 +1,90 @@
 import type { Choropleth } from "./choropleth";
 import { subjectRamps } from "./choropleth";
-import {
-  buildOutlineMap,
-  type OutlineFile,
-  type OutlineMapData,
-} from "./outline-map";
+import { labelSpot, type OutlineFile } from "./outline-map";
 
-/** Counties that lie outside the frame of the main island: Penghu, Kinmen and
- *  Lienchiang (Matsu). They are listed beside the map instead of being
- *  squeezed into it, so the island can be drawn large. */
-export const offshoreCounties = ["10016", "09020", "09007"] as const;
-
-/** Corners of the main island (with a little sea), in longitude and latitude. */
-const islandCorners = [
-  { lon: 120.0, lat: 21.85 },
-  { lon: 122.05, lat: 25.35 },
-];
-
-/** The main island and the counties on it, drawn flat from the simplified
- *  outlines, with a label spot inside each county. */
-export function buildIslandMap(
-  outlines: OutlineFile,
-  width = 360,
-  maxHeight = 620,
-): OutlineMapData {
-  return buildOutlineMap(outlines, {
-    dots: islandCorners.map((corner, index) => ({
-      id: `corner-${index}`,
-      lon: corner.lon,
-      lat: corner.lat,
-      kind: "other" as const,
-      label: { en: "", zh: "" },
-    })),
-    width,
-    maxHeight,
-    pad: 0.02,
-    compact: true,
-  });
+/** A number to hang inside one county on the map. `r` is the radius, in
+ *  degrees, of the open space around the spot, so the page can hide the number
+ *  while the county is still too small on screen to hold it. */
+export interface CountyLabel {
+  code: string;
+  lng: number;
+  lat: number;
+  r: number;
+  text: string;
+  /** An island group with no neighbour to crowd it: its number is always shown,
+   *  even while the islands are only a few pixels wide. */
+  alone: boolean;
 }
 
-export interface CountyFill {
-  fill: string;
-  /** 0 is the lightest step. */
-  step: number;
-  /** Which text colour stays readable on this fill. */
-  ink: "dark" | "light";
-}
+/** Penghu, Kinmen and Lienchiang (Matsu) lie far from every other county. */
+export const offshoreCounties = ["10016", "09020", "09007"];
 
-/** Fill for every county that has records. A county with none is left out so
- *  the map can draw it as plain land. With fewer than three counties the
+/** The fill for every county that has records. A county with none is left out
+ *  so the map draws it as plain land. With fewer than three counties the
  *  classes would only suggest a pattern, so they all share the middle step. */
-export function countyFills(
+export function countyTints(
   rows: { code: string; count: number }[],
   choropleth: Choropleth | null,
-): Record<string, CountyFill> {
-  const ramp = subjectRamps.wildlife;
-  const fills: Record<string, CountyFill> = {};
-  for (const row of rows) {
-    if (!(row.count > 0)) continue;
-    const fill = choropleth?.tint[row.code] ?? ramp[2];
-    const step = Math.max(0, ramp.indexOf(fill));
-    fills[row.code] = { fill, step, ink: step >= 3 ? "light" : "dark" };
-  }
-  return fills;
+): Record<string, string> {
+  const tints: Record<string, string> = {};
+  for (const row of rows)
+    if (row.count > 0)
+      tints[row.code] = choropleth?.tint[row.code] ?? subjectRamps.wildlife[2];
+  return tints;
 }
 
-/** Whether a number fits inside the open space of a county. */
-export function labelFits(text: string, radius: number): boolean {
-  return radius * 2 >= text.length * 6.6 + 2;
+const SCALE = 1000;
+/** Taiwan's mean latitude: a degree of longitude is this much shorter than a
+ *  degree of latitude, so shapes are squeezed the same way before measuring. */
+const SQUEEZE = Math.cos((24 * Math.PI) / 180);
+
+/** For each county, the point farthest from its border (so the number sits in
+ *  the middle of the largest island, not on a coast) and how much room it has. */
+export function countyLabelSpots(
+  outlines: OutlineFile,
+): Record<string, { lng: number; lat: number; r: number }> {
+  const spots: Record<string, { lng: number; lat: number; r: number }> = {};
+  for (const [code, county] of Object.entries(outlines)) {
+    const spot = labelSpot(
+      county.rings.map((ring) =>
+        ring.map(
+          ([lng, lat]) =>
+            [lng * SQUEEZE * SCALE, lat * SCALE] as [number, number],
+        ),
+      ),
+    );
+    if (!spot) continue;
+    spots[code] = {
+      lng: spot.x / (SCALE * SQUEEZE),
+      lat: spot.y / SCALE,
+      r: spot.r / SCALE,
+    };
+  }
+  return spots;
+}
+
+/** One label per county that has records. */
+export function countyLabels(
+  rows: { code: string; count: number }[],
+  spots: Record<string, { lng: number; lat: number; r: number }> | null,
+  format: (value: number) => string,
+): CountyLabel[] {
+  if (!spots) return [];
+  const labels: CountyLabel[] = [];
+  for (const row of rows) {
+    const spot = spots[row.code];
+    if (row.count > 0 && spot)
+      labels.push({
+        code: row.code,
+        ...spot,
+        text: format(row.count),
+        alone: offshoreCounties.includes(row.code),
+      });
+  }
+  return labels;
+}
+
+/** Width in pixels of a printed number (11 px figures plus the pill's padding). */
+export function labelWidth(text: string): number {
+  return text.length * 6.8 + 14;
 }

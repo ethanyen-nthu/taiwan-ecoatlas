@@ -3,12 +3,20 @@ import { type ReactNode, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { ArrowUpRight, ImageOff } from "lucide-react";
 import { useLanguage } from "./providers";
-import { loadWikimedia, type WikiResult } from "@/lib/wikimedia";
+import {
+  loadWikimedia,
+  type WikiPhoto,
+  type WikiResult,
+} from "@/lib/wikimedia";
+import { indexedPhoto, samePhoto, smallerPhoto } from "@/lib/photo-index";
 import "./wiki-gallery.css";
 
 export interface WikiGalleryProps {
   /** Scientific name; Wikipedia redirects most binomials to the article. */
   latin: string;
+  /** Key of the stored photo (scientific name for animals, Chinese name for
+   *  trees); it shows straight away while the live lookup runs. */
+  photoKey?: string | null;
   /** Local (Chinese) name, tried first on Chinese Wikipedia. */
   zhName?: string | null;
   enName?: string | null;
@@ -46,6 +54,7 @@ async function load([, language, latin, zhName, enName]: [
 
 export function WikiGallery({
   latin,
+  photoKey,
   zhName,
   enName,
   searchTerm,
@@ -59,21 +68,32 @@ export function WikiGallery({
     { shouldRetryOnError: false },
   );
   const term = encodeURIComponent(searchTerm || latin);
-  const photo = data?.photos[Math.min(chosen, (data?.photos.length || 1) - 1)];
+  // The stored photo comes first, so there is a picture before anything has
+  // loaded and still one if Wikipedia cannot be reached. Live photos follow,
+  // minus the one already shown.
+  const first = indexedPhoto(photoKey ?? latin, 960);
+  const photos: WikiPhoto[] = [
+    ...(first ? [first] : []),
+    ...(data?.photos ?? []).filter(
+      (item) => !first || !samePhoto(item.name, first.name),
+    ),
+  ];
+  const photo = photos[Math.min(chosen, photos.length - 1)];
+  const waiting = isLoading && !photo;
   return (
     <section
       className="wiki-gallery"
       aria-label={t("Photos and description", "照片與介紹")}
       aria-busy={isLoading}
-      data-state={isLoading ? "loading" : photo ? "photos" : "none"}
+      data-state={waiting ? "loading" : photo ? "photos" : "none"}
     >
       <div className="wiki-gallery-stage">
-        {isLoading && (
+        {waiting && (
           <div className="wiki-gallery-skeleton" role="status">
             <span>{t("Loading photos…", "載入照片中…")}</span>
           </div>
         )}
-        {!isLoading && photo && (
+        {photo && (
           <figure>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -116,12 +136,12 @@ export function WikiGallery({
             </p>
           </div>
         )}
-        {!isLoading && data && data.photos.length > 1 && (
+        {photos.length > 1 && (
           <ul
             className="wiki-gallery-thumbs"
             aria-label={t("More photos", "更多照片")}
           >
-            {data.photos.map((item, index) => (
+            {photos.map((item, index) => (
               <li key={item.src}>
                 <button
                   type="button"
@@ -131,7 +151,7 @@ export function WikiGallery({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={item.src}
+                    src={smallerPhoto(item.src)}
                     alt=""
                     width={72}
                     height={72}

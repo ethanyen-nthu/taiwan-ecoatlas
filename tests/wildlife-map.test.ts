@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { buildChoropleth, subjectRamps } from "../src/lib/choropleth";
 import type { OutlineFile } from "../src/lib/outline-map";
 import {
-  buildIslandMap,
-  countyFills,
-  labelFits,
-  offshoreCounties,
+  countyLabelSpots,
+  countyLabels,
+  countyTints,
+  labelWidth,
 } from "../src/lib/wildlife-map";
 
 const outlines = JSON.parse(
@@ -16,55 +16,50 @@ const species = JSON.parse(
   readFileSync("public/data/atlas/wildlife.species.json", "utf8"),
 ) as { species: { countyCounts: Record<string, number> }[] };
 
-describe("the island map behind the roadkill page", () => {
-  const map = buildIslandMap(outlines);
+describe("where the county numbers go", () => {
+  const spots = countyLabelSpots(outlines);
 
-  it("draws every county on the main island and leaves the offshore ones to the side", () => {
-    const drawn = new Set(map.shapes.map((shape) => shape.code));
-    for (const code of offshoreCounties) expect(drawn.has(code)).toBe(false);
-    expect(drawn.size).toBe(Object.keys(outlines).length - 3);
-    expect(map.width).toBeLessThanOrEqual(360);
-    expect(map.height).toBeLessThanOrEqual(620);
-    expect(map.height).toBeGreaterThan(map.width);
+  it("finds a spot for every county", () => {
+    expect(Object.keys(spots).sort()).toEqual(Object.keys(outlines).sort());
   });
 
-  it("keeps every drawn point inside the picture, even for Kaohsiung's distant islets", () => {
-    for (const shape of map.shapes) {
-      const numbers = [...shape.d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) =>
-        Number(m[0]),
-      );
-      const xs = numbers.filter((_, i) => i % 2 === 0);
-      expect(Math.min(...xs)).toBeGreaterThanOrEqual(-40);
-      expect(Math.max(...xs)).toBeLessThanOrEqual(map.width + 40);
+  it("keeps each spot inside its own county's frame, in real longitude and latitude", () => {
+    for (const [code, spot] of Object.entries(spots)) {
+      const lngs = outlines[code].rings.flat().map(([lng]) => lng);
+      const lats = outlines[code].rings.flat().map(([, lat]) => lat);
+      expect(spot.lng, code).toBeGreaterThanOrEqual(Math.min(...lngs));
+      expect(spot.lng, code).toBeLessThanOrEqual(Math.max(...lngs));
+      expect(spot.lat, code).toBeGreaterThanOrEqual(Math.min(...lats));
+      expect(spot.lat, code).toBeLessThanOrEqual(Math.max(...lats));
     }
   });
 
-  it("finds a label spot inside each large county and none that sit on a border", () => {
-    const anchors = new Map(map.shapes.map((s) => [s.code, s.anchor]));
-    // Hualien, Taitung, Nantou and Pingtung are wide enough for a number.
-    for (const code of ["10015", "10014", "10008", "10013"]) {
-      const anchor = anchors.get(code);
-      expect(anchor, code).toBeTruthy();
-      expect(anchor!.r).toBeGreaterThan(8);
-    }
-    for (const shape of map.shapes) {
-      if (!shape.anchor) continue;
-      expect(shape.anchor.x).toBeGreaterThan(0);
-      expect(shape.anchor.x).toBeLessThan(map.width);
-      expect(shape.anchor.y).toBeGreaterThan(0);
-      expect(shape.anchor.y).toBeLessThan(map.height);
-    }
+  it("leaves a wide margin around the label of the large counties", () => {
+    // Hualien, Taitung, Nantou and Pingtung are roomy enough for a number.
+    for (const code of ["10015", "10014", "10008", "10013"])
+      expect(spots[code].r, code).toBeGreaterThan(0.08);
+  });
+
+  it("hangs Kaohsiung's number on the mainland, not on a distant islet", () => {
+    const kaohsiung = spots["64000"];
+    expect(kaohsiung.lat).toBeGreaterThan(22.3);
+    expect(kaohsiung.lat).toBeLessThan(23.5);
+    expect(kaohsiung.lng).toBeGreaterThan(120);
+    expect(kaohsiung.lng).toBeLessThan(121.1);
   });
 
   it("does not put New Taipei's label inside Taipei City", () => {
-    const newTaipei = map.shapes.find((s) => s.code === "65000")!.anchor!;
-    const taipei = map.shapes.find((s) => s.code === "63000")!.anchor!;
-    const gap = Math.hypot(newTaipei.x - taipei.x, newTaipei.y - taipei.y);
+    const newTaipei = spots["65000"];
+    const taipei = spots["63000"];
+    const gap = Math.hypot(
+      (newTaipei.lng - taipei.lng) * Math.cos((25 * Math.PI) / 180),
+      newTaipei.lat - taipei.lat,
+    );
     expect(gap).toBeGreaterThan(taipei.r);
   });
 });
 
-describe("county fills", () => {
+describe("county tints and labels", () => {
   const totals: Record<string, number> = {};
   for (const item of species.species)
     for (const [code, n] of Object.entries(item.countyCounts))
@@ -76,15 +71,13 @@ describe("county fills", () => {
   }));
 
   it("shades the real county totals with the wildlife ramp, light to dark", () => {
-    const choropleth = buildChoropleth(rows, "wildlife");
-    const fills = countyFills(rows, choropleth);
-    expect(Object.keys(fills)).toHaveLength(22);
+    const tints = countyTints(rows, buildChoropleth(rows, "wildlife"));
+    expect(Object.keys(tints)).toHaveLength(22);
     const ramp = subjectRamps.wildlife;
-    for (const fill of Object.values(fills)) expect(ramp).toContain(fill.fill);
+    for (const fill of Object.values(tints)) expect(ramp).toContain(fill);
     // Tainan has the most records, so it is among the darker steps.
-    expect(fills["67000"].step).toBeGreaterThanOrEqual(3);
-    expect(fills["67000"].ink).toBe("light");
-    expect(fills["10017"].ink).toBe("dark");
+    expect(ramp.indexOf(tints["67000"])).toBeGreaterThanOrEqual(3);
+    expect(ramp.indexOf(tints["10017"])).toBeLessThan(3);
   });
 
   it("leaves counties with no records unshaded and uses one step when classes would mislead", () => {
@@ -93,14 +86,47 @@ describe("county fills", () => {
       { code: "10014", count: 9 },
       { code: "10008", count: 0 },
     ];
-    const fills = countyFills(few, null);
-    expect(Object.keys(fills).sort()).toEqual(["10014", "10015"]);
-    expect(fills["10015"].fill).toBe(fills["10014"].fill);
+    const tints = countyTints(few, null);
+    expect(Object.keys(tints).sort()).toEqual(["10014", "10015"]);
+    expect(tints["10015"]).toBe(tints["10014"]);
   });
 
-  it("only prints a count where it fits", () => {
-    expect(labelFits("1,545", 20)).toBe(true);
-    expect(labelFits("1,545", 10)).toBe(false);
-    expect(labelFits("42", 10)).toBe(true);
+  it("prints a number only for counties that have records", () => {
+    const spots = countyLabelSpots(outlines);
+    const labels = countyLabels(
+      [
+        { code: "10015", count: 1545 },
+        { code: "10008", count: 0 },
+      ],
+      spots,
+      (value) => value.toLocaleString("en"),
+    );
+    expect(labels.map((label) => label.code)).toEqual(["10015"]);
+    expect(labels[0].text).toBe("1,545");
+    expect(labels[0].alone).toBe(false);
+    expect(countyLabels([{ code: "10015", count: 3 }], null, String)).toEqual(
+      [],
+    );
+  });
+
+  it("always shows the number of an island group, which has no neighbour to crowd it", () => {
+    const labels = countyLabels(
+      [
+        { code: "09007", count: 1188 },
+        { code: "10016", count: 25 },
+        { code: "64000", count: 975 },
+      ],
+      countyLabelSpots(outlines),
+      String,
+    );
+    expect(Object.fromEntries(labels.map((l) => [l.code, l.alone]))).toEqual({
+      "09007": true,
+      "10016": true,
+      "64000": false,
+    });
+  });
+
+  it("makes room for more digits", () => {
+    expect(labelWidth("1,545")).toBeGreaterThan(labelWidth("42"));
   });
 });
