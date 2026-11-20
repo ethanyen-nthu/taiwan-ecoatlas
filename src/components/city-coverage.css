@@ -1,0 +1,110 @@
+.city-coverage {
+  max-width: 1280px;
+  margin: 0 auto 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--white);
+}
+.city-coverage summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.25rem 1.25rem;
+  align-items: baseline;
+  padding: 0.8rem clamp(1rem, 2.4vw, 1.5rem);
+  cursor: pointer;
+  list-style: none;
+  border-radius: 14px;
+}
+.city-coverage summary::-webkit-details-marker {
+  display: none;
+}
+.city-coverage summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.city-coverage summary h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.city-coverage summary span {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.city-coverage summary b {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+.city-coverage summary b::after {
+  content: " ▾";
+}
+.city-coverage[open] summary b::after {
+  content: " ▴";
+}
+@media (max-width: 760px) {
+  .city-coverage summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .city-coverage summary span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+.city-coverage-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  padding: 0.25rem clamp(1rem, 2.4vw, 1.5rem) 1.25rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.1rem;
+}
+@media (max-width: 860px) {
+  .city-coverage-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.city-coverage h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.city-coverage-body p {
+  margin: 0 0 0.7rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.city-coverage ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.city-coverage li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.city-coverage li a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 24px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  text-underline-offset: 3px;
+}
+.city-coverage li span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.city-coverage .city-coverage-note {
+  margin-top: 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}

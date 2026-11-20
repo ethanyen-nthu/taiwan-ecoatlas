@@ -6,6 +6,7 @@ import { ArrowUpDown, ArrowUpRight } from "lucide-react";
 import type { CountyDetail, CountyRow } from "@/lib/county-rows";
 import { islandPath, islandViewBox } from "@/lib/island-path";
 import { useLanguage } from "./providers";
+import { speciesShortName } from "@/content/species-info";
 import { Footer } from "./footer";
 import "./teach/teach.css";
 
@@ -86,7 +87,7 @@ export function CountyProfile({
                 {county.species.map((item) => (
                   <li key={item.id}>
                     <Link href={`/wildlife/species/${item.id}`}>
-                      {item.name}
+                      {speciesShortName(item.name, language)}
                     </Link>
                     <span>{num(item.count)}</span>
                   </li>

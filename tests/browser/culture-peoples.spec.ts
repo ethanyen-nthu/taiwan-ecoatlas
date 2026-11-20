@@ -56,7 +56,7 @@ test("the wildlife map draws squares and a square opens a readable panel", async
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await openMap(page, "/wildlife");
+  await openMap(page, "/wildlife?mode=points");
   await expect(page.locator(".atlas-tiles")).toContainText(
     "Records per square",
   );

@@ -55,3 +55,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Wikipedia and Wikimedia Commons (loaded at runtime)
+
+Animal and tree pages ask `*.wikipedia.org` (anonymous, cross-origin) from the visitor's browser for a summary and photos. Nothing is copied into this repository. Summaries are shown with a CC BY-SA 4.0 notice and a link to the article. Photos are shown only if Commons hosts them, with the artist, licence short name, licence link and file-page link taken from each file's metadata.

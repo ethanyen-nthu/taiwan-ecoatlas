@@ -1,10 +1,17 @@
 import { Home } from "@/components/home";
 import { atlasFacts } from "@/server/facts";
+import { journeyMarks } from "@/server/journey";
+import { loadPlants } from "@/server/plants";
 
 export default async function Page() {
-  const facts = await atlasFacts();
+  const [facts, marks, plants] = await Promise.all([
+    atlasFacts(),
+    journeyMarks(),
+    loadPlants(),
+  ]);
   return (
     <Home
+      marks={marks}
       facts={{
         wildlifeRecords: facts.wildlife.records,
         species: facts.wildlife.species,
@@ -14,6 +21,8 @@ export default async function Page() {
         groups: facts.culture.groups.length,
         parks: facts.urban.parks,
         parkTrees: facts.urban.parkTrees,
+        plantTrees: plants.totalTrees,
+        plantKinds: plants.rows.length,
         forestTop: facts.forests.counties[0]
           ? {
               en: facts.forests.counties[0].en,

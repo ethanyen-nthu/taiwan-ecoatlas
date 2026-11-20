@@ -5,10 +5,32 @@ import {
   AtlasProfile,
   type WildlifeSpeciesProfile,
 } from "@/components/atlas-profile";
+import { findSpeciesInfo } from "@/content/species-info";
 import type { AtlasManifest } from "@/lib/atlas-types";
 import type { Counties } from "@/lib/types";
 
-export const metadata = { title: "Species observation evidence" };
+async function loadSpecies() {
+  const text = await readFile(
+    path.join(process.cwd(), "public/data/atlas/wildlife.species.json"),
+    "utf8",
+  );
+  return (JSON.parse(text) as { species: WildlifeSpeciesProfile[] }).species;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const record = (await loadSpecies()).find((item) => item.id === id);
+  if (!record) return { title: "Species observation evidence" };
+  const info = findSpeciesInfo(record.scientificName || record.name);
+  const names = [info?.zh, info?.en].filter(Boolean).join(" · ");
+  return {
+    title: `${names || record.name}${record.scientificName ? ` (${record.scientificName})` : ""}`,
+  };
+}
 
 export default async function Page({
   params,

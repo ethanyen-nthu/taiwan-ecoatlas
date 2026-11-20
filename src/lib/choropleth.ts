@@ -1,5 +1,5 @@
 import type { AtlasSection } from "./atlas-types";
-import { aqiColorForValue } from "./transform";
+import { aqiTintForValue } from "./transform";
 
 /** Five-step sequential ramps: one hue per subject, light to dark. Lightness
  *  alone separates the classes, so the map still reads without colour vision. */
@@ -64,7 +64,7 @@ export function buildChoropleth(
   const missing = rows.length - withValue.length;
   const tint: Record<string, string> = {};
   if (options.aqi && measured) {
-    for (const row of withValue) tint[row.code] = aqiColorForValue(row.value!);
+    for (const row of withValue) tint[row.code] = aqiTintForValue(row.value!);
     return { tint, classes: [], measured: true, official: true, missing };
   }
   const values = withValue.map((row) => valueOf(row)!).sort((a, b) => a - b);

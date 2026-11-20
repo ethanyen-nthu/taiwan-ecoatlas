@@ -15,6 +15,8 @@ const config: NextConfig = {
       "./public/data/atlas/villages.geojson",
       "./public/data/atlas/public-historic-trails.geojson",
     ],
+    "/plants": ["./public/data/atlas/plants.index.json"],
+    "/plants/*": ["./public/data/atlas/plants.index.json"],
     "/wildlife/species/*": [
       "./public/data/atlas/wildlife.species.json",
       "./public/data/atlas/wildlife.metadata.json",

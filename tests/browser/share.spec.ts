@@ -116,7 +116,9 @@ test("air-quality counties take the official AQI colour of their mean reading", 
   await expect(page.locator("[data-map-ready=true]")).toBeVisible();
   const key = page.getByRole("group", { name: "County shading key" });
   await expect(key).toContainText("official AQI colour");
-  await expect(key.locator("ol")).toHaveCount(0);
+  // Soft tints of the six official bands, named in the key.
+  await expect(key.locator("ol:not(.atlas-aqi-tints)")).toHaveCount(0);
+  await expect(key.locator(".atlas-aqi-tints li")).toHaveCount(6);
   // The county list is ranked by the mean reading, highest first.
   await expect(
     page.locator(".atlas-counties li button .atlas-county-num").first(),

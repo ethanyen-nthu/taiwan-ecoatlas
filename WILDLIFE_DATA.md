@@ -40,3 +40,9 @@ Use the existing GeoPandas/PyProj environment; install `pypdf==6.1.1` for proces
 All original archives, precise locations, GBIF cache pages and both protected-list PDFs/text remain under ignored `data/raw/wildlife/`. They must not be committed or deployed. The importer refuses a changed source-record count, duplicate/incomplete GBIF pages and malformed identifiers. `--allow-partial` deliberately publishes only cached conservation-checked pages and records that incompleteness in both the public manifest and provenance; it is never an unlabelled fallback.
 
 The TBN v2.5 API documentation was examined as another source of domestic sensitivity metadata, but its public query endpoints returned HTTP 404 during verification. No unavailable TBN values were invented or substituted.
+
+## Common names and animal pages
+
+The public data names every taxon by scientific name only, and `wildlife.provenance.json` hash-checks it, so names are never written into it. `src/content/species-info.ts` maps each of the 99 scientific names to a Chinese name, an English name, a bilingual description and, where the source family is outdated (for example swallows filed under swifts), the current family. Chinese names follow Taiwan's usual references (TaiCOL / TaiBNET, the CWBF bird checklist, museum pages). Names that could not be confirmed against a second source carry `provisional: true`, and `Emoia atrocostata` has no confirmed Chinese name, so the atlas shows its English name instead of inventing one; both lists are asserted in `tests/species-info.test.ts` so they cannot change quietly.
+
+Each animal page loads a summary and up to six photos live from Wikipedia and Wikimedia Commons in the visitor's browser (`src/lib/wikimedia.ts`). Only files hosted on Commons are shown, each with its artist, licence and file-page link; summaries are credited CC BY-SA 4.0. If Wikimedia cannot be reached the page still shows our own names and description.

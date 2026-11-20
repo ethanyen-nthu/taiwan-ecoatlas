@@ -5,6 +5,14 @@ import { ArrowLeft, ArrowUpRight, BookOpen, Leaf } from "lucide-react";
 import type { AtlasProperties } from "@/lib/atlas-types";
 import type { Localized } from "@/lib/types";
 import { Footer } from "./footer";
+import { WikiGallery } from "./wiki-gallery";
+import {
+  familyZh,
+  findSpeciesInfo,
+  roadNotes,
+  speciesShortName,
+} from "@/content/species-info";
+import { wildlifeClasses } from "@/lib/wildlife";
 import { useLanguage } from "./providers";
 import { SplitAccordion } from "./watermelon/split-accordion";
 import styles from "./atlas-profile.module.css";
@@ -124,14 +132,21 @@ export function AtlasProfile({ profile }: { profile: AtlasProfileData }) {
   const isSpecies = profile.kind === "species";
   const title =
     profile.kind === "species"
-      ? profile.species.name
+      ? speciesShortName(
+          profile.species.scientificName || profile.species.name,
+          language,
+        )
       : profile.kind === "study"
         ? profile.study.title
         : language === "zh"
           ? profile.properties.titleZh || profile.properties.title
           : profile.properties.title;
   return (
-    <main id="main" className="document-page">
+    <main
+      id="main"
+      className="document-page"
+      data-subject={isSpecies ? "wildlife" : "culture"}
+    >
       <Link className="text-link" href={isSpecies ? "/wildlife" : "/culture"}>
         <ArrowLeft size={15} />
         {isSpecies
@@ -145,9 +160,8 @@ export function AtlasProfile({ profile }: { profile: AtlasProfileData }) {
               ? t("PUBLISHED OBSERVATION EVIDENCE", "公開觀察紀錄")
               : t("PLACE, NAME AND SOURCE", "地方、名稱與出處")}
           </span>
-          <h1 className={isSpecies ? styles.scientificName : undefined}>
-            {title}
-          </h1>
+          <h1>{title}</h1>
+          {profile.kind === "species" && <SpeciesNames profile={profile} />}
           <p>
             {profile.kind === "culture"
               ? profile.datasetTitle[language]
@@ -173,6 +187,30 @@ export function AtlasProfile({ profile }: { profile: AtlasProfileData }) {
       {profile.kind === "species" && <SpeciesContent profile={profile} />}
       <Footer />
     </main>
+  );
+}
+
+function SpeciesNames({
+  profile,
+}: {
+  profile: Extract<AtlasProfileData, { kind: "species" }>;
+}) {
+  const { language } = useLanguage();
+  const sci = profile.species.scientificName || profile.species.name;
+  const info = findSpeciesInfo(sci);
+  const names = (
+    language === "zh" ? [info?.zh, info?.en] : [info?.en, info?.zh]
+  ).filter((name): name is string => !!name);
+  return (
+    <p className={styles.speciesNames}>
+      {names.map((name) => (
+        <span key={name} lang={name === info?.zh ? "zh-TW" : "en"}>
+          {name}
+        </span>
+      ))}
+      {info?.aka && <span lang="zh-TW">{info.aka}</span>}
+      <i>{sci}</i>
+    </p>
   );
 }
 
@@ -407,8 +445,67 @@ function SpeciesContent({
   const counties = Object.entries(s.countyCounts).sort(([, a], [, b]) => b - a);
   const count = (n: number) =>
     n.toLocaleString(language === "zh" ? "zh-TW" : "en-US");
+  const sci = s.scientificName || s.name;
+  const info = findSpeciesInfo(sci);
+  const family = info?.family || s.family;
+  const classLabel = wildlifeClasses[s.category];
   return (
     <div className={styles.readingColumn}>
+      <article className="source-card">
+        <h2>{t("Meet this animal", "認識這種動物")}</h2>
+        <ul className={styles.chips} aria-label={t("Quick facts", "重點資料")}>
+          {classLabel && <li>{classLabel[language]}</li>}
+          {family && (
+            <li>
+              {family}
+              {familyZh[family] ? ` ${familyZh[family]}` : ""}
+            </li>
+          )}
+          {info?.endemic && <li>{t("Taiwan endemic", "臺灣特有")}</li>}
+          {info?.introduced && <li>{t("Introduced", "外來")}</li>}
+          {(info?.provisional || (info && info.zh === null)) && (
+            <li
+              title={t(
+                "The name could not be confirmed against a second source; please check TaiCOL.",
+                "此名稱尚無第二來源確認，請以 TaiCOL 為準。",
+              )}
+            >
+              {info?.zh === null
+                ? t("Chinese name to confirm", "中文名待確認")
+                : t("Name to be confirmed", "名稱待確認")}
+            </li>
+          )}
+        </ul>
+        <WikiGallery
+          latin={sci}
+          zhName={info?.zh}
+          enName={info?.en}
+          lead={
+            <>
+              {info && (
+                <p className={styles.speciesNote}>{info.note[language]}</p>
+              )}
+              {roadNotes[s.category] && (
+                <p className={styles.speciesRoad}>
+                  <b>
+                    {t(
+                      "Why it shows up in road records: ",
+                      "為什麼會出現在路死紀錄：",
+                    )}
+                  </b>
+                  {roadNotes[s.category][language]}
+                </p>
+              )}
+            </>
+          }
+        />
+        <p className={styles.note}>
+          {t(
+            "Photos and the summary are loaded live from Wikipedia and Wikimedia Commons in your browser; each photo keeps its photographer’s credit and licence. Chinese names follow TaiCOL conventions.",
+            "照片與摘要由你的瀏覽器即時從維基百科與維基共享資源載入，每張照片保留攝影者署名與授權；中文名依 TaiCOL 慣例。",
+          )}
+        </p>
+      </article>
       <article className="source-card">
         <h2>{t("Published subset record", "公開子集紀錄")}</h2>
         <Facts
@@ -419,6 +516,9 @@ function SpeciesContent({
             },
             { label: t("Reported class", "來源綱別"), value: s.category },
             { label: t("Reported family", "來源科別"), value: s.family },
+            ...(info?.family
+              ? [{ label: t("Current family", "現行科別"), value: info.family }]
+              : []),
             {
               label: t("Reported scientific name", "來源學名"),
               value: s.scientificName || s.name,

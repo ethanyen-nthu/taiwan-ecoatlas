@@ -91,6 +91,9 @@
 .atlas-section-nav a[data-tone="wildlife"] {
   --tone: var(--c-wildlife);
 }
+.atlas-section-nav a[data-tone="plants"] {
+  --tone: var(--c-plants);
+}
 .atlas-section-nav a[data-tone="culture"] {
   --tone: var(--c-culture);
 }
@@ -1056,4 +1059,51 @@
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+/* County tints of the official AQI bands, and the smoothed-surface key. */
+.atlas-aqi-tints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.atlas-aqi-tints li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+}
+.atlas-aqi-tints i {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid #16202b33;
+}
+.atlas-ramp-bar {
+  display: block;
+  height: 10px;
+  margin: 10px 0 4px;
+  border-radius: 999px;
+  border: 1px solid #16202b22;
+}
+.atlas-ramp-ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* ── Species names: common name first, scientific name kept beside it ── */
+.atlas-peek-alias {
+  margin: 0.15rem 0 0;
+  color: var(--muted, #5b6770);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.atlas-peek-members i {
+  color: var(--muted, #5b6770);
+  font-size: 0.8125em;
 }

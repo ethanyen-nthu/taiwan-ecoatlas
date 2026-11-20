@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { speciesShortName } from "../../src/content/species-info";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import type { AtlasCollection, AtlasResult } from "../../src/lib/atlas-types";
@@ -257,11 +258,15 @@ test.describe("integrated atlas platform", () => {
     await expect(profile).toBeVisible();
     await profile.click();
     await expect(page).toHaveURL(`/wildlife/species/${species}`);
+    // The page leads with the common name; the scientific name stays beside it.
     await expect(
       page.getByRole("heading", {
-        name: String(seed.properties.species),
+        name: speciesShortName(String(seed.properties.species), "en"),
         level: 1,
       }),
+    ).toBeVisible();
+    await expect(
+      page.locator("main").getByText(String(seed.properties.species)).first(),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Published subset record" }),

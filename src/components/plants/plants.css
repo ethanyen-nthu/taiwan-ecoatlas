@@ -1,0 +1,387 @@
+.plants-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1rem, 3vw, 2rem) 0;
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+.plants-page > .text-link {
+  justify-self: start;
+  margin-bottom: -1rem;
+}
+.plants-hero {
+  display: grid;
+  gap: 1rem;
+  max-width: 62rem;
+}
+.plants-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4.6vw, 3.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 560;
+  color: var(--accent-ink);
+  text-wrap: balance;
+}
+.plants-hero > p {
+  margin: 0;
+  max-width: 54ch;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.plants-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem clamp(1.5rem, 4vw, 3.5rem);
+  margin: 0.75rem 0 0;
+}
+.plants-numbers div {
+  display: grid;
+  gap: 0.15rem;
+}
+.plants-numbers dt {
+  order: 2;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.plants-numbers dd {
+  order: 1;
+  margin: 0;
+  font-size: clamp(1.75rem, 3.4vw, 2.6rem);
+  font-weight: 560;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.plants-hero-profile h1 {
+  font-size: clamp(2.25rem, 5.4vw, 4rem);
+}
+.plants-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 1.0625rem;
+  color: var(--muted);
+}
+.plants-names i {
+  overflow-wrap: anywhere;
+}
+.plants-chips {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.plants-chips li {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.plants-chips li:has(.plants-habit) {
+  padding: 0;
+  background: none;
+}
+.plants-habit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--accent-ink);
+}
+.plants-chips .plants-habit {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+.plants-habit::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  background: currentColor;
+  border-radius: 50%;
+}
+.plants-habit[data-habit="deciduous"]::before {
+  border-radius: 50% 0 50% 0;
+  transform: rotate(-10deg);
+}
+.plants-habit[data-habit="palm"]::before {
+  border-radius: 1px;
+  width: 0.2rem;
+  height: 0.7rem;
+}
+.plants-habit[data-habit="conifer"]::before {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.plants-kinds {
+  display: grid;
+  gap: 1.25rem;
+}
+.plants-kinds-head h2,
+.plants-list h2,
+.plants-gallery h2,
+.plants-stats h2 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+.plants-kinds-head p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.plants-kinds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+}
+@media (max-width: 960px) {
+  .plants-kinds-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.plants-kinds-grid h3,
+.plants-where h3 {
+  margin: 0 0 0.8rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.plants-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.plants-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.2rem 0.75rem;
+  align-items: baseline;
+  font-size: 0.875rem;
+}
+.plants-bar-label {
+  display: grid;
+}
+.plants-bar-label small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.plants-bar-track {
+  grid-column: 1 / -1;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--paper));
+  overflow: hidden;
+}
+.plants-bar-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.plants-bars b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.plants-aside {
+  margin: 0.9rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 70ch;
+}
+.plants-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+@media (max-width: 800px) {
+  .plants-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .plants-filters label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+.plants-filters label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.plants-filters input,
+.plants-filters select {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+.plants-filters input:focus-visible,
+.plants-filters select:focus-visible,
+.plants-more:focus-visible,
+.plants-cards a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.plants-count {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.plants-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 0.75rem;
+}
+.plants-cards a {
+  display: grid;
+  gap: 0.2rem;
+  align-content: start;
+  height: 100%;
+  padding: 0.9rem 1rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+.plants-cards a:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.plants-card-name {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.plants-card-en {
+  font-size: 0.875rem;
+}
+.plants-card-sci {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.plants-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.8125rem;
+}
+.plants-card-meta b {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.plants-more {
+  margin: 1.25rem auto 0;
+  display: block;
+  min-height: 44px;
+  padding: 0 1.4rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.plants-more:hover {
+  background: var(--accent-soft);
+}
+.plants-note {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.plants-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem clamp(1rem, 3vw, 2.5rem);
+  margin: 1rem 0 1.75rem;
+}
+@media (max-width: 860px) {
+  .plants-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.plants-stat-grid div {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.75rem;
+  border-top: 3px solid var(--accent);
+}
+.plants-stat-grid dt {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.plants-stat-grid dd {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+.plants-stat-grid dd.plants-stat-note {
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-variant-numeric: normal;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.plants-where {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+}
+@media (max-width: 760px) {
+  .plants-where {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.plants-places {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.plants-places li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9375rem;
+}
+.plants-places b {
+  font-variant-numeric: tabular-nums;
+}
+.plants-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin: 1.25rem 0 0;
+}
+.plants-stats {
+  padding-bottom: 1rem;
+}

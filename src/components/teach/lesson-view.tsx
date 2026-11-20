@@ -22,7 +22,7 @@ const subjectName = {
   forests: { en: "Forests", zh: "森林" },
   wildlife: { en: "Wildlife", zh: "野生動物" },
   culture: { en: "Culture", zh: "文化" },
-  urban: { en: "Urban", zh: "都市" },
+  urban: { en: "City", zh: "城市" },
 } as const;
 
 export function LessonView({ lesson }: { lesson: Lesson }) {

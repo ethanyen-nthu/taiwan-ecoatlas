@@ -10,8 +10,9 @@ const navigation = [
   ["/environment", "Environment", "環境"],
   ["/forests", "Forests", "森林"],
   ["/wildlife", "Wildlife", "野生動物"],
+  ["/plants", "Plants", "植物"],
   ["/culture", "Culture", "文化"],
-  ["/urban", "Urban", "都市"],
+  ["/urban", "City", "城市"],
   ["/teach", "Teach", "教學"],
 ];
 export function Header() {

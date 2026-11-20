@@ -26,29 +26,36 @@ test("Watermelon explorer tabs support arrow keys and hidden panels leave the ta
   await expect(page.getByRole("tab", { name: /Layers/ })).toHaveCount(0);
 });
 
-test("home subject tiles lead with counted numbers and link to each subject; methodology disclosures work with the keyboard", async ({
+test("home scroll story has six chapters that count real numbers and link to each subject; methodology disclosures work with the keyboard", async ({
   page,
 }) => {
   await page.goto("/");
-  const tiles = page.locator(".subject-tiles a");
-  await expect(tiles).toHaveCount(5);
-  for (const [name, href] of [
-    [/The air we share/, "/environment"],
-    [/A changing landscape/, "/forests"],
-    [/Life along the roads/, "/wildlife"],
-    [/People & place/, "/culture"],
-    [/Greener everyday spaces/, "/urban"],
-  ] as const)
-    await expect(page.getByRole("link", { name })).toHaveAttribute(
-      "href",
-      href,
-    );
-  await expect(
-    page.locator(".subject-tiles li[data-tone=wildlife] .subject-tile-number"),
-  ).toHaveText(/^10,841$/);
-  await expect(
-    page.locator(".subject-tiles li[data-tone=culture] .subject-tile-number"),
-  ).toHaveText(/^730$/);
+  await expect(page.locator(".journey-chapter")).toHaveCount(6);
+  for (const [tone, title, href] of [
+    ["environment", /The air we share/, "/environment"],
+    ["forests", /Where the forest is/, "/forests"],
+    ["wildlife", /Life along the roads/, "/wildlife"],
+    ["plants", /The trees of Taipei/, "/plants"],
+    ["culture", /People and place/, "/culture"],
+    ["urban", /Greener everyday spaces/, "/urban"],
+  ] as const) {
+    const chapter = page.locator(`#chapter-${tone}`);
+    await expect(chapter.getByRole("heading", { level: 3 })).toHaveText(title);
+    await expect(chapter.locator(".journey-go")).toHaveAttribute("href", href);
+    await expect(chapter.locator("h4")).toHaveText("What you can learn");
+  }
+  const wildlife = page.locator("#chapter-wildlife");
+  await wildlife.scrollIntoViewIfNeeded();
+  await expect(wildlife.locator(".journey-number strong")).toHaveText(
+    /^10,841$/,
+  );
+  const culture = page.locator("#chapter-culture");
+  await culture.scrollIntoViewIfNeeded();
+  await expect(culture.locator(".journey-number strong")).toHaveText(/^730$/);
+  await expect(page.locator(".journey-band")).toHaveAttribute(
+    "data-active",
+    "culture",
+  );
   await page.goto("/about");
   const question = page
     .locator("summary")
@@ -139,7 +146,16 @@ test("core redesigned pages pass automated WCAG accessibility checks", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  for (const route of ["/", "/explore", "/sources", "/about"]) {
+  for (const route of [
+    "/",
+    "/explore",
+    "/sources",
+    "/about",
+    "/plants",
+    `/plants/${encodeURIComponent("榕樹")}`,
+    "/urban",
+    "/forests",
+  ]) {
     await page.goto(route);
     if (route === "/" || route === "/explore")
       await expect(page.locator("[data-map-ready=true]")).toBeVisible();

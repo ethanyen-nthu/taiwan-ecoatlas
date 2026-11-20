@@ -29,14 +29,19 @@ import type {
   AtlasSection,
 } from "@/lib/atlas-types";
 import type { Freshness } from "@/lib/types";
-import { buildChoropleth } from "@/lib/choropleth";
+import { buildChoropleth, subjectRamps } from "@/lib/choropleth";
 import { tileKey } from "@/lib/atlas-tiles";
 import { peoplesOfLabel } from "@/content/peoples-index";
+import { speciesLabel, speciesShortName } from "@/content/species-info";
+import { sectionGuides } from "@/content/section-guides";
+import { SectionGuide } from "./section-guide";
+import { CityCoverage } from "./city-coverage";
 import { islandPath, islandViewBox } from "@/lib/island-path";
 import {
-  aqiColorForValue,
+  aqiBarForValue,
   aqiColours,
   aqiStatusEnglish,
+  aqiTints,
 } from "@/lib/transform";
 import { ContinuousTabs } from "./watermelon/continuous-tabs";
 import { useCounties, useLanguage } from "./providers";
@@ -50,6 +55,25 @@ import { Status, useFormatTime } from "./status";
 import { lessonsFor, trackLabel } from "@/content/lesson-index";
 import { Footer } from "./footer";
 import "./section-workbench.css";
+
+/** Wildlife records are filed under scientific names only; show the name
+ *  people actually use, with the scientific name kept beside it. */
+function recordName(
+  p: AtlasFeature["properties"],
+  language: "en" | "zh",
+): string {
+  if (typeof p.scientificName === "string")
+    return speciesShortName(p.scientificName, language);
+  return language === "zh" && p.titleZh ? p.titleZh : p.title;
+}
+function recordAlias(
+  p: AtlasFeature["properties"],
+  language: "en" | "zh",
+): string | null {
+  if (typeof p.scientificName !== "string") return null;
+  const label = speciesLabel(p.scientificName, language);
+  return label === p.scientificName ? null : label;
+}
 
 const MapCanvas = dynamic(() => import("./map/map-canvas"), {
   ssr: false,
@@ -100,6 +124,12 @@ const headings = {
     ],
   },
 };
+/** Wildlife opens on the soft density surface: its positions are 10 km grid
+ *  cells, and a smooth surface is the gentlest honest way to show them. The
+ *  exact squares are one choice away. */
+const defaultModes: Partial<Record<AtlasSection, "points" | "density">> = {
+  wildlife: "density",
+};
 const defaults: Record<AtlasSection, string> = {
   environment: "live-aqi",
   forests: "landcover-2023",
@@ -139,12 +169,16 @@ const knownMetrics = new Set([
   "diameterCm",
 ]);
 
-const subjects: { key: AtlasSection; label: [string, string] }[] = [
+const subjects: {
+  key: AtlasSection | "plants";
+  label: [string, string];
+}[] = [
   { key: "environment", label: ["Environment", "環境"] },
   { key: "forests", label: ["Forests", "森林"] },
   { key: "wildlife", label: ["Wildlife", "野生動物"] },
+  { key: "plants", label: ["Plants", "植物"] },
   { key: "culture", label: ["Culture", "文化"] },
-  { key: "urban", label: ["Urban", "都市"] },
+  { key: "urban", label: ["City", "城市"] },
 ];
 const COUNTY_PREVIEW = 7;
 
@@ -165,9 +199,12 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
       const raw = search.get("tab");
       return raw === "charts" || raw === "sources" ? raw : "records";
     }),
-    [mode, setMode] = useState<"points" | "density">(
-      search.get("mode") === "density" ? "density" : "points",
-    ),
+    [mode, setMode] = useState<"points" | "density">(() => {
+      const raw = search.get("mode");
+      return raw === "density" || raw === "points"
+        ? raw
+        : defaultModes[section] || "points";
+    }),
     [allCounties, setAllCounties] = useState(false),
     [shadeChoice, setShadeChoice] = useState<boolean | null>(() => {
       const raw = search.get("shade");
@@ -423,6 +460,8 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     () => (mapFeatures ? tileKey(mapFeatures, section, shadeOn) : null),
     [mapFeatures, section, shadeOn],
   );
+  // The smoothed surface is what is drawn below zoom 9; squares fade in after.
+  const softSurface = mode === "density" && (viewport?.zoom ?? 0) < 9;
   const stackCount = useMemo(
     () =>
       mapFeatures?.filter(
@@ -474,7 +513,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     if (filters.end) next.set("end", filters.end);
     if (filters.period !== "month") next.set("period", filters.period);
     if (chosenMetric !== null) next.set("metric", chosenMetric || "none");
-    if (mode === "density") next.set("mode", "density");
+    if (mode !== (defaultModes[section] || "points")) next.set("mode", mode);
     if (tab !== "records") next.set("tab", tab);
     if (shadeChoice !== null) next.set("shade", shadeChoice ? "1" : "0");
     const qs = next.toString();
@@ -576,6 +615,8 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         z: string | null;
         id: string;
         n: number;
+        e?: string;
+        s?: string;
       }[];
       return Array.isArray(list) ? list : [];
     } catch {
@@ -652,6 +693,8 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           <path d={islandPath} />
         </svg>
       </header>
+      <SectionGuide guide={sectionGuides[section]} />
+      {section === "urban" && <CityCoverage />}
       {catalogue.error && (
         <div className="atlas-notice" role="alert">
           <p>
@@ -789,7 +832,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                 </option>
                 {species.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.name} ({item.count})
+                    {speciesLabel(item.name, language)} ({item.count})
                   </option>
                 ))}
               </select>
@@ -906,10 +949,14 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                   }
                 >
                   <option value="points">
-                    {t("Points & routes", "點位與路線")}
+                    {section === "wildlife"
+                      ? t("Exact squares & dots", "精確方格與點位")
+                      : t("Points & routes", "點位與路線")}
                   </option>
                   <option value="density">
-                    {t("Density surface", "密度圖")}
+                    {section === "wildlife"
+                      ? t("Soft density surface", "柔和密度圖")
+                      : t("Density surface", "密度圖")}
                   </option>
                 </select>
               </label>
@@ -1023,26 +1070,40 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                 </p>
                 {stackMembers.length > 0 && (
                   <ul className="atlas-peek-members">
-                    {stackMembers.map((member) => (
-                      <li key={`${member.t}-${member.id}`}>
-                        {section === "culture" ? (
-                          <Link
-                            href={`/culture/places/${encodeURIComponent(member.id)}`}
-                          >
-                            {language === "zh" && member.z
-                              ? member.z
-                              : member.t}
-                          </Link>
-                        ) : (
-                          <span>
-                            {language === "zh" && member.z
-                              ? member.z
-                              : member.t}
-                          </span>
-                        )}
-                        {member.n > 1 && <b>{member.n.toLocaleString()}</b>}
-                      </li>
-                    ))}
+                    {stackMembers.map((member) => {
+                      const name =
+                        language === "zh"
+                          ? member.z || member.e || member.t
+                          : member.e || member.t;
+                      const body = (
+                        <>
+                          {name}
+                          {name !== member.t && <i> {member.t}</i>}
+                        </>
+                      );
+                      return (
+                        <li key={`${member.t}-${member.id}`}>
+                          {section === "culture" ? (
+                            <Link
+                              href={`/culture/places/${encodeURIComponent(member.id)}`}
+                            >
+                              {language === "zh" && member.z
+                                ? member.z
+                                : member.t}
+                            </Link>
+                          ) : member.s ? (
+                            <Link
+                              href={`/wildlife/species/${encodeURIComponent(member.s)}`}
+                            >
+                              {body}
+                            </Link>
+                          ) : (
+                            <span>{body}</span>
+                          )}
+                          {member.n > 1 && <b>{member.n.toLocaleString()}</b>}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 {Number(selected.properties.memberKinds || 0) >
@@ -1081,11 +1142,12 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                     <span className="atlas-peek-kind">
                       {dataset.title[language]}
                     </span>
-                    <h2>
-                      {language === "zh" && selected.properties.titleZh
-                        ? selected.properties.titleZh
-                        : selected.properties.title}
-                    </h2>
+                    <h2>{recordName(selected.properties, language)}</h2>
+                    {recordAlias(selected.properties, language) && (
+                      <p className="atlas-peek-alias">
+                        {recordAlias(selected.properties, language)}
+                      </p>
+                    )}
                   </div>
                   <button
                     className="icon-button"
@@ -1130,7 +1192,10 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                       className="text-link"
                       href={`/wildlife/species/${encodeURIComponent(String(selected.properties.speciesId))}`}
                     >
-                      {t("Species information & frequencies", "物種資料與頻度")}{" "}
+                      {t(
+                        "Photos, description & records for this species",
+                        "這個物種的照片、介紹與紀錄",
+                      )}{" "}
                       ↗
                     </Link>
                   )}
@@ -1176,6 +1241,16 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                   ? `${t("County mean", "縣市平均")} · ${metricLabel}`
                   : t("Included records per county", "各縣市收錄紀錄數")}
               </strong>
+              {choropleth.official && (
+                <ol className="atlas-aqi-tints">
+                  {Object.keys(aqiTints).map((band) => (
+                    <li key={band}>
+                      <i style={{ background: aqiTints[band].fill }} />
+                      {language === "zh" ? band : aqiStatusEnglish[band]}
+                    </li>
+                  ))}
+                </ol>
+              )}
               {!choropleth.official && (
                 <ol>
                   {choropleth.classes.map((item) => (
@@ -1197,8 +1272,8 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               <p>
                 {choropleth.official
                   ? t(
-                      "Each county takes the official AQI colour of the mean of its stations' latest readings. The mean hides the spread between stations.",
-                      "各縣市以其測站最新讀數平均值對應官方 AQI 顏色；平均會掩蓋測站間的差異。",
+                      "Each county is tinted with a soft version of the official AQI colour for the mean of its stations' latest readings. The mean hides the spread between stations; the dots keep the full official colours.",
+                      "各縣市以其測站最新讀數平均值對應官方 AQI 色系，並以柔和色調呈現；平均會掩蓋測站間的差異，測站圓點則保留完整官方顏色。",
                     )
                   : choropleth.measured
                     ? t(
@@ -1218,7 +1293,31 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               role="group"
               aria-label={t("Map marker key", "地圖標記圖例")}
             >
-              {tiles && (
+              {tiles && softSurface && (
+                <>
+                  <strong>
+                    {t("Records nearby (smoothed)", "附近的紀錄數（已平滑）")}
+                  </strong>
+                  <span
+                    className="atlas-ramp-bar"
+                    style={{
+                      background: `linear-gradient(90deg, ${subjectRamps[section].join(", ")})`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="atlas-ramp-ends">
+                    <span>{t("Fewer", "較少")}</span>
+                    <span>{t("More", "較多")}</span>
+                  </span>
+                  <p>
+                    {t(
+                      `A soft surface blends neighbouring ${tiles.km} km squares, so edges between squares are not real boundaries. Zoom in to see the exact squares.`,
+                      `柔和密度圖會融合相鄰的 ${tiles.km} 公里方格，方格之間的邊緣並非真實界線。放大即可看到精確方格。`,
+                    )}
+                  </p>
+                </>
+              )}
+              {tiles && !softSurface && (
                 <>
                   <strong>
                     {t(
@@ -1247,7 +1346,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                   )}
                 </p>
               )}
-              {tiles && (
+              {tiles && !softSurface && (
                 <p>
                   {t(
                     "A square is a count of records in that area, not a place where one thing happened. Click a square to open it.",
@@ -1353,7 +1452,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                     dataset?.id === "live-aqi" &&
                     metric === "aqi" &&
                     row.value !== null
-                      ? aqiColorForValue(row.value)
+                      ? aqiBarForValue(row.value)
                       : shadeOn && choropleth?.tint[row.code]
                         ? choropleth.tint[row.code]
                         : "var(--accent)";
@@ -1518,9 +1617,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                       className="atlas-record-button"
                       onClick={() => viewRecord(record)}
                     >
-                      {language === "zh" && record.properties.titleZh
-                        ? record.properties.titleZh
-                        : record.properties.title}
+                      {recordName(record.properties, language)}
                       <ArrowUpRight size={13} />
                     </button>
                     {record.properties.speciesId && (

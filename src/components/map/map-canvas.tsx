@@ -23,13 +23,14 @@ import {
 } from "@/lib/geo";
 import {
   aqiColor,
-  aqiColorForValue,
   aqiColours,
+  aqiTintForValue,
   aqiStatusEnglish,
 } from "@/lib/transform";
 import { observationFreshness } from "@/lib/freshness";
 import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
 import { tileCollection } from "@/lib/atlas-tiles";
+import { subjectRamps } from "@/lib/choropleth";
 
 interface Props {
   overlays?: AtlasOverlay[];
@@ -199,6 +200,14 @@ function popupContent(
   link.rel = "noreferrer";
   el.append(link);
   return el;
+}
+
+function withAlpha(hex: string, alpha: number) {
+  const value = hex.replace("#", "");
+  const [r, g, b] = [0, 2, 4].map((at) =>
+    parseInt(value.slice(at, at + 2), 16),
+  );
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function atlasPopup(
@@ -434,8 +443,8 @@ export default function MapCanvas(props: Props) {
                 [
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
-                  0.96,
-                  0.84,
+                  0.9,
+                  0.72,
                 ],
                 ["boolean", ["feature-state", "hover"], false],
                 0.3,
@@ -762,6 +771,7 @@ export default function MapCanvas(props: Props) {
           ["==", ["get", "tile"], true],
         ] as const;
         const density = overlay.mode === "density";
+        const overlayRamp = subjectRamps[overlay.dataset.section];
         const byAqi = overlay.colorBy === "aqi";
         const byInk = overlay.colorBy === "ink";
         if (density)
@@ -786,23 +796,39 @@ export default function MapCanvas(props: Props) {
                 ["linear"],
                 ["zoom"],
                 4,
-                14,
+                16,
+                7,
+                26,
                 9,
-                30,
+                44,
               ],
-              "heatmap-intensity": 1.1,
+              "heatmap-intensity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                5,
+                0.7,
+                9,
+                1.3,
+              ],
+              // The subject ramp, fading in from nothing, so the surface has
+              // no hard edge and carries the same hue as the rest of the page.
               "heatmap-color": [
                 "interpolate",
                 ["linear"],
                 ["heatmap-density"],
                 0,
-                "rgba(255,255,255,0)",
-                0.25,
-                `${overlay.color}40`,
-                0.6,
-                `${overlay.color}99`,
+                withAlpha(overlayRamp[0], 0),
+                0.12,
+                withAlpha(overlayRamp[0], 0.55),
+                0.3,
+                withAlpha(overlayRamp[1], 0.72),
+                0.55,
+                withAlpha(overlayRamp[2], 0.82),
+                0.8,
+                withAlpha(overlayRamp[3], 0.88),
                 1,
-                overlay.color,
+                withAlpha(overlayRamp[4], 0.92),
               ],
               "heatmap-opacity": [
                 "interpolate",
@@ -825,9 +851,11 @@ export default function MapCanvas(props: Props) {
           filter: tileFilter as never,
           paint: {
             "fill-color": ["get", "tileColor"],
+            // Opaque, so neighbouring squares of one class merge into a single
+            // soft area and the lightness steps carry the pattern.
             "fill-opacity": (density
-              ? ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 0.88]
-              : 0.88) as never,
+              ? ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 1]
+              : 1) as never,
           },
         });
         map.addLayer({
@@ -835,12 +863,15 @@ export default function MapCanvas(props: Props) {
           type: "line",
           source: id,
           filter: tileFilter as never,
+          // A round-joined edge in the tile's own colour: it closes the hairline
+          // seams between squares and takes the sharpness off the corners.
+          layout: { "line-join": "round" },
           paint: {
-            "line-color": "#ffffff",
-            "line-width": 1,
+            "line-color": ["get", "tileColor"],
+            "line-width": 2.5,
             "line-opacity": (density
-              ? ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 0.9]
-              : 0.9) as never,
+              ? ["interpolate", ["linear"], ["zoom"], 8, 0, 10, 1]
+              : 1) as never,
           },
         });
         map.addLayer({
@@ -1215,7 +1246,7 @@ export default function MapCanvas(props: Props) {
         { source: "counties", id: code },
         mean === null
           ? { tint: null, tinted: false, strong: false }
-          : { tint: aqiColorForValue(mean), tinted: true, strong: false },
+          : { tint: aqiTintForValue(mean), tinted: true, strong: false },
       );
     }
   }, [

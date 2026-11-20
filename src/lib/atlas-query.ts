@@ -4,6 +4,7 @@ import type {
   AtlasFeature,
   AtlasResult,
 } from "./atlas-types";
+import { findSpeciesInfo } from "../content/species-info";
 
 /** Snap the aggregation cell size to 0.8° halved k times. The grid then stays
  *  put while the person pans, so tiles do not reshuffle on every map move. */
@@ -72,7 +73,10 @@ export function filterAtlas(collection: AtlasCollection, filter: AtlasFilters) {
   const text = filter.q?.trim().toLowerCase();
   return collection.features.filter((feature) => {
     const p = feature.properties,
-      day = featureDay(feature);
+      day = featureDay(feature),
+      names = findSpeciesInfo(
+        typeof p.scientificName === "string" ? p.scientificName : null,
+      );
     const start = day?.length === 4 ? filter.start?.slice(0, 4) : filter.start,
       end = day?.length === 4 ? filter.end?.slice(0, 4) : filter.end;
     return (
@@ -93,6 +97,9 @@ export function filterAtlas(collection: AtlasCollection, filter: AtlasFilters) {
           p.titleZh,
           p.species,
           p.scientificName,
+          names?.zh,
+          names?.en,
+          names?.aka,
           p.group,
           p.river,
           p.basin,
@@ -174,7 +181,14 @@ export function queryAtlas(
       unique > 3000
         ? gridStep(Math.max(view[2] - view[0], view[3] - view[1]) / 45)
         : 0;
-  type Label = { t: string; z: string | null; id: string; n: number };
+  type Label = {
+    t: string;
+    z: string | null;
+    id: string;
+    n: number;
+    e?: string;
+    s?: string;
+  };
   const groups = new Map<
     string,
     {
@@ -214,11 +228,18 @@ export function queryAtlas(
       const name = String(
         feature.properties.species || feature.properties.title,
       );
-      const label = group.labels.get(name) || {
+      const info = findSpeciesInfo(
+        String(feature.properties.scientificName || name),
+      );
+      const label: Label = group.labels.get(name) || {
         t: name,
-        z: feature.properties.titleZh || null,
+        z: feature.properties.titleZh || info?.zh || null,
         id: feature.properties.id,
         n: 0,
+        ...(info?.en ? { e: info.en } : {}),
+        ...(feature.properties.speciesId
+          ? { s: String(feature.properties.speciesId) }
+          : {}),
       };
       label.n++;
       group.labels.set(name, label);

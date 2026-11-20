@@ -188,18 +188,37 @@ export function aqiColor(status: string | null) {
 }
 
 /** Official AQI bands (MOENV): 0–50, 51–100, 101–150, 151–200, 201–300, 301+. */
-export function aqiColorForValue(value: number) {
-  const status =
-    value <= 50
-      ? "良好"
-      : value <= 100
-        ? "普通"
-        : value <= 150
-          ? "對敏感族群不健康"
-          : value <= 200
-            ? "對所有族群不健康"
-            : value <= 300
-              ? "非常不健康"
-              : "危害";
-  return aqiColours[status];
+export function aqiBandOf(value: number) {
+  return value <= 50
+    ? "良好"
+    : value <= 100
+      ? "普通"
+      : value <= 150
+        ? "對敏感族群不健康"
+        : value <= 200
+          ? "對所有族群不健康"
+          : value <= 300
+            ? "非常不健康"
+            : "危害";
 }
+export function aqiColorForValue(value: number) {
+  return aqiColours[aqiBandOf(value)];
+}
+
+/** Gentler versions of the official band colours, for large areas. The hue of
+ *  each band is kept (green, yellow, orange, red, purple, brown), so the band
+ *  is still recognisable and the legend names it, but the full-strength
+ *  official colour stays on the small station dots and legend swatches where
+ *  it is the one thing being read. `fill` colours county areas; `bar` colours
+ *  the thin bars beside a county name. */
+export const aqiTints: Record<string, { fill: string; bar: string }> = {
+  良好: { fill: "#a6d9c3", bar: "#4aa583" },
+  普通: { fill: "#f3e7a3", bar: "#d4b52c" },
+  對敏感族群不健康: { fill: "#f4c29b", bar: "#e08a3c" },
+  對所有族群不健康: { fill: "#e599a6", bar: "#c2415f" },
+  非常不健康: { fill: "#bba4d1", bar: "#8a55ac" },
+  危害: { fill: "#b9808f", bar: "#8c3550" },
+};
+export const aqiTintForValue = (value: number) =>
+  aqiTints[aqiBandOf(value)].fill;
+export const aqiBarForValue = (value: number) => aqiTints[aqiBandOf(value)].bar;

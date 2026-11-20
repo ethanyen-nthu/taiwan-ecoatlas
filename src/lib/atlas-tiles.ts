@@ -32,6 +32,13 @@ function quantile(sorted: number[], at: number) {
  *  never share a hue. */
 const inkRamp = ["#c8d0d8", "#8695a6", "#4d6075", "#16202b"];
 
+/** Four steps from the subject ramp for squares: its first four, so even the
+ *  top class stays a firm mid-tone rather than the near-black the ramp ends
+ *  on. Lightness alone orders them. */
+function tileRamp(section: AtlasSection) {
+  return subjectRamps[section].slice(0, 4);
+}
+
 /** Group tile counts into at most four classes by quantile. Fewer classes are
  *  used when the counts hardly vary, so no class is ever empty. Light to dark
  *  follows the subject ramp, so lightness alone orders the classes. */
@@ -49,9 +56,7 @@ export function tileKey(
     .filter((count) => count > 0)
     .sort((a, b) => a - b);
   if (!counts.length) return null;
-  // Skip the palest step: small tiles are the commonest, and they must stay
-  // visible against the light basemap.
-  const ramp = neutral ? inkRamp : subjectRamps[section].slice(1);
+  const ramp = neutral ? inkRamp : tileRamp(section);
   const top = counts[counts.length - 1];
   const cuts: number[] = [];
   for (let i = 1; i < ramp.length; i += 1) {

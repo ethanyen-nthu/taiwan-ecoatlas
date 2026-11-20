@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import type { AtlasResult } from "@/lib/atlas-types";
 import { useLanguage } from "./providers";
+import { speciesShortName } from "@/content/species-info";
 import "./atlas-charts.css";
 
 type TimelineRow = {
@@ -132,7 +133,10 @@ export function AtlasCharts({
     ).length > 1;
   const species = result.species.length > 0;
   const allFrequencies = species
-    ? result.species.map((row) => ({ name: row.name, count: row.count }))
+    ? result.species.map((row) => ({
+        name: speciesShortName(row.name, language),
+        count: row.count,
+      }))
     : result.categories;
   const frequencies = [...allFrequencies]
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))

@@ -58,3 +58,13 @@ the existing official county GeoJSON. `urban.provenance.json` records source and
 output SHA-256, exclusion counts and the coordinate operation;
 `urban.metadata.json` is the bilingual web manifest. Review changed upstream
 counts and provenance before publishing a refreshed inventory.
+
+## Plants index
+
+`node scripts/build_plants_index.mjs` reads the two published tree files (`taipei-park-trees.geojson`, `taipei-riverside-trees.geojson`) and writes `public/data/atlas/plants.index.json`: one row per Chinese tree name with counts (park and riverside), median and 90th-percentile height, median trunk diameter, the commonest districts and parks, and the source's own scientific name and family where the riverside survey gave one. Medians are used because a few heights are obvious entry errors. 55 rows with no usable name are skipped and counted in the file.
+
+`src/content/plants.ts` adds a scientific name, family, growth type, origin and a short bilingual note for the 76 commonest kinds (about 87% of trees); family names follow the Taiwan Flora grouping, which differs from APG IV for a few families. `tests/plants.test.ts` checks that every described kind exists in the inventories and that the commonest 30 are all described.
+
+## Why only Taipei
+
+Parks and trees are Taipei City open data only. Other cities publish their own lists in different formats, dates and licences, and none has been checked or imported yet; the city page says so and links the cities' own portals. Live temperature stations are island-wide.
