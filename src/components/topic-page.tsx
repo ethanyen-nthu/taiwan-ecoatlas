@@ -281,6 +281,15 @@ export function AboutPage() {
         </article>
       </div>
       <MethodologyFaq />
+      <section className="about-credit" aria-labelledby="about-credit-title">
+        <h2 id="about-credit-title">{t("Who built this", "誰做的")}</h2>
+        <p>
+          {t(
+            "Taiwan EcoAtlas is a student project by Ethan Yen (顏名宣) at National Tsing Hua University (NTHU, 國立清華大學). It was made so teachers and students can use real open data about Taiwan’s environment and culture in class.",
+            "Taiwan EcoAtlas 是國立清華大學（NTHU）學生顏名宣（Ethan Yen）製作的專題，希望讓老師與學生能在課堂上使用臺灣環境與文化的真實開放資料。",
+          )}
+        </p>
+      </section>
       <Footer />
     </main>
   );

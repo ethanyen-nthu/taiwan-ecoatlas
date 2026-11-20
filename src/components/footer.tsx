@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowUpRight, Leaf } from "lucide-react";
 import { useLanguage } from "./providers";
 export function Footer() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <footer className="site-footer">
       <span>
@@ -25,6 +25,21 @@ export function Footer() {
           <ArrowUpRight size={13} />
         </Link>
       </nav>
+      <p className="footer-credit">
+        {language === "zh" ? (
+          <>
+            製作：<b lang="zh-Hant">顏名宣</b> Ethan Yen
+          </>
+        ) : (
+          <>
+            Built by <b>Ethan Yen</b> <span lang="zh-Hant">顏名宣</span>
+          </>
+        )}
+        <span className="footer-divider">·</span>
+        <span>
+          {t("National Tsing Hua University (NTHU)", "國立清華大學（NTHU）")}
+        </span>
+      </p>
     </footer>
   );
 }

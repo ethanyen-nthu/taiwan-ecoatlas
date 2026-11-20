@@ -175,3 +175,26 @@ test("core redesigned pages pass automated WCAG accessibility checks", async ({
     ).toEqual([]);
   }
 });
+
+test("every page footer credits the builder and school, and the about page says who built it", async ({
+  page,
+}) => {
+  for (const route of ["/wildlife", "/plants", "/about"]) {
+    await page.goto(route);
+    const credit = page.locator(".site-footer .footer-credit");
+    await expect(credit).toContainText("Built by");
+    await expect(credit).toContainText("Ethan Yen");
+    await expect(credit).toContainText("顏名宣");
+    await expect(credit).toContainText("National Tsing Hua University (NTHU)");
+  }
+  await expect(page.locator(".about-credit")).toContainText(
+    "student project by Ethan Yen (顏名宣)",
+  );
+  await page.getByRole("button", { name: "繁中", exact: true }).click();
+  await expect(page.locator(".site-footer .footer-credit")).toContainText(
+    "製作：顏名宣",
+  );
+  await expect(page.locator(".site-footer .footer-credit")).toContainText(
+    "國立清華大學",
+  );
+});

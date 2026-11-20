@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   },
   description:
     "Explore Taiwan’s environment and cultural geography through transparent, source-backed maps. 臺灣環境與文化地圖。",
+  authors: [{ name: "Ethan Yen 顏名宣" }],
 };
 export default function RootLayout({
   children,
