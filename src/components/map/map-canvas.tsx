@@ -1288,19 +1288,41 @@ export default function MapCanvas(props: Props) {
         .addTo(map);
       return { label, element, marker };
     });
+    // Roomier counties claim their spot first. A number is shown when its
+    // county is at least about half as wide as the number and it would not
+    // touch one already placed; zooming in frees up the rest.
+    const byRoom = [...items].sort((a, b) => b.label.r - a.label.r);
     const place = () => {
       const perDegree = (512 * 2 ** map.getZoom()) / 360;
-      for (const { label, element } of items)
-        element.classList.toggle(
-          "is-hidden",
-          !label.alone &&
-            label.r * 2 * perDegree < labelWidth(label.text) * 0.85,
+      const taken: { x0: number; x1: number; y0: number; y1: number }[] = [];
+      for (const { label, element } of byRoom) {
+        const width = labelWidth(label.text);
+        const point = map.project([label.lng, label.lat]);
+        const box = {
+          x0: point.x - width / 2 - 2,
+          x1: point.x + width / 2 + 2,
+          y0: point.y - 11,
+          y1: point.y + 11,
+        };
+        const roomy = label.alone || label.r * 2 * perDegree >= width * 0.5;
+        const clear = !taken.some(
+          (other) =>
+            box.x0 < other.x1 &&
+            box.x1 > other.x0 &&
+            box.y0 < other.y1 &&
+            box.y1 > other.y0,
         );
+        const show = roomy && clear;
+        if (show) taken.push(box);
+        element.classList.toggle("is-hidden", !show);
+      }
     };
     place();
     map.on("zoom", place);
+    map.on("resize", place);
     return () => {
       map.off("zoom", place);
+      map.off("resize", place);
       for (const { marker } of items) marker.remove();
     };
   }, [ready, props.countyLabels, selectedCounty]);
