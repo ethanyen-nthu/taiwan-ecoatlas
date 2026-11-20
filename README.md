@@ -135,7 +135,7 @@ This refresh saves the **latest snapshot**, not a complete time series. Do not e
 
 ## Routes and scope
 
-`/` overview; `/explore` interactive atlas; `/environment`, `/forests`, `/wildlife`, `/culture`, `/urban` section workbenches; `/culture/places/[id]` source-backed village/trail/study profiles; `/wildlife/species/[id]` historical subset frequency and county evidence; `/data` actual processed downloads and JSON endpoints; `/sources` metadata, licences, limitations and station status; `/about` methodology.
+`/` overview; `/explore` interactive atlas; `/environment`, `/forests`, `/wildlife`, `/culture`, `/urban` section workbenches; `/culture/places/[id]` source-backed village/trail/study profiles; `/wildlife/species/[id]` historical subset frequency and county evidence; `/teach` seven bilingual lessons with a print and student view (`/teach/[slug]`) and a glossary (`/teach/glossary`); `/county` and `/county/[code]` side-by-side county profiles across the datasets; `/data` actual processed downloads and JSON endpoints; `/sources` metadata, licences, limitations and station status; `/about` methodology.
 
 County names are bilingual from official attributes. Original station names, cultural names and scientific names are preserved; translations are used only where available. CIP historical narratives remain original Traditional Chinese with an untranslated notice in English. No third-party address geocoder is implemented. Date filters operate on the selected dataset's actual records; they do not create missing observations or fetch a complete historical station archive.
 

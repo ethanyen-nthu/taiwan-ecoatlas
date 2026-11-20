@@ -12,6 +12,7 @@ const navigation = [
   ["/wildlife", "Wildlife", "野生動物"],
   ["/culture", "Culture", "文化"],
   ["/urban", "Urban", "都市"],
+  ["/teach", "Teach", "教學"],
 ];
 export function Header() {
   const path = usePathname(),
@@ -49,7 +50,13 @@ export function Header() {
             key={href}
             href={href}
             onClick={() => setOpen(false)}
-            aria-current={path === href ? "page" : undefined}
+            aria-current={
+              path === href
+                ? "page"
+                : href !== "/" && path.startsWith(`${href}/`)
+                  ? "true"
+                  : undefined
+            }
           >
             {t(en, zh)}
           </Link>

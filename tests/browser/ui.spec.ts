@@ -73,7 +73,16 @@ test("mobile navigation restores focus on Escape and text reflows at 200 percent
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await expect(menu).toBeFocused();
   await page.setViewportSize({ width: 320, height: 844 });
-  for (const route of ["/", "/sources", "/about", "/explore"]) {
+  for (const route of [
+    "/",
+    "/sources",
+    "/about",
+    "/explore",
+    "/teach",
+    "/teach/where-is-the-forest",
+    "/county",
+    "/county/63000",
+  ]) {
     await page.goto(route);
     // Confirm hydration through a real state change before resizing root text.
     await page.getByRole("button", { name: "繁中", exact: true }).click();

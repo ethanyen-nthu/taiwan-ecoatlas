@@ -38,3 +38,13 @@ Sources, dependencies and the upstream MIT licence are recorded in `THIRD_PARTY_
 - Count shading always carries the caveat that counties differ in size and survey effort: a darker county is not a worse one. Counties with no data stay unshaded and the key says so.
 - A section map view (dataset, county, search, species, dates, metric, display, shading, tab) is written to the address bar with `history.replaceState`, so "Copy link to this view" gives a lecturer a link that reopens exactly what they were showing.
 - Motion is limited to entrances, the county bars growing and the shading cross-fading, and all of it is off under `prefers-reduced-motion`.
+
+## Teaching pages
+
+`/teach`, `/teach/[slug]`, `/teach/glossary`, `/county` and `/county/[code]` are written for lecturers in environmental science and cultural studies, and are bilingual (EN / 繁中) throughout.
+
+- **Lessons are content, not decoration.** Each of the seven lessons in `src/content/lessons.ts` has objectives, preparation, background, a step-by-step activity whose links open the exact map view (`/forests?shade=1`, `/wildlife?start=2017-01-01&end=2017-12-31`), what the data shows, discussion questions, pitfalls, an assessment idea, sources and a citation. Numbers in "What the data shows" are counted from `public/data` at build time (`src/server/facts.ts`), so they cannot drift from the maps. `tests/lessons.test.ts` checks both languages, link targets and the quoted counts.
+- **Claims stay hedged.** Roadkill year and month patterns are not given causes; village dots are public reference points, not territories; RPI class boundaries tell the reader to check the agency's current definition. Records are counts, never rates.
+- **Same colour logic as the maps.** A lesson takes its subject hue for the head, rules and step markers on a neutral reading surface; index, glossary and county pages use the neutral ink head with the five-hue stripe. Body text is 16px at 74ch.
+- **Two views of one page.** "Student handout view" hides the instructor-only blocks (before class, what the data shows, watch out for). Print CSS drops the header, footer and colour, prints each map link's address, and shows a base-address note.
+- **County profiles** show the five datasets side by side. A county missing from a dataset shows a dash and the sentence "no data, not zero".

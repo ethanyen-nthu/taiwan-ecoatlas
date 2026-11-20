@@ -1,0 +1,673 @@
+/* Teaching pages: lessons, glossary and county profiles. Same colour logic as
+   the section pages: a full field of the subject hue, neutral reading surface. */
+.teach {
+  padding-top: 20px;
+  padding-bottom: 0;
+}
+.teach-crumb {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.teach-crumb a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.teach-head {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 32px;
+  align-items: end;
+  overflow: hidden;
+  min-height: 170px;
+  padding: clamp(24px, 3vw, 44px) clamp(20px, 3.4vw, 48px);
+  background: var(--accent-ink);
+  color: #ffffff;
+  border-radius: 18px;
+}
+.teach-head[data-neutral] {
+  background: var(--ink);
+  padding-bottom: clamp(32px, 3.4vw, 50px);
+}
+.teach-head-copy {
+  max-width: 72ch;
+}
+.teach-head h1 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+}
+.teach-head p {
+  margin-top: 12px;
+  max-width: 64ch;
+  color: rgb(255 255 255 / 0.88);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.teach-island {
+  position: absolute;
+  z-index: -1;
+  top: -8%;
+  right: clamp(-60px, 3vw, 80px);
+  height: 124%;
+  width: auto;
+  fill: var(--accent);
+  opacity: 0.55;
+}
+.teach-head[data-neutral] .teach-island {
+  fill: #2d3d4e;
+  opacity: 1;
+}
+/* Five hues, one per subject, as the foot of every neutral page head. */
+.teach-stripe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--c-environment) 0 20%,
+    var(--c-urban) 20% 40%,
+    var(--c-forests) 40% 60%,
+    var(--c-wildlife) 60% 80%,
+    var(--c-culture) 80% 100%
+  );
+}
+.teach-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.teach-meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+.teach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-self: end;
+}
+.teach-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid rgb(255 255 255 / 0.6);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.teach-actions button:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+.teach-actions button[aria-pressed="true"] {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--accent-ink);
+}
+.county-jump {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.county-jump select {
+  min-height: 44px;
+  max-width: 280px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+/* Lesson reading layout */
+.lesson-grid {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 74ch);
+  gap: 24px clamp(32px, 5vw, 72px);
+  margin-top: 26px;
+  align-items: start;
+}
+.lesson-toc {
+  position: sticky;
+  top: calc(var(--header-height) + 16px);
+  font-size: 0.8125rem;
+}
+.lesson-toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+.lesson-toc a {
+  display: block;
+  padding: 7px 0 7px 14px;
+  margin-left: -2px;
+  border-left: 2px solid transparent;
+  color: var(--muted);
+}
+.lesson-toc a:hover {
+  color: var(--accent-ink);
+  border-left-color: var(--accent);
+}
+.lesson-body {
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.lesson-body section {
+  margin-bottom: 40px;
+}
+.lesson-body h2 {
+  padding-top: 14px;
+  border-top: 3px solid var(--accent);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.lesson-body h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.lesson-body ul {
+  padding-left: 1.3em;
+  list-style: disc;
+}
+.lesson-body ol:not(.lesson-steps) {
+  padding-left: 1.5em;
+  list-style: decimal;
+}
+.lesson-body li::marker {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.lesson-body li + li {
+  margin-top: 8px;
+}
+.lesson-body a:not(.lesson-open) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.lesson-note {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.instructor-only {
+  padding: 6px 22px 14px;
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 12px 12px 0;
+}
+.lesson-body .instructor-only h2 {
+  padding-top: 10px;
+  border-top: 0;
+}
+.lesson-toc .instructor-only {
+  padding: 0;
+  background: transparent;
+}
+.lesson-steps {
+  padding: 0 !important;
+  list-style: none;
+  counter-reset: step;
+}
+.lesson-steps > li {
+  position: relative;
+  counter-increment: step;
+  margin: 0 0 12px !important;
+  padding: 16px 20px 18px 66px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+}
+.lesson-steps > li::before {
+  content: counter(step);
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  color: #ffffff;
+  font-weight: 600;
+}
+.lesson-steps p {
+  margin: 4px 0 10px;
+}
+.lesson-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--accent-ink);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.lesson-open:hover {
+  background: var(--accent);
+}
+.lesson-table {
+  margin: 18px 0;
+  overflow-x: auto;
+}
+.lesson-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.lesson-table caption {
+  margin-bottom: 8px;
+  text-align: left;
+  font-weight: 600;
+}
+.lesson-table th,
+.lesson-table td {
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  text-align: left;
+  vertical-align: top;
+}
+.lesson-table thead th {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.lesson-table tbody th {
+  font-weight: 600;
+  background: var(--white);
+}
+.lesson-table td.fill {
+  height: 3.4rem;
+  min-width: 14rem;
+}
+.lesson-cite {
+  padding: 14px 16px;
+  background: var(--soft);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.teach-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent-ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.teach-copy:hover {
+  background: var(--accent-ink);
+  color: #ffffff;
+}
+.lesson-next {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.teach[data-view="student"] .instructor-only {
+  display: none;
+}
+.print-only {
+  display: none;
+}
+
+/* Index, glossary, county pages */
+.teach-how {
+  margin: 34px 0 10px;
+}
+.teach-how h2,
+.teach-group h2,
+.teach-more h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.teach-how ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.teach-how li {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.teach-group {
+  margin-top: 40px;
+}
+.teach-group h2 {
+  margin-bottom: 16px;
+}
+ul.subject-tiles.teach-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+ul.subject-tiles.teach-tiles > li:nth-child(n) {
+  grid-column: auto;
+}
+.teach-tiles .subject-tile-number {
+  padding-top: 18px;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+}
+.teach-tiles a {
+  min-height: 300px;
+}
+.teach-more {
+  margin: 46px 0 8px;
+}
+.teach-more ul {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.teach-more li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--line);
+}
+.teach-more a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.teach-more li span {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.glossary-list {
+  display: grid;
+  gap: 0;
+  max-width: 78ch;
+  margin: 30px 0 0;
+}
+.glossary-list > div {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--header-height) + 16px);
+}
+.glossary-list dt {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.glossary-list dd {
+  margin: 6px 0 0;
+  line-height: 1.65;
+}
+.glossary-list a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--green);
+}
+.county-lede {
+  max-width: 70ch;
+  margin: 22px 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.county-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.county-tiles > li[data-tone="environment"] {
+  --tile: color-mix(
+    in srgb,
+    var(--c-environment) 82%,
+    var(--c-environment-ink)
+  );
+}
+.county-tiles > li[data-tone="urban"] {
+  --tile: color-mix(in srgb, var(--c-urban) 82%, var(--c-urban-ink));
+}
+.county-tiles > li[data-tone="forests"] {
+  --tile: color-mix(in srgb, var(--c-forests) 82%, var(--c-forests-ink));
+}
+.county-tiles > li[data-tone="wildlife"] {
+  --tile: color-mix(in srgb, var(--c-wildlife) 82%, var(--c-wildlife-ink));
+}
+.county-tiles > li[data-tone="culture"] {
+  --tile: color-mix(in srgb, var(--c-culture) 82%, var(--c-culture-ink));
+}
+.county-tiles > li {
+  min-width: 0;
+}
+.county-card .subject-tile-number {
+  font-size: clamp(2.25rem, 4vw, 4rem);
+  overflow-wrap: anywhere;
+}
+.county-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  height: 100%;
+  padding: 26px 26px 22px;
+  border-radius: 18px;
+  background: var(--tile);
+  color: #ffffff;
+}
+.county-card h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.county-card p {
+  margin: 0;
+}
+.county-card .subject-tile-number {
+  margin-top: auto;
+}
+.county-list {
+  display: grid;
+  gap: 0;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.county-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.3);
+  font-variant-numeric: tabular-nums;
+}
+.county-list a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.county-table th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+}
+.county-table tbody th a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.county-table td {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 1000px) {
+  .lesson-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lesson-toc {
+    display: none;
+  }
+  .teach-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .teach-actions {
+    justify-content: flex-start;
+  }
+  .teach-how ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .lesson-steps > li {
+    padding-left: 58px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .teach-head-copy,
+  .teach-actions {
+    animation: atlas-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  @keyframes atlas-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+}
+
+/* Print: a clean handout. Header, footer and the page head's colour go;
+   each map link prints its address so a paper copy still works. */
+@media print {
+  body,
+  body:has([data-subject]) {
+    background: #ffffff !important;
+  }
+  .site-header,
+  .skip-link,
+  .site-footer,
+  .teach-actions,
+  .teach-island,
+  .teach-stripe,
+  .lesson-toc,
+  .teach-crumb,
+  .teach-copy,
+  .lesson-next {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+    margin: 6px 0 14px;
+    font-size: 10pt;
+  }
+  .document-page {
+    padding: 0;
+    max-width: none;
+  }
+  .teach-head,
+  .teach-head[data-neutral] {
+    min-height: 0;
+    padding: 0 0 10px;
+    background: #ffffff;
+    color: #000000;
+    border-bottom: 2px solid #000000;
+    border-radius: 0;
+  }
+  .teach-head p,
+  .teach-meta li {
+    color: #000000;
+    border-color: #666666;
+  }
+  .lesson-grid {
+    display: block;
+    margin-top: 12px;
+  }
+  .lesson-body {
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  .lesson-body section {
+    margin-bottom: 18px;
+    break-inside: avoid-page;
+  }
+  .lesson-body h2 {
+    border-top: 1px solid #000000;
+    font-size: 14pt;
+  }
+  .instructor-only {
+    background: #f2f2f2;
+  }
+  .lesson-steps > li {
+    break-inside: avoid;
+    border-color: #999999;
+  }
+  .lesson-steps > li::before {
+    background: #000000;
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .lesson-open {
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+    color: #000000;
+    text-decoration: underline;
+  }
+  .lesson-open svg {
+    display: none;
+  }
+  .lesson-open::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+  }
+  .lesson-table td.fill {
+    height: 4rem;
+  }
+}

@@ -223,11 +223,13 @@ svg {
 .primary-nav a:hover {
   color: var(--green);
 }
-.primary-nav a[aria-current="page"] {
+.primary-nav a[aria-current="page"],
+.primary-nav a[aria-current="true"] {
   color: var(--green);
   font-weight: 700;
 }
-.primary-nav a[aria-current="page"]::after {
+.primary-nav a[aria-current="page"]::after,
+.primary-nav a[aria-current="true"]::after {
   content: "";
   position: absolute;
   height: 3px;
@@ -1807,10 +1809,12 @@ svg {
     padding: 10px;
     border-radius: 4px;
   }
-  .primary-nav.open a[aria-current="page"] {
+  .primary-nav.open a[aria-current="page"],
+  .primary-nav.open a[aria-current="true"] {
     background: var(--soft);
   }
-  .primary-nav a[aria-current="page"]::after {
+  .primary-nav a[aria-current="page"]::after,
+  .primary-nav a[aria-current="true"]::after {
     display: none;
   }
   .primary-nav .mobile-source {

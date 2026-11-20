@@ -45,6 +45,7 @@ import {
   useAtlasCatalogue,
 } from "./atlas-hooks";
 import { Status, useFormatTime } from "./status";
+import { lessonsFor, trackLabel } from "@/content/lesson-index";
 import { Footer } from "./footer";
 import "./section-workbench.css";
 
@@ -1538,6 +1539,39 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           </div>
         )}
       </div>
+      <aside className="atlas-teach" aria-labelledby={`${tabId}-teach`}>
+        <h2 id={`${tabId}-teach`}>
+          {t("Teach with this subject", "用這個主題教學")}
+        </h2>
+        <ul>
+          {lessonsFor(section).map((lesson) => (
+            <li key={lesson.slug}>
+              <Link href={`/teach/${lesson.slug}`}>
+                {language === "en" ? lesson.title.en : lesson.title.zh}
+              </Link>
+              <span>
+                {language === "en"
+                  ? trackLabel[lesson.track].en
+                  : trackLabel[lesson.track].zh}{" "}
+                · {lesson.minutes} {t("min", "分鐘")}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p>
+          {filters.county ? (
+            <Link href={`/county/${encodeURIComponent(filters.county)}`}>
+              {t("Open the profile for", "查看縣市檔案：")}{" "}
+              {countyNames[filters.county] || filters.county} →
+            </Link>
+          ) : (
+            <Link href="/county">
+              {t("Compare counties side by side", "並排比較各縣市")} →
+            </Link>
+          )}{" "}
+          <Link href="/teach/glossary">{t("Glossary", "名詞解釋")} →</Link>
+        </p>
+      </aside>
       <Footer />
     </main>
   );

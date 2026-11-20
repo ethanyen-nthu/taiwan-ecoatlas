@@ -8,7 +8,18 @@ export interface Tally {
   name: string;
   count: number;
 }
+export interface CountyName {
+  code: string;
+  en: string;
+  zh: string;
+}
+export interface SpeciesCount {
+  id: string;
+  name: string;
+  count: number;
+}
 export interface AtlasFacts {
+  counties: CountyName[];
   wildlife: {
     records: number;
     species: number;
@@ -19,12 +30,23 @@ export interface AtlasFacts {
     /** Records in January to December, all years together. */
     byMonth: number[];
     byCounty: Tally[];
-    topSpecies: { id: string; name: string; category: string; count: number }[];
+    topSpecies: (SpeciesCount & {
+      category: string;
+      yearCounts: Record<string, number>;
+    })[];
+    /** Five most recorded species in each county, by county code. */
+    speciesByCounty: Record<string, SpeciesCount[]>;
   };
   culture: {
     villages: number;
+    /** Group labels exactly as the source lists them (some name several peoples). */
     groups: Tally[];
+    /** Villages whose label names each single people. */
+    peoples: Tally[];
+    /** Labels that name more than one people, and the villages under them. */
+    sharedLabels: { labels: number; villages: number };
     byCounty: Tally[];
+    groupsByCounty: Record<string, Tally[]>;
     trails: number;
     studies: number;
   };
@@ -37,8 +59,11 @@ export interface AtlasFacts {
       sharePct: number;
       coveragePct: number;
       areaKm2: number;
+      forestKm2: number;
+      builtUpKm2: number;
+      agricultureKm2: number;
     }[];
-    unavailable: { code: string; en: string; zh: string }[];
+    unavailable: CountyName[];
   };
   urban: {
     parks: number;
@@ -47,9 +72,9 @@ export interface AtlasFacts {
   };
 }
 
-const directory = path.join(process.cwd(), "public/data/atlas");
+const root = path.join(process.cwd(), "public/data");
 const read = async <T>(file: string) =>
-  JSON.parse(await readFile(path.join(directory, file), "utf8")) as T;
+  JSON.parse(await readFile(path.join(root, file), "utf8")) as T;
 
 function tally<T>(items: T[], key: (item: T) => string | null | undefined) {
   const counts = new Map<string, number>();
@@ -66,41 +91,63 @@ type Metadata = { datasets: { id: string; recordCount: number }[] };
 type Features<P> = { features: { properties: P }[] };
 
 async function load(): Promise<AtlasFacts> {
-  const [wildlife, species, villages, studies, land, urbanMeta, cultureMeta] =
-    await Promise.all([
-      read<
-        Features<{
-          category: string | null;
-          date: string | null;
-          countyCode: string | null;
-        }>
-      >("wildlife.geojson"),
-      read<{
-        species: {
-          id: string;
-          name: string;
-          category: string;
-          count: number;
-        }[];
-      }>("wildlife.species.json"),
-      read<Features<{ group: string | null; countyCode: string | null }>>(
-        "villages.geojson",
-      ),
-      read<unknown[]>("cultural-trails.json"),
-      read<{
-        year: number;
-        countyStatistics: {
-          countyCode: string;
-          name: { en: string; zh: string };
-          countyAreaKm2: number;
-          mappedCoveragePct: number;
-          forestShareMappedPct: number | null;
-          available: boolean;
-        }[];
-      }>("landcover-2023.statistics.json"),
-      read<Metadata>("urban.metadata.json"),
-      read<Metadata>("culture.metadata.json"),
-    ]);
+  const [
+    wildlife,
+    species,
+    villages,
+    studies,
+    land,
+    landCounties,
+    urbanMeta,
+    cultureMeta,
+    shapes,
+  ] = await Promise.all([
+    read<
+      Features<{
+        category: string | null;
+        date: string | null;
+        countyCode: string | null;
+      }>
+    >("atlas/wildlife.geojson"),
+    read<{
+      species: {
+        id: string;
+        name: string;
+        category: string;
+        count: number;
+        yearCounts: Record<string, number>;
+        countyCounts: Record<string, number>;
+      }[];
+    }>("atlas/wildlife.species.json"),
+    read<Features<{ group: string | null; countyCode: string | null }>>(
+      "atlas/villages.geojson",
+    ),
+    read<unknown[]>("atlas/cultural-trails.json"),
+    read<{
+      year: number;
+      countyStatistics: {
+        countyCode: string;
+        name: { en: string; zh: string };
+        countyAreaKm2: number;
+        mappedCoveragePct: number;
+        forestShareMappedPct: number | null;
+        available: boolean;
+      }[];
+    }>("atlas/landcover-2023.statistics.json"),
+    read<
+      Features<{
+        countyCode: string;
+        forestAreaKm2: number;
+        builtUpAreaKm2: number;
+        agricultureAreaKm2: number;
+      }>
+    >("atlas/landcover-2023-counties.geojson"),
+    read<Metadata>("atlas/urban.metadata.json"),
+    read<Metadata>("atlas/culture.metadata.json"),
+    read<
+      Features<{ COUNTYCODE: string; COUNTYENG: string; COUNTYNAME: string }>
+    >("counties.geojson"),
+  ]);
   const dates = wildlife.features
     .map((feature) => feature.properties.date)
     .filter((date): date is string => !!date)
@@ -109,7 +156,34 @@ async function load(): Promise<AtlasFacts> {
   for (const date of dates) byMonth[Number(date.slice(5, 7)) - 1] += 1;
   const count = (meta: Metadata, id: string) =>
     meta.datasets.find((dataset) => dataset.id === id)?.recordCount ?? 0;
+  const areas = new Map(
+    landCounties.features.map((f) => [f.properties.countyCode, f.properties]),
+  );
+  const counties = shapes.features.map(({ properties: p }) => ({
+    code: p.COUNTYCODE,
+    en: p.COUNTYENG,
+    zh: p.COUNTYNAME,
+  }));
+  const speciesByCounty: Record<string, SpeciesCount[]> = {};
+  for (const { code } of counties) {
+    speciesByCounty[code] = species.species
+      .filter((item) => (item.countyCounts?.[code] ?? 0) > 0)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        count: item.countyCounts[code],
+      }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .slice(0, 5);
+  }
+  const groupsByCounty: Record<string, Tally[]> = {};
+  for (const { code } of counties)
+    groupsByCounty[code] = tally(
+      villages.features.filter((f) => f.properties.countyCode === code),
+      (f) => f.properties.group,
+    );
   return {
+    counties,
     wildlife: {
       records: wildlife.features.length,
       species: species.species.length,
@@ -124,17 +198,36 @@ async function load(): Promise<AtlasFacts> {
       topSpecies: [...species.species]
         .sort((a, b) => b.count - a.count)
         .slice(0, 10)
-        .map(({ id, name, category, count }) => ({
+        .map(({ id, name, category, count, yearCounts }) => ({
           id,
           name,
           category,
           count,
+          yearCounts,
         })),
+      speciesByCounty,
     },
     culture: {
       villages: villages.features.length,
       groups: tally(villages.features, (f) => f.properties.group),
+      peoples: tally(
+        villages.features.flatMap((f) =>
+          (f.properties.group || "").split("、").filter(Boolean),
+        ),
+        (name) => name,
+      ),
+      sharedLabels: {
+        labels: new Set(
+          villages.features
+            .map((f) => f.properties.group || "")
+            .filter((group) => group.includes("、")),
+        ).size,
+        villages: villages.features.filter((f) =>
+          (f.properties.group || "").includes("、"),
+        ).length,
+      },
       byCounty: tally(villages.features, (f) => f.properties.countyCode),
+      groupsByCounty,
       trails: count(cultureMeta, "public-historic-trails"),
       studies: studies.length,
     },
@@ -149,6 +242,9 @@ async function load(): Promise<AtlasFacts> {
           sharePct: row.forestShareMappedPct as number,
           coveragePct: row.mappedCoveragePct,
           areaKm2: row.countyAreaKm2,
+          forestKm2: areas.get(row.countyCode)?.forestAreaKm2 ?? 0,
+          builtUpKm2: areas.get(row.countyCode)?.builtUpAreaKm2 ?? 0,
+          agricultureKm2: areas.get(row.countyCode)?.agricultureAreaKm2 ?? 0,
         }))
         .sort((a, b) => b.sharePct - a.sharePct),
       unavailable: land.countyStatistics
