@@ -380,6 +380,164 @@
 .teach-group h2 {
   margin-bottom: 16px;
 }
+/* Subject tiles: a coloured card per subject with a faded island silhouette
+   tucked into the corner. Used by the lesson index and the county profile. */
+.subject-tiles {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.subject-tiles li {
+  grid-column: span 4;
+  --tile: color-mix(
+    in srgb,
+    var(--c-environment) 82%,
+    var(--c-environment-ink)
+  );
+  --tile-ink: var(--c-environment-ink);
+}
+.subject-tiles li:nth-child(1) {
+  grid-column: span 7;
+}
+.subject-tiles li:nth-child(2) {
+  grid-column: span 5;
+}
+.subject-tiles li[data-tone="forests"] {
+  --tile: color-mix(in srgb, var(--c-forests) 82%, var(--c-forests-ink));
+  --tile-ink: var(--c-forests-ink);
+}
+.subject-tiles li[data-tone="wildlife"] {
+  --tile: color-mix(in srgb, var(--c-wildlife) 82%, var(--c-wildlife-ink));
+  --tile-ink: var(--c-wildlife-ink);
+}
+.subject-tiles li[data-tone="culture"] {
+  --tile: color-mix(in srgb, var(--c-culture) 82%, var(--c-culture-ink));
+  --tile-ink: var(--c-culture-ink);
+}
+.subject-tiles li[data-tone="urban"] {
+  --tile: color-mix(in srgb, var(--c-urban) 82%, var(--c-urban-ink));
+  --tile-ink: var(--c-urban-ink);
+}
+.subject-tiles li[data-tone="environment"] {
+  --tile-ink: var(--c-environment-ink);
+}
+.subject-tiles a {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 330px;
+  height: 100%;
+  padding: 26px 26px 22px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--tile);
+  color: #ffffff;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.25s;
+}
+.subject-tiles a:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px -14px var(--tile-ink);
+}
+.subject-tile-island {
+  position: absolute;
+  z-index: -1;
+  right: -26px;
+  bottom: -40px;
+  height: 120%;
+  width: auto;
+  max-width: none;
+  fill: var(--tile-ink, currentColor);
+  opacity: 0.38;
+  pointer-events: none;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.subject-tiles a:hover .subject-tile-island {
+  transform: translate(-6px, -8px) scale(1.03);
+}
+.subject-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.18);
+}
+.subject-tile-title {
+  margin-top: 6px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.subject-tile-number {
+  margin-top: auto;
+  padding-top: 28px;
+  font-size: clamp(2.75rem, 5vw, 4.5rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+.subject-tile-label {
+  max-width: 30ch;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+.subject-tile-note {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(255 255 255 / 0.4);
+  max-width: 44ch;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #ffffff;
+}
+.subject-tile-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 1000px) {
+  .subject-tiles li,
+  .subject-tiles li:nth-child(1),
+  .subject-tiles li:nth-child(2) {
+    grid-column: span 6;
+  }
+  .subject-tiles li:last-child {
+    grid-column: span 12;
+  }
+}
+@media (max-width: 640px) {
+  .subject-tiles li,
+  .subject-tiles li:nth-child(1),
+  .subject-tiles li:nth-child(2),
+  .subject-tiles li:last-child {
+    grid-column: span 12;
+  }
+  .subject-tiles a {
+    min-height: 280px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .subject-tiles a,
+  .subject-tile-island {
+    transition: none;
+  }
+  .subject-tiles a:hover,
+  .subject-tiles a:hover .subject-tile-island {
+    transform: none;
+  }
+}
 ul.subject-tiles.teach-tiles {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 }

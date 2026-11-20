@@ -107,6 +107,48 @@ test("map pages point to their lessons and to the chosen county", async ({
   ).toBeVisible();
 });
 
+test("lesson tiles are coloured cards and the island silhouette stays inside them", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/teach");
+    const tiles = page.locator(".teach-tiles > li > a");
+    await expect(tiles).toHaveCount(lessonSlugs.length);
+    for (let i = 0; i < lessonSlugs.length; i += 1) {
+      const tile = tiles.nth(i);
+      const box = await tile.boundingBox();
+      // A card, not a page-sized shape: never wider than the content column.
+      expect(box!.width).toBeLessThan(viewport.width);
+      expect(box!.height).toBeLessThan(420);
+      const background = await tile.evaluate(
+        (el) => getComputedStyle(el).backgroundColor,
+      );
+      expect(background).not.toBe("rgba(0, 0, 0, 0)");
+      const island = tile.locator(".subject-tile-island");
+      const clipped = await island.evaluate((el) => {
+        const own = el.getBoundingClientRect();
+        const card = el.closest("a")!.getBoundingClientRect();
+        return own.height <= card.height * 1.3;
+      });
+      expect(clipped).toBe(true);
+    }
+    // No decorative silhouette anywhere on the page is larger than the screen.
+    const oversize = await page.evaluate(
+      (w) =>
+        [...document.querySelectorAll("svg")].filter((svg) => {
+          const r = svg.getBoundingClientRect();
+          return r.width > w || r.height > 800;
+        }).length,
+      viewport.width,
+    );
+    expect(oversize).toBe(0);
+  }
+});
+
 test("county profiles compare every county and link across the datasets", async ({
   page,
 }) => {
