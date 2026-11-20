@@ -22,7 +22,13 @@ export interface OutlineMapData {
   height: number;
   /** Dot radius in drawing units. */
   radius: number;
-  shapes: { code: string; d: string; focus: boolean }[];
+  shapes: {
+    code: string;
+    d: string;
+    focus: boolean;
+    /** Widest open spot inside the county, for a label. Only with `compact`. */
+    anchor?: { x: number; y: number; r: number };
+  }[];
   dots: {
     id: string;
     x: number;
@@ -44,6 +50,9 @@ export interface OutlineMapOptions {
   pad?: number;
   /** Smallest view, in degrees of latitude, so a lone point does not zoom in. */
   minSpan?: number;
+  /** Leave out rings that fall outside the drawing (a county with a distant
+   *  islet would otherwise carry it along) and find a label spot per county. */
+  compact?: boolean;
 }
 
 type Box = [number, number, number, number];
@@ -63,6 +72,75 @@ function boxOf(rings: [number, number][][]): Box {
   return [x0, y0, x1, y1];
 }
 
+/** The point inside a county that is farthest from every edge: a good place
+ *  for a label. Coarse grid first, then a finer one around the best cell.
+ *  Rings use the even-odd rule, so a ring inside another is a hole. */
+export function labelSpot(
+  rings: [number, number][][],
+): { x: number; y: number; r: number } | null {
+  const [x0, y0, x1, y1] = boxOf(rings);
+  const inside = (x: number, y: number) => {
+    let odd = false;
+    for (const ring of rings)
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i],
+          [xj, yj] = ring[j];
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)
+          odd = !odd;
+      }
+    return odd;
+  };
+  const edge = (x: number, y: number) => {
+    let best = Infinity;
+    for (const ring of rings)
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [ax, ay] = ring[j],
+          [bx, by] = ring[i];
+        const dx = bx - ax,
+          dy = by - ay,
+          len = dx * dx + dy * dy;
+        const t = len
+          ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len))
+          : 0;
+        const ex = ax + t * dx - x,
+          ey = ay + t * dy - y;
+        best = Math.min(best, ex * ex + ey * ey);
+      }
+    return Math.sqrt(best);
+  };
+  let best: { x: number; y: number; r: number } | null = null;
+  const scan = (
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+    steps: number,
+  ) => {
+    for (let i = 0; i < steps; i += 1)
+      for (let j = 0; j < steps; j += 1) {
+        const x = ax + ((bx - ax) * (i + 0.5)) / steps,
+          y = ay + ((by - ay) * (j + 0.5)) / steps;
+        if (!inside(x, y)) continue;
+        const r = edge(x, y);
+        if (!best || r > best.r) best = { x, y, r };
+      }
+  };
+  scan(x0, y0, x1, y1, 22);
+  if (best) {
+    const { x, y } = best as { x: number; y: number };
+    const step = Math.max(x1 - x0, y1 - y0) / 22;
+    scan(x - step, y - step, x + step, y + step, 9);
+  }
+  const found = best as { x: number; y: number; r: number } | null;
+  return found
+    ? {
+        x: Math.round(found.x * 10) / 10,
+        y: Math.round(found.y * 10) / 10,
+        r: Math.round(found.r * 10) / 10,
+      }
+    : null;
+}
+
 /** Project longitude/latitude to a flat drawing with the right aspect for
  *  Taiwan's latitude, fit it to the dots (and any named counties) and return
  *  paths and dot positions ready to render as SVG. */
@@ -78,6 +156,7 @@ export function buildOutlineMap(
     maxHeight = 520,
     pad = 0.1,
     minSpan = 0.5,
+    compact = false,
   } = options;
   const boxes: Box[] = dots.length
     ? [
@@ -121,13 +200,24 @@ export function buildOutlineMap(
   for (const [code, county] of Object.entries(outlines)) {
     const [bx0, by0, bx1, by1] = boxOf(county.rings);
     if (bx1 < x0 || bx0 > x1 || by1 < y0 || by0 > y1) continue;
-    const d = county.rings
-      .map(
-        (ring) =>
-          `M${ring.map(([lon, lat]) => `${px(lon)} ${py(lat)}`).join("L")}Z`,
-      )
+    let rings = county.rings.map((ring) =>
+      ring.map(([lon, lat]) => [px(lon), py(lat)] as [number, number]),
+    );
+    if (compact)
+      rings = rings.filter((ring) => {
+        const [rx0, ry0, rx1, ry1] = boxOf([ring]);
+        return rx1 >= 0 && rx0 <= w && ry1 >= 0 && ry0 <= h;
+      });
+    if (!rings.length) continue;
+    const d = rings
+      .map((ring) => `M${ring.map(([x, y]) => `${x} ${y}`).join("L")}Z`)
       .join("");
-    shapes.push({ code, d, focus: focus.includes(code) });
+    shapes.push({
+      code,
+      d,
+      focus: focus.includes(code),
+      ...(compact ? { anchor: labelSpot(rings) ?? undefined } : {}),
+    });
   }
   return {
     width: w,

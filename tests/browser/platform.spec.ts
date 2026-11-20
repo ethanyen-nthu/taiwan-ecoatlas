@@ -20,8 +20,11 @@ async function openSection(page: Page, route: string, dataset: string) {
   const workbench = page.locator(".atlas-workbench");
   await expect(workbench).toHaveAttribute("data-dataset", dataset);
   await expect(workbench.getByLabel("Dataset", { exact: true })).toBeEnabled();
+  // The roadkill page opens on its county map; every other page on a tile map.
   await expect(
-    page.locator(".atlas-map .map-canvas-shell[data-map-ready=true]"),
+    page.locator(
+      ".atlas-map .map-canvas-shell[data-map-ready=true], .atlas-map .wm svg",
+    ),
   ).toBeVisible();
   await expect(
     workbench.locator(".atlas-stat-strip strong").first(),
@@ -180,6 +183,10 @@ test.describe("integrated atlas platform", () => {
           workbench.getByLabel("Map display", { exact: true }),
         ).toHaveCount(0);
       } else {
+        // The roadkill page opens on its county map; the display choice
+        // belongs to the 10 km grid view.
+        if (section.route === "/wildlife")
+          await workbench.getByRole("button", { name: "10 km grid" }).click();
         await expect(
           workbench.getByLabel("Map display", { exact: true }),
         ).toBeVisible();

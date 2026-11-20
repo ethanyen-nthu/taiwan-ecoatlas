@@ -53,8 +53,8 @@ export const sectionGuides: Record<AtlasSection, GuideText> = {
   },
   wildlife: {
     what: {
-      en: "Animals recorded dead on Taiwan’s roads from 2014 to 2017, drawn from a public subset of the national roadkill archive. Colour shows how many records fall in each area; 99 species are named.",
-      zh: "2014 至 2017 年臺灣道路上被記錄的動物路死紀錄，取自全國路死資料的公開子集。顏色表示各區域的紀錄多寡，共收錄 99 種動物。",
+      en: "Animals recorded dead on Taiwan’s roads from 2014 to 2017, drawn from a public subset of the national roadkill archive. Each county is shaded by how many records it holds, with the number printed inside; 99 species are named.",
+      zh: "2014 至 2017 年臺灣道路上被記錄的動物路死紀錄，取自全國路死資料的公開子集。各縣市依紀錄數著色，數字標在縣市內，共收錄 99 種動物。",
     },
     learn: {
       en: [

@@ -9,6 +9,7 @@ import {
   islandPoint,
   islandViewBox,
 } from "@/lib/island-path";
+import { subjectRamps } from "@/lib/choropleth";
 import type { JourneyMarks } from "@/server/journey";
 import "./home-journey.css";
 
@@ -227,12 +228,12 @@ export function HomeJourney({
       href: "/wildlife",
       title: t("Life along the roads", "道路旁的生命"),
       what: t(
-        "Roadkill records, 2014–2017. Each square is a 10 km area; the darker it is, the more records fall in it.",
-        "2014–2017 年的路死紀錄。每個方格是 10 公里的範圍，顏色越深，紀錄越多。",
+        "Roadkill records, 2014–2017. Each county is shaded by how many records it holds: the darker, the more.",
+        "2014–2017 年的路死紀錄。各縣市依紀錄數著色，顏色越深，紀錄越多。",
       ),
       key: t(
-        "Positions are generalised on purpose, so no square is a sighting.",
-        "位置刻意概化，因此沒有任何方格代表實際發現點。",
+        "These are counts, not risk: counties differ in size and in how closely roads were checked.",
+        "此為數量而非風險：各縣市面積不同，道路巡查程度也不同。",
       ),
       learn: [
         t(
@@ -255,8 +256,8 @@ export function HomeJourney({
         `筆路旁紀錄，涵蓋 ${facts.species} 種，${facts.firstYear}–${facts.lastYear}`,
       ),
       note: t(
-        `${marks.offshoreCells} squares on offshore islands are not drawn here; they are on the map.`,
-        `外島的 ${marks.offshoreCells} 個方格未畫在此處，地圖上看得到。`,
+        `${marks.offshoreRecords.toLocaleString(locale)} records from Penghu, Kinmen and Matsu are not drawn here; they are on the map.`,
+        `澎湖、金門與馬祖的 ${marks.offshoreRecords.toLocaleString(locale)} 筆紀錄未畫在此處，地圖上看得到。`,
       ),
     },
     {
@@ -407,13 +408,17 @@ export function HomeJourney({
                 <path className="j-dots j-air" d={aqiDots} />
               </g>
               <g className="journey-layer" data-layer="wildlife">
-                {marks.cells.map((d, index) => (
-                  <path
-                    key={index}
-                    className={`j-cell j-cell-${index}`}
-                    d={d}
-                  />
-                ))}
+                {marks.counties.map(
+                  (d, index) =>
+                    d && (
+                      <path
+                        key={index}
+                        className="j-county"
+                        fill={subjectRamps.wildlife[index]}
+                        d={d}
+                      />
+                    ),
+                )}
               </g>
               <g className="journey-layer" data-layer="plants">
                 <path className="j-dots j-parks" d={marks.parks} />

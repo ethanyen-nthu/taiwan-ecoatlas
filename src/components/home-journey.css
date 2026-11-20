@@ -95,6 +95,12 @@
     fill 0.7s ease,
     stroke 0.7s ease;
 }
+/* The county shapes carry their own coastline; a second silhouette under them
+   would show as a double edge. */
+.journey-band[data-active="wildlife"] .journey-land {
+  fill: transparent;
+  stroke: transparent;
+}
 .journey-forest {
   position: absolute;
   pointer-events: none;
@@ -139,24 +145,11 @@
   stroke-width: 2.2;
   stroke-opacity: 0.85;
 }
-.j-cell {
-  fill: var(--c-wildlife);
-}
-/* Soften the square edges: the squares are a 10 km grid, not a sighting each. */
-[data-layer="wildlife"] {
-  filter: blur(0.7px);
-}
-.j-cell-0 {
-  fill-opacity: 0.22;
-}
-.j-cell-1 {
-  fill-opacity: 0.42;
-}
-.j-cell-2 {
-  fill-opacity: 0.68;
-}
-.j-cell-3 {
-  fill-opacity: 0.95;
+/* Counties shaded on the wildlife ramp, light to dark; white seams between them. */
+.j-county {
+  stroke: var(--white);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
 }
 .j-ring {
   fill: none;

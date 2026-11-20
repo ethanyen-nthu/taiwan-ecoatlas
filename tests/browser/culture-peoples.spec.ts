@@ -51,12 +51,12 @@ async function openMap(page: Page, route: string) {
   await page.locator(".atlas-map").scrollIntoViewIfNeeded();
 }
 
-test("the wildlife map draws squares and a square opens a readable panel", async ({
+test("the optional 10 km grid draws squares and a square opens a readable panel", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await openMap(page, "/wildlife?mode=points");
+  await openMap(page, "/wildlife?view=grid&mode=points");
   await expect(page.locator(".atlas-tiles")).toContainText(
     "Records per square",
   );

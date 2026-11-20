@@ -1107,3 +1107,47 @@
   color: var(--muted, #5b6770);
   font-size: 0.8125em;
 }
+
+/* Wildlife: choose between the county map and the 10 km grid. */
+.atlas-view-switch {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--white);
+  padding: 2px;
+}
+.atlas-view-switch button {
+  min-height: 2.25rem;
+  padding: 0.3rem 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.atlas-view-switch button[aria-pressed="true"] {
+  background: var(--accent-ink);
+  color: var(--white);
+}
+.atlas-view-switch button:not([aria-pressed="true"]):hover {
+  background: var(--accent-soft);
+}
+
+/* The county view is taller than the viewport, so the pane scrolls with the
+   page instead of sticking; the view switch stays above it on small screens. */
+.atlas-map-pane:has(.atlas-map-flat) {
+  position: static;
+}
+@media (min-width: 1101px) {
+  .atlas-stat-strip.atlas-stat-strip-3 {
+    grid-template-columns: repeat(3, max-content);
+  }
+}
+@media (max-width: 900px) {
+  .atlas-map-toolbar:has(.atlas-view-switch) {
+    order: 0;
+    margin: 0 0 12px;
+  }
+}

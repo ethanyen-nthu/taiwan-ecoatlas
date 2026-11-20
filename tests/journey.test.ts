@@ -17,18 +17,23 @@ describe("home scroll story marks", () => {
     expect(box.height).toBeGreaterThan(95);
   });
 
-  it("draws every village and Taipei park, and every record cell, as short path strings", async () => {
+  it("draws every village and Taipei park as short path strings, and the roadkill counties in five shades", async () => {
     const marks = await journeyMarks();
     const dots = (d: string) => (d.match(/M/g) || []).length;
     expect(dots(marks.villages)).toBeGreaterThan(700);
     expect(dots(marks.parks)).toBe(812);
-    expect(marks.cells).toHaveLength(4);
-    expect(marks.cellCount + marks.offshoreCells).toBe(348);
+    expect(marks.counties).toHaveLength(5);
+    // Nineteen counties sit on the main island; each has at least one ring.
     expect(
-      marks.cells.reduce((sum, d) => sum + (d.match(/z/g) || []).length, 0),
-    ).toBe(marks.cellCount);
+      marks.counties.reduce((sum, d) => sum + (d.match(/M/g) || []).length, 0),
+    ).toBeGreaterThanOrEqual(19);
+    expect(marks.counties.every((d) => d.length > 0)).toBe(true);
+    // Penghu 25 + Kinmen 121 + Lienchiang 1,188 are outside the frame.
+    expect(marks.offshoreRecords).toBe(1334);
     expect(
-      marks.villages.length + marks.parks.length + marks.cells.join("").length,
-    ).toBeLessThan(60000);
+      marks.villages.length +
+        marks.parks.length +
+        marks.counties.join("").length,
+    ).toBeLessThan(80000);
   });
 });

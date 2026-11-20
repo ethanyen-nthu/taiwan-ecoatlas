@@ -606,8 +606,8 @@ export function buildLessons(facts: AtlasFacts): Lesson[] {
         {
           title: both("See where the records are", "看紀錄在哪裡"),
           body: both(
-            "Open the map. Each square is a 10 km grid cell, shaded by how many records it holds. Which areas are darkest? Then tick “Shade counties” and find Lienchiang County in the list.",
-            "開啟地圖。每個方格是一個 10 公里網格，顏色依其紀錄數加深。哪些區域最深？接著勾選「縣市著色」，並在列表找出連江縣。",
+            "Open the map. Each county is shaded by how many records it holds, with the number printed inside. Which counties are darkest? Then find Lienchiang County among the offshore islands under the map: how does a small island compare?",
+            "開啟地圖。各縣市依紀錄數著色，數字標在縣市內。哪些縣市最深？接著在地圖下方的離島中找出連江縣：一座小島的紀錄數如何比較？",
           ),
           href: "/wildlife",
           hrefLabel: both("Open the map", "開啟地圖"),

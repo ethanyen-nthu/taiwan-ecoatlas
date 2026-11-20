@@ -1,7 +1,9 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { buildChoropleth, subjectRamps } from "@/lib/choropleth";
 import { islandFrame, islandPoint } from "@/lib/island-path";
+import type { OutlineFile } from "@/lib/outline-map";
 
 /**
  * Marks drawn on the home page's pinned island, built from the published data
@@ -13,10 +15,11 @@ export interface JourneyMarks {
   villages: string;
   /** One point per Taipei park. */
   parks: string;
-  /** 10 km grid squares with roadkill records, binned by how many. */
-  cells: string[];
-  cellCount: number;
-  offshoreCells: number;
+  /** County shapes with roadkill records, one path string per shade step of
+   *  the wildlife ramp, lightest first. */
+  counties: string[];
+  /** Records from counties that sit outside the island's frame. */
+  offshoreRecords: number;
 }
 interface PointCollection {
   features: {
@@ -26,6 +29,8 @@ interface PointCollection {
 const root = path.join(process.cwd(), "public/data/atlas");
 const read = async (file: string) =>
   JSON.parse(await readFile(path.join(root, file), "utf8")) as PointCollection;
+const readJson = async <T>(file: string) =>
+  JSON.parse(await readFile(file, "utf8")) as T;
 const fixed = (n: number) => Number(n.toFixed(1));
 const inside = (lon: number, lat: number) =>
   lon >= islandFrame.west - 0.1 &&
@@ -46,34 +51,51 @@ function dots(points: [number, number][]) {
 let cache: Promise<JourneyMarks> | null = null;
 export function journeyMarks() {
   cache ??= (async () => {
-    const [villages, parks, wildlife] = await Promise.all([
+    const [villages, parks, species, outlines] = await Promise.all([
       read("villages.geojson"),
       read("taipei-parks.geojson"),
-      read("wildlife.geojson"),
+      readJson<{ species: { countyCounts: Record<string, number> }[] }>(
+        path.join(root, "wildlife.species.json"),
+      ),
+      readJson<OutlineFile>(
+        path.join(process.cwd(), "public/data/county-outlines.json"),
+      ),
     ]);
-    const counts = new Map<string, number>();
-    for (const feature of wildlife.features) {
-      const key = feature.geometry.coordinates.join(",");
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    const bins: string[][] = [[], [], [], []];
-    let offshoreCells = 0,
-      cellCount = 0;
-    // A 10 km square is about 0.09° of longitude and latitude at this latitude.
-    const halfLon = 0.045,
-      halfLat = 0.045;
-    for (const [key, count] of counts) {
-      const [lon, lat] = key.split(",").map(Number);
-      if (!inside(lon, lat)) {
-        offshoreCells += 1;
+    const totals = new Map<string, number>();
+    for (const item of species.species)
+      for (const [code, count] of Object.entries(item.countyCounts))
+        totals.set(code, (totals.get(code) || 0) + count);
+    // Same classes as the wildlife page's county map, so the two always agree.
+    const ramp = subjectRamps.wildlife;
+    const shading = buildChoropleth(
+      [...totals].map(([code, count]) => ({ code, value: null, count })),
+      "wildlife",
+    );
+    const steps: string[][] = ramp.map(() => []);
+    let offshoreRecords = 0;
+    for (const [code, county] of Object.entries(outlines)) {
+      const step = shading ? ramp.indexOf(shading.tint[code]) : -1;
+      if (step < 0) continue;
+      // A county with a distant islet keeps its island and leaves the islet out.
+      const rings = county.rings.filter((ring) =>
+        ring.every(([lon, lat]) => inside(lon, lat)),
+      );
+      if (!rings.length) {
+        offshoreRecords += totals.get(code) || 0;
         continue;
       }
-      cellCount += 1;
-      const [x0, y0] = islandPoint(lon - halfLon, lat + halfLat);
-      const [x1, y1] = islandPoint(lon + halfLon, lat - halfLat);
-      const bin = count >= 80 ? 3 : count >= 20 ? 2 : count >= 5 ? 1 : 0;
-      bins[bin].push(
-        `M${fixed(x0)} ${fixed(y0)}h${fixed(x1 - x0)}v${fixed(y1 - y0)}h${fixed(x0 - x1)}z`,
+      steps[step].push(
+        rings
+          .map(
+            (ring) =>
+              `M${ring
+                .map(([lon, lat]) => {
+                  const [x, y] = islandPoint(lon, lat);
+                  return `${fixed(x)} ${fixed(y)}`;
+                })
+                .join("L")}Z`,
+          )
+          .join(""),
       );
     }
     return {
@@ -83,9 +105,8 @@ export function journeyMarks() {
           .filter((f) => f.geometry.type === "Point")
           .map((f) => f.geometry.coordinates),
       ),
-      cells: bins.map((list) => list.join("")),
-      cellCount,
-      offshoreCells,
+      counties: steps.map((list) => list.join("")),
+      offshoreRecords,
     };
   })();
   return cache;

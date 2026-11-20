@@ -34,6 +34,8 @@ import { tileKey } from "@/lib/atlas-tiles";
 import { peoplesOfLabel } from "@/content/peoples-index";
 import { speciesLabel, speciesShortName } from "@/content/species-info";
 import { sectionGuides } from "@/content/section-guides";
+import type { OutlineFile } from "@/lib/outline-map";
+import { WildlifeCountyMap } from "./wildlife/county-map";
 import { SectionGuide } from "./section-guide";
 import { CityCoverage } from "./city-coverage";
 import { islandPath, islandViewBox } from "@/lib/island-path";
@@ -205,6 +207,15 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         ? raw
         : defaultModes[section] || "points";
     }),
+    // The roadkill page opens on a county map. The 10 km grid (squares and a
+    // smoothed surface) is still there for anyone who wants it, and links saved
+    // with a map mode keep opening on the grid.
+    [wildView, setWildView] = useState<"counties" | "grid">(() =>
+      search.get("view") === "grid" ||
+      (search.get("view") === null && search.get("mode") !== null)
+        ? "grid"
+        : "counties",
+    ),
     [allCounties, setAllCounties] = useState(false),
     [shadeChoice, setShadeChoice] = useState<boolean | null>(() => {
       const raw = search.get("shade");
@@ -260,7 +271,8 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
   for (const [key, value] of Object.entries(filters))
     if (value !== "" && value !== 0) params.set(key, String(value));
   if (metric) params.set("metric", metric);
-  if (viewport)
+  const countyView = section === "wildlife" && wildView === "counties";
+  if (viewport && !countyView)
     params.set(
       "bbox",
       viewport.bbox.map((value) => value.toFixed(4)).join(","),
@@ -294,6 +306,10 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     species: { id: string; name: string; count: number }[];
   }>(
     section === "wildlife" ? "/data/atlas/wildlife.species.json" : null,
+    atlasFetcher,
+  );
+  const outlines = useSWRImmutable<OutlineFile>(
+    countyView ? "/data/county-outlines.json" : null,
     atlasFetcher,
   );
   const culturalStudies = useSWRImmutable<
@@ -446,6 +462,13 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         : null,
     [countyList.rows, dataset, section, metric],
   );
+  // The same request again, but it keeps the last answer on screen while a new
+  // county loads, so the list of animals does not blink empty between clicks.
+  const steady = useSWR<AtlasResult>(countyView ? query : null, atlasFetcher, {
+    dedupingInterval: 30000,
+    shouldRetryOnError: false,
+    keepPreviousData: true,
+  });
   const mapFeatures = result.data?.collection.features;
   const hasTiles = !!mapFeatures?.some(
     (feature) => feature.properties.x0 != null,
@@ -513,6 +536,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
     if (filters.end) next.set("end", filters.end);
     if (filters.period !== "month") next.set("period", filters.period);
     if (chosenMetric !== null) next.set("metric", chosenMetric || "none");
+    if (section === "wildlife" && wildView === "grid") next.set("view", "grid");
     if (mode !== (defaultModes[section] || "points")) next.set("mode", mode);
     if (tab !== "records") next.set("tab", tab);
     if (shadeChoice !== null) next.set("shade", shadeChoice ? "1" : "0");
@@ -523,7 +547,16 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
       `${window.location.pathname}${window.location.search}${window.location.hash}`
     )
       window.history.replaceState(null, "", url);
-  }, [dataset, section, filters, chosenMetric, mode, tab, shadeChoice]);
+  }, [
+    dataset,
+    section,
+    filters,
+    chosenMetric,
+    mode,
+    tab,
+    shadeChoice,
+    wildView,
+  ]);
   const copyLink = async () => {
     const href = window.location.href;
     try {
@@ -728,19 +761,24 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         </div>
       )}
       <div className="atlas-stage" ref={stageRef} id="atlas-stage">
-        <div className="atlas-stat-strip" aria-live="polite">
+        <div
+          className={`atlas-stat-strip${countyView ? " atlas-stat-strip-3" : ""}`}
+          aria-live="polite"
+        >
           <div>
             <span>{t("Matching records", "符合紀錄")}</span>
             <strong>
               {result.data ? result.data.total.toLocaleString() : "—"}
             </strong>
           </div>
-          <div>
-            <span>{t("In current map view", "目前地圖範圍內")}</span>
-            <strong>
-              {result.data ? result.data.inViewport.toLocaleString() : "—"}
-            </strong>
-          </div>
+          {!countyView && (
+            <div>
+              <span>{t("In current map view", "目前地圖範圍內")}</span>
+              <strong>
+                {result.data ? result.data.inViewport.toLocaleString() : "—"}
+              </strong>
+            </div>
+          )}
           <div>
             <span>{t("Included record dates", "收錄資料日期")}</span>
             <strong className="atlas-date-stat">
@@ -926,7 +964,36 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
 
         <div className="atlas-map-pane">
           <div className="atlas-map-toolbar">
-            {dataset?.raster ? (
+            {section === "wildlife" && (
+              <div
+                className="atlas-view-switch"
+                role="group"
+                aria-label={t("Map view", "地圖檢視")}
+              >
+                <button
+                  type="button"
+                  aria-pressed={countyView}
+                  onClick={() => {
+                    setSelected(null);
+                    setViewport(null);
+                    setWildView("counties");
+                  }}
+                >
+                  {t("By county", "依縣市")}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={!countyView}
+                  onClick={() => {
+                    setSelected(null);
+                    setWildView("grid");
+                  }}
+                >
+                  {t("10 km grid", "10 公里方格")}
+                </button>
+              </div>
+            )}
+            {countyView ? null : dataset?.raster ? (
               <span>
                 {shadeOn
                   ? t(
@@ -961,7 +1028,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
                 </select>
               </label>
             )}
-            {choropleth && (
+            {choropleth && !countyView && (
               <label className="atlas-shade">
                 <input
                   type="checkbox"
@@ -985,8 +1052,19 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               {t("Open central atlas", "開啟中央地圖")} ↗
             </Link>
           </div>
-          <div className="atlas-map">
-            {counties ? (
+          <div className={`atlas-map${countyView ? " atlas-map-flat" : ""}`}>
+            {countyView ? (
+              <WildlifeCountyMap
+                outlines={outlines.data}
+                rows={countyList.rows}
+                selected={filters.county}
+                onSelect={(code) => change("county", code)}
+                choropleth={choropleth}
+                animals={steady.data?.species ?? []}
+                categories={steady.data?.categories ?? []}
+                loading={!summary.data}
+              />
+            ) : counties ? (
               <MapCanvas
                 compact
                 externalInspector
@@ -1230,7 +1308,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               </section>
             )}
           </div>
-          {shadeOn && choropleth && (
+          {!countyView && shadeOn && choropleth && (
             <div
               className="atlas-choro"
               role="group"
@@ -1287,7 +1365,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               </p>
             </div>
           )}
-          {!dataset?.raster && (tiles || stackCount > 0) && (
+          {!countyView && !dataset?.raster && (tiles || stackCount > 0) && (
             <div
               className="atlas-choro atlas-tiles"
               role="group"
@@ -1356,7 +1434,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               )}
             </div>
           )}
-          {dataset?.raster ? (
+          {countyView ? null : dataset?.raster ? (
             shadeOn ? null : (
               <div
                 className="atlas-key atlas-raster-legend"
@@ -1399,22 +1477,24 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               </span>
             </p>
           )}
-          <p className="atlas-map-note">
-            {dataset?.raster
-              ? t(
-                  "The overview is generalized for the map. County statistics use original source pixels; selecting a county retains the full research raster as geographic context.",
-                  "地圖概覽經簡化；縣市統計使用原始像素。選取縣市後仍保留完整研究影像作地理參考。",
-                )
-              : stationLayer
+          {!countyView && (
+            <p className="atlas-map-note">
+              {dataset?.raster
                 ? t(
-                    "Readings are point measurements at stations, not area averages. Use two fingers or Ctrl + scroll to move and zoom the map.",
-                    "讀數為測站點位實測，並非區域平均。以雙指或 Ctrl + 滾輪移動及縮放地圖。",
+                    "The overview is generalized for the map. County statistics use original source pixels; selecting a county retains the full research raster as geographic context.",
+                    "地圖概覽經簡化；縣市統計使用原始像素。選取縣市後仍保留完整研究影像作地理參考。",
                   )
-                : t(
-                    "Circles and density show included record counts, not abundance, incident risk or area coverage. Use two fingers or Ctrl + scroll to move and zoom the map.",
-                    "圓圈與密度呈現收錄紀錄數，並非族群數量、事件風險或面積覆蓋。以雙指或 Ctrl + 滾輪移動及縮放地圖。",
-                  )}
-          </p>
+                : stationLayer
+                  ? t(
+                      "Readings are point measurements at stations, not area averages. Use two fingers or Ctrl + scroll to move and zoom the map.",
+                      "讀數為測站點位實測，並非區域平均。以雙指或 Ctrl + 滾輪移動及縮放地圖。",
+                    )
+                  : t(
+                      "Circles and density show included record counts, not abundance, incident risk or area coverage. Use two fingers or Ctrl + scroll to move and zoom the map.",
+                      "圓圈與密度呈現收錄紀錄數，並非族群數量、事件風險或面積覆蓋。以雙指或 Ctrl + 滾輪移動及縮放地圖。",
+                    )}
+            </p>
+          )}
         </div>
 
         <div className="atlas-browse">
