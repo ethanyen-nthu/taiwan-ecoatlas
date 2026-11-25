@@ -26,6 +26,14 @@ The agency registry is `src/lib/sources.ts`; imported editions also have bilingu
 - Category swatches match the MOENV [official AQI indicator page](https://airtw.moenv.gov.tw/CHT/Information/Standard/AirQualityIndicatorNew.aspx) and its [published stylesheet](https://airtw.moenv.gov.tw/css/git_articlesFix.css): good `#009865`, moderate `#fffb26`, sensitive groups `#ff9835`, unhealthy `#ca0034`, very unhealthy `#670099`, hazardous `#7e0123` (checked 2026-11-15). Marker labels/popups carry text as well as colour.
 - The live MOENV response is a station array; the adapter also accepts a `records` wrapper. Both forms undergo identical validation. An authenticated production request on 2026-11-15 returned 84 valid real observations; a public map popup was verified. See `LAUNCH_AUDIT.md` for the recorded check.
 
+## Hand-compiled long-run PM2.5 record (`/environment/air-over-time`)
+
+- File: `src/content/air-history.ts`. It is the only air-quality history on the site: the live adapter above keeps no archive, so the long view is compiled by hand from published figures, each with a source id that resolves to a link in `airSources` (a test fails if a figure cites an unknown source or a source is not an https link).
+- Series: national annual-average PM2.5 (µg/m³, ministry standard method, 31 stations) for 2013–2019 and 2022–2025, and a central-and-southern-Taiwan average for 2016, 2019 and 2025 only. Reference lines: the former (15) and current (12, since 30 September 2024) Taiwan annual standards and the WHO 2021 guideline (5).
+- **2020 and 2021 are deliberately not plotted.** Preliminary and final figures for those years disagreed across the sources found, and conflicting figures are never averaged or picked. The page says so and draws a labelled gap. Add them once final annual values are confirmed against a ministry release.
+- Not live and not county-level: the page states this. Annual ministry averages (12.8 in 2025) differ from IQAir's (13.3) because the methods differ; the page tells students not to mix them on one axis.
+- To extend it: add a point to `nationalPm25` with its `sources`, update `yearSpan` and `gapYears`, and run `npm test`. The MOENV datasets that would allow a proper archive (AQI overview `89029`, pollutant concentrations `89030`) were not reachable from the build environment; persisting hourly snapshots from `AQX_P_432` going forward is the other route.
+
 ## Integrated adapters: CWA weather
 
 - Agency: Central Weather Administration (中央氣象署).

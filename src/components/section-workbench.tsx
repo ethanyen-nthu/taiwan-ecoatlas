@@ -723,6 +723,12 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
               {t("Meet the sixteen peoples", "認識十六個族群")} →
             </Link>
           )}
+          {section === "environment" && (
+            <Link className="atlas-head-link" href="/environment/air-over-time">
+              {t("Has the air improved? 2013–2025", "空氣有變好嗎？2013–2025")}{" "}
+              →
+            </Link>
+          )}
         </div>
         <nav
           className="atlas-section-nav"

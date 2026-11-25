@@ -81,3 +81,13 @@ Every animal and tree page leads with a photo. A fixed list of freely licensed W
 - **Same colour logic as the maps.** A lesson takes its subject hue for the head, rules and step markers on a neutral reading surface; index, glossary and county pages use the neutral ink head with the five-hue stripe. Body text is 16px at 74ch.
 - **Two views of one page.** "Student handout view" hides the instructor-only blocks (before class, what the data shows, watch out for). Print CSS drops the header, footer and colour, prints each map link's address, and shows a base-address note.
 - **County profiles** show the five datasets side by side. A county missing from a dataset shows a dash and the sentence "no data, not zero".
+
+## Air over time
+
+`/environment/air-over-time` answers one question for a lecturer: has Taiwan's air improved? It is a single hand-built SVG line chart (`src/components/air-trend/air-chart.tsx`), not a charting library, so the honesty rules are in the drawing.
+
+- **One headline series, one comparison.** National annual PM2.5 is the solid environment-blue line; central and southern Taiwan is a dashed clay line with hollow dots because it has three years, not thirteen. Dash and marker shape carry the difference, so colour is not the only cue. The official AQI palette is not used: this is a concentration, not an AQI band.
+- **Yardsticks, not decoration.** Horizontal grey lines mark the old Taiwan standard (15), the current one (12) and the WHO guideline (5), labelled in words at the left edge. They are the reason the line means anything.
+- **Gaps are drawn, not smoothed.** 2020–2021 are a shaded band labelled "not plotted"; the line stops at 2019, restarts at 2022 and a pale dashed bridge says the eye is interpolating. The numbers table beneath repeats every year, and says "Not plotted" for the two gaps.
+- **Reading by pointer or keyboard.** The chart is one `role="slider"` over the plot, so Arrow keys, Home/End and Escape step through plotted years and a tooltip (`role="status"`) names the values. A single overlay replaced per-point buttons because they overlapped at phone width and failed the 24 px target-size check.
+- **Context before conclusions.** Three typographic figures (−47%, −24%, 997 → 146 red-alert station-days) lead; "How to read it" then lists why a falling line is not the whole story: method differences, weather years (2023 rose), changed standards, ozone not falling, and averages hiding places. Questions for class sit after that.
