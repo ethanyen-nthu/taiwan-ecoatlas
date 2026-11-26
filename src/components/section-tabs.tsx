@@ -6,6 +6,7 @@ import {
   CloudSun,
   Droplets,
   MapPin,
+  Thermometer,
   Users,
 } from "lucide-react";
 import { sectionTabs, type SectionKey } from "@/content/section-tabs";
@@ -19,6 +20,7 @@ const icons = {
   guide: BookOpen,
   weather: CloudSun,
   water: Droplets,
+  temperature: Thermometer,
 };
 
 /** The visible tab strip at the top of each subject. Tabs are links to real

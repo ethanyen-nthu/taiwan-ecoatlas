@@ -11,7 +11,8 @@ export type SectionKey =
 export interface SectionTab {
   key: string;
   href: string;
-  icon: "map" | "trend" | "people" | "guide" | "weather" | "water";
+  icon:
+    "map" | "trend" | "people" | "guide" | "weather" | "water" | "temperature";
   label: Localized;
   hint: Localized;
 }
@@ -23,7 +24,7 @@ export const sectionTabs: Record<SectionKey, SectionTab[]> = {
       href: "/environment",
       icon: "map",
       label: { en: "Live map", zh: "即時地圖" },
-      hint: { en: "Air and weather stations now", zh: "此刻的空品與氣象測站" },
+      hint: { en: "Stations, right now", zh: "此刻的測站" },
     },
     {
       key: "air",
@@ -37,7 +38,14 @@ export const sectionTabs: Record<SectionKey, SectionTab[]> = {
       href: "/environment/weather",
       icon: "weather",
       label: { en: "Weather now", zh: "此刻的天氣" },
-      hint: { en: "Every county, latest readings", zh: "各縣市最新讀數" },
+      hint: { en: "Latest, by county", zh: "各縣市最新讀數" },
+    },
+    {
+      key: "temperature",
+      href: "/environment/temperature-over-time",
+      icon: "temperature",
+      label: { en: "Temperature over time", zh: "氣溫的變化" },
+      hint: { en: "Modelled, 1950–2025", zh: "模型資料，1950–2025" },
     },
     {
       key: "reservoirs",

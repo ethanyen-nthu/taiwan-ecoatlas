@@ -70,7 +70,7 @@ export function TodayBar() {
         )}
       </p>
       {figures.length === 0 ? (
-        <p className="today-loading" role="status">
+        <p className="today-loading">
           {t("Checking the latest readings…", "正在取得最新讀數…")}
         </p>
       ) : (

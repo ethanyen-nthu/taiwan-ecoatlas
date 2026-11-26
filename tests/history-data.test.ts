@@ -31,6 +31,7 @@ import {
   severeStations,
 } from "@/content/river-history";
 import { sectionTabs, type SectionKey } from "@/content/section-tabs";
+import { temperatureSources } from "@/content/temperature-sources";
 import { urbanSources, wildlifeSources } from "@/content/year-data";
 
 const allSources: [string, HistorySource[]][] = [
@@ -39,6 +40,7 @@ const allSources: [string, HistorySource[]][] = [
   ["population", populationSources],
   ["wildlife", wildlifeSources],
   ["urban", urbanSources],
+  ["temperature", temperatureSources],
 ];
 
 describe("the sources behind the over-time pages", () => {

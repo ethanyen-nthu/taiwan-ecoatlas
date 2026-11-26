@@ -11,6 +11,7 @@ const subjects = [
     others: [
       /Air over time/,
       /Weather now/,
+      /Temperature over time/,
       /Reservoirs now/,
       /Rivers over time/,
     ],

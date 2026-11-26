@@ -1,0 +1,158 @@
+/* The yearly line chart. The page colour carries the main series, the second
+   colour the comparison; dashed and solid lines and the written legend mean
+   the two never depend on colour alone. */
+.lc {
+  position: relative;
+  margin-top: 14px;
+}
+.lc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+.lc-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.lc-key {
+  display: inline-block;
+  width: 26px;
+  height: 0;
+  border-top: 3px solid var(--accent);
+}
+.lc-key[data-tone="soft"] {
+  border-top: 2px solid color-mix(in srgb, var(--accent) 50%, var(--white));
+}
+.lc-key[data-tone="warm"] {
+  border-top-color: var(--c-culture);
+}
+.lc-key[data-tone="ink"] {
+  border-top: 2px dashed var(--muted);
+}
+.lc-key[data-dashed][data-tone="warm"] {
+  border-top-style: dashed;
+}
+.lc-svg {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+}
+.lc-svg text {
+  fill: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.lc-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.lc-axis {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.lc-reference {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.lc-svg .lc-reference-label {
+  fill: var(--ink);
+}
+.lc-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+g[data-tone="soft"] .lc-line {
+  stroke: color-mix(in srgb, var(--accent) 50%, var(--white));
+  stroke-width: 1.5;
+}
+g[data-tone="warm"] .lc-line {
+  stroke: var(--c-culture);
+  stroke-width: 2.5;
+}
+.lc-line[data-dashed] {
+  stroke-dasharray: 7 5;
+}
+.lc-dot {
+  fill: var(--accent);
+  stroke: var(--white);
+  stroke-width: 1;
+}
+g[data-tone="warm"] .lc-dot {
+  fill: var(--c-culture);
+}
+.lc-pick {
+  fill: var(--accent);
+  stroke: var(--white);
+  stroke-width: 2.5;
+}
+.lc-pick[data-tone="warm"] {
+  fill: var(--c-culture);
+}
+.lc-guide {
+  stroke: var(--ink);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+.lc-svg .lc-end {
+  fill: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+g[data-tone="warm"] .lc-end {
+  fill: var(--c-culture-ink);
+}
+.lc-stage {
+  position: relative;
+}
+.lc-scrub {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  touch-action: pan-y;
+  border-radius: 8px;
+}
+.lc-scrub:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.lc-tip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  padding: 9px 13px;
+  background: var(--ink);
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 16px));
+}
+.lc-tip[data-below] {
+  transform: translate(-50%, 18px);
+}
+.lc-tip strong {
+  font-size: 0.9375rem;
+}
+.lc-tip em {
+  color: rgb(255 255 255 / 0.75);
+  font-size: 0.75rem;
+  font-style: normal;
+}
+@media print {
+  .lc-tip {
+    display: none;
+  }
+}

@@ -110,6 +110,36 @@ export const sources: Source[] = [
     },
   },
   {
+    id: "temperature",
+    name: {
+      en: "Temperature history (modelled)",
+      zh: "氣溫歷史（模型資料）",
+    },
+    agency: {
+      en: "Open-Meteo.com, serving ERA5-Land from Copernicus / ECMWF",
+      zh: "Open-Meteo.com，提供哥白尼／ECMWF 的 ERA5-Land",
+    },
+    url: "https://open-meteo.com/en/docs/historical-weather-api",
+    datasetId: "ERA5-Land via archive-api.open-meteo.com/v1/archive",
+    licence: "CC BY 4.0 (free for non-commercial use, credit required)",
+    licenceUrl: "https://open-meteo.com/en/licence",
+    verifiedLicence: true,
+    frequency: {
+      en: "Fetched once by script; not called while browsing",
+      zh: "以腳本一次取得；瀏覽時不會連線",
+    },
+    cacheSeconds: null,
+    coverage: {
+      en: "1950 to 2025, the main town of each county; no values for Penghu or Lienchiang",
+      zh: "1950 至 2025 年，各縣市主要城鎮；澎湖、連江沒有數值",
+    },
+    stage: "ready",
+    note: {
+      en: "A reanalysis on a grid about 10 km wide, so a model estimate and not a thermometer record. Daily means are reduced to yearly, summer (Jun–Aug) and winter (Dec–Feb) means, and a year is used only if at least 360 days have a value. Counties are averaged with equal weight, not by area. Places the model returns nothing for stay empty.",
+      zh: "寬約 10 公里網格的再分析資料，是模型估計而非溫度計紀錄。日平均整理為年、夏季（6–8 月）與冬季（12–2 月）平均，一年至少有 360 天有值才採用。縣市以相同權重平均，不依面積加權；模型沒有回傳的地方保持空白。",
+    },
+  },
+  {
     id: "river",
     name: { en: "River water quality", zh: "河川水質" },
     agency: { en: "Ministry of Environment", zh: "環境部" },

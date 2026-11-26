@@ -125,18 +125,19 @@ const noOverflow = async (page: Page) =>
     ),
   ).toBeLessThanOrEqual(0);
 
-test("the environment tab strip has five pages in the right order", async ({
+test("the environment tab strip has six pages in the right order", async ({
   page,
 }) => {
   await page.goto("/environment");
   const nav = page.getByRole("navigation", { name: "Pages in this subject" });
   const links = nav.getByRole("link");
-  await expect(links).toHaveCount(5);
+  await expect(links).toHaveCount(6);
   const names = await links.allInnerTexts();
   expect(names.map((n) => n.split("\n")[0])).toEqual([
     "Live map",
     "Air over time",
     "Weather now",
+    "Temperature over time",
     "Reservoirs now",
     "Rivers over time",
   ]);

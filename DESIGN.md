@@ -90,7 +90,7 @@ Every subject (Environment, Forests, Wildlife, Culture, City, Plants) now opens 
 - **One layout for every "over time" page** (`src/components/trends/time-page.tsx`): headline, three large figures, charts each with a "See the numbers" table, "How to read it", questions for class, then sources. The three figures never carry a number that is not in the data modules.
 - **Bars with the numbers written on them** (`bar-chart.tsx`): bars always start at zero, every value is printed, and a missing value is drawn as a labelled dash, never as a zero. A hatched bar marks a figure from a different method that must not be read as part of the line (the atlas's own 2023 forest map beside the two inventories).
 - **Heat tables** (`heat-table.tsx`) tint a cell by its size but print every number, so colour is a hint, not the message. Rows are tinted against their own largest value, or the whole table against one scale where noted; the wildlife page uses both.
-- Pages show only figures traced to a source or counted from the atlas's own files, and say what is unavailable (temperature, county-level history, 2020–21 air, a raster comparison of forest change) rather than filling the gap.
+- Pages show only figures traced to a source or counted from the atlas's own files, and say what is unavailable (county-level history, 2020–21 air, a raster comparison of forest change) rather than filling the gap.
 
 ## Live pages: weather, reservoirs and the county section
 
@@ -115,6 +115,16 @@ A part with no reading is left out, never shown as 0, and if nothing has a readi
 Every `TimePage` ends with "Cite this page and take the numbers" (`src/components/trends/cite-download.tsx`). It gives a copy-ready citation (site, year, page title, address, the agencies behind the data, and the day it was opened in Taiwan time), a print or save-as-PDF button, and one CSV download for each table on the page. Live pages (weather, reservoirs) add the clock time to the citation and say why. The citation date is filled in the browser, so the statically built page never prints a date it cannot know.
 
 The CSV is read from the table as it appears, so it always agrees with the page: numbers are written as shown (same rounding), thousands commas are removed so spreadsheets read them as numbers, and a dash becomes an empty field, never zero. A byte-order mark keeps Chinese names intact in Excel. Source lines (page, agencies, access date) can be added under a blank line at the bottom of each file, on by default. Hidden screen-reader text never reaches a file; an element marked `data-csv-extra="Name"` inside a row becomes an extra column (the reservoir number), and `data-csv` on a cell overrides its text.
+
+## Temperature over time
+
+`/environment/temperature-over-time` ("Is Taiwan getting warmer?") is the one history page whose numbers come from a model, so the page says so in its first note ("A model, not a thermometer") and in the chart wording ("modelled"). It uses `LineChart` (`src/components/trends/line-chart.tsx`), the same hand-built SVG idea as the air chart with a slider-style scrubber for finger, mouse and arrow keys (Page Up/Down jump ten years), but written to take any set of yearly series.
+
+- **Colour.** The page colour (environment blue) is the island's ten-year average; single years are faint blue dots, the county you add is a dashed clay line (the same second colour the air chart uses), and the early-period average is a dashed grey rule with its value written on it. Summer is clay and winter is blue and dashed, with the value written at the end of each line, so no meaning rests on colour. The county bars use one clay colour because they all mean the same thing (a rise).
+- **Anomalies, not raw values, for the two seasons.** Summer and winter sit about 14 degrees apart, so one axis of raw values would flatten both. The season chart draws each as degrees above or below its own 1950–1979 average, smoothed over ten years, with the zero line labelled; yearly values for each season are in the table.
+- **Gaps stay gaps.** Penghu and Lienchiang came back with no values from the model; they are listed in the notes by name, greyed and unselectable in the county picker, and shown as hatched "no data" rows in the bars. The island line averages only counties with a full record and says how many. Lines break at a missing year instead of joining across it.
+- **Smoothing is trailing and honest at the edges.** The ten-year line is each year plus the nine before it and starts in the tenth year; it never invents values at the ends.
+- **Credit sits where the numbers are.** "Weather data by Open-Meteo.com" is linked under the first chart, and again, with the Copernicus wording, in the sources.
 
 ## Air over time
 
