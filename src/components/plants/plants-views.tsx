@@ -7,6 +7,7 @@ import { habitLabels, originLabels, type PlantHabit } from "@/content/plants";
 import { findPlant } from "@/content/plants";
 import { useLanguage } from "../providers";
 import { Footer } from "../footer";
+import { SectionTabs } from "../section-tabs";
 import { Reveal } from "../reveal";
 import { SectionGuide, type GuideText } from "../section-guide";
 import { PhotoThumb } from "../photo-thumb";
@@ -188,6 +189,7 @@ export function PlantsGuide({
           </div>
         </dl>
       </header>
+      <SectionTabs section="plants" current="kinds" />
 
       <SectionGuide guide={plantsGuide} />
 

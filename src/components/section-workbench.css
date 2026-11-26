@@ -1071,18 +1071,6 @@
   }
 }
 
-.atlas-head-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin-top: 8px;
-  color: #ffffff;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 /* County tints of the official AQI bands, and the smoothed-surface key. */
 .atlas-aqi-tints {
   display: flex;

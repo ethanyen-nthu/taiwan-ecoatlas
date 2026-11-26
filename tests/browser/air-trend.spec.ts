@@ -1,11 +1,14 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("the environment page links to the long-run air record", async ({
+test("the environment page has a tab for the long-run air record", async ({
   page,
 }) => {
   await page.goto("/environment");
-  await page.getByRole("link", { name: /Has the air improved/ }).click();
+  await page
+    .getByRole("navigation", { name: "Pages in this subject" })
+    .getByRole("link", { name: /Air over time/ })
+    .click();
   await expect(page).toHaveURL(/\/environment\/air-over-time$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Has Taiwan’s air improved?" }),
@@ -36,13 +39,13 @@ test("the chart reads year by year with the keyboard, a visible gap and exact nu
   const box = await slider.boundingBox();
   await page.mouse.move(box!.x + 60, box!.y + box!.height / 2);
   await expect(page.locator(".air-tip")).toContainText("2013");
-  await page.locator(".air-table summary").click();
-  const rows = page.locator(".air-table tbody tr");
+  await page.locator(".tp-table summary").click();
+  const rows = page.locator(".tp-table tbody tr");
   await expect(rows).toHaveCount(13);
   await expect(rows.filter({ hasText: "2020" })).toContainText("Not plotted");
   await expect(rows.filter({ hasText: "2025" })).toContainText("12.8");
-  await expect(page.locator(".air-facts")).toContainText("−47%");
-  const links = page.locator(".air-sources a");
+  await expect(page.locator(".tp-facts")).toContainText("−47%");
+  const links = page.locator(".tp-sources a");
   expect(await links.count()).toBeGreaterThanOrEqual(10);
   await expect(links.first()).toHaveAttribute("href", /^https:\/\//);
 });
@@ -87,7 +90,7 @@ test("the air record passes automated WCAG checks and does not overflow", async 
     await page.setViewportSize(size);
     await page.goto("/environment/air-over-time");
     await expect(page.locator("main h1")).toBeVisible();
-    await page.locator(".air-table summary").click();
+    await page.locator(".tp-table summary").click();
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
       .analyze();

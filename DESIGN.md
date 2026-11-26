@@ -82,6 +82,16 @@ Every animal and tree page leads with a photo. A fixed list of freely licensed W
 - **Two views of one page.** "Student handout view" hides the instructor-only blocks (before class, what the data shows, watch out for). Print CSS drops the header, footer and colour, prints each map link's address, and shows a base-address note.
 - **County profiles** show the five datasets side by side. A county missing from a dataset shows a dash and the sentence "no data, not zero".
 
+## Section tabs and "compared with before" pages
+
+Every subject (Environment, Forests, Wildlife, Culture, City, Plants) now opens with a visible tab strip (`src/components/section-tabs.tsx`, tabs listed in `src/content/section-tabs.ts`). It replaced a small text link that sat inside a sentence in the page header.
+
+- **The current page is a solid block, the rest are outlined.** The current tab is filled with the subject's ink colour, the others are white blocks with a quiet outline, each at least 56 px tall with a one-line hint ("PM2.5, 2013–2025"). Tabs are real links to real pages, so the current one is marked with `aria-current="page"` and back/forward and sharing keep working. On a phone the tabs stack full width.
+- **One layout for every "over time" page** (`src/components/trends/time-page.tsx`): headline, three large figures, charts each with a "See the numbers" table, "How to read it", questions for class, then sources. The three figures never carry a number that is not in the data modules.
+- **Bars with the numbers written on them** (`bar-chart.tsx`): bars always start at zero, every value is printed, and a missing value is drawn as a labelled dash, never as a zero. A hatched bar marks a figure from a different method that must not be read as part of the line (the atlas's own 2023 forest map beside the two inventories).
+- **Heat tables** (`heat-table.tsx`) tint a cell by its size but print every number, so colour is a hint, not the message. Rows are tinted against their own largest value, or the whole table against one scale where noted; the wildlife page uses both.
+- Pages show only figures traced to a source or counted from the atlas's own files, and say what is unavailable (temperature, county-level history, 2020–21 air, a raster comparison of forest change) rather than filling the gap.
+
 ## Air over time
 
 `/environment/air-over-time` answers one question for a lecturer: has Taiwan's air improved? It is a single hand-built SVG line chart (`src/components/air-trend/air-chart.tsx`), not a charting library, so the honesty rules are in the drawing.

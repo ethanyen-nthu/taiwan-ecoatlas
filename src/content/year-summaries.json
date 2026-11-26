@@ -1,0 +1,267 @@
+{
+  "generatedBy": "scripts/build-year-summaries.mjs",
+  "wildlife": {
+    "records": 10841,
+    "years": [
+      {
+        "year": 2014,
+        "records": 1499,
+        "taxa": 55,
+        "byClass": {
+          "Amphibia": 434,
+          "Reptilia": 699,
+          "Mammalia": 276,
+          "Aves": 69,
+          "Malacostraca": 21
+        },
+        "byMonth": [48, 22, 35, 201, 226, 245, 261, 167, 151, 143, 0, 0]
+      },
+      {
+        "year": 2015,
+        "records": 2060,
+        "taxa": 60,
+        "byClass": {
+          "Amphibia": 679,
+          "Reptilia": 735,
+          "Mammalia": 491,
+          "Aves": 137,
+          "Malacostraca": 18
+        },
+        "byMonth": [61, 52, 118, 260, 220, 271, 227, 159, 271, 200, 143, 78]
+      },
+      {
+        "year": 2016,
+        "records": 2269,
+        "taxa": 70,
+        "byClass": {
+          "Amphibia": 946,
+          "Reptilia": 674,
+          "Mammalia": 441,
+          "Aves": 192,
+          "Malacostraca": 16
+        },
+        "byMonth": [55, 72, 79, 331, 203, 249, 383, 322, 158, 158, 121, 138]
+      },
+      {
+        "year": 2017,
+        "records": 5013,
+        "taxa": 80,
+        "byClass": {
+          "Amphibia": 2763,
+          "Reptilia": 912,
+          "Mammalia": 958,
+          "Aves": 322,
+          "Malacostraca": 58
+        },
+        "byMonth": [139, 82, 115, 626, 495, 457, 823, 615, 335, 476, 706, 144]
+      }
+    ],
+    "topCounties": [
+      {
+        "code": "67000",
+        "name": {
+          "en": "Tainan City",
+          "zh": "臺南市"
+        },
+        "total": 1545,
+        "byYear": {
+          "2014": 173,
+          "2015": 235,
+          "2016": 524,
+          "2017": 613
+        }
+      },
+      {
+        "code": "10010",
+        "name": {
+          "en": "Chiayi County",
+          "zh": "嘉義縣"
+        },
+        "total": 1280,
+        "byYear": {
+          "2014": 243,
+          "2015": 392,
+          "2016": 281,
+          "2017": 364
+        }
+      },
+      {
+        "code": "09007",
+        "name": {
+          "en": "Lienchiang County",
+          "zh": "連江縣"
+        },
+        "total": 1188,
+        "byYear": {
+          "2014": 4,
+          "2015": 15,
+          "2016": 12,
+          "2017": 1157
+        }
+      },
+      {
+        "code": "64000",
+        "name": {
+          "en": "Kaohsiung City",
+          "zh": "高雄市"
+        },
+        "total": 975,
+        "byYear": {
+          "2014": 26,
+          "2015": 89,
+          "2016": 173,
+          "2017": 687
+        }
+      },
+      {
+        "code": "10014",
+        "name": {
+          "en": "Taitung County",
+          "zh": "臺東縣"
+        },
+        "total": 886,
+        "byYear": {
+          "2014": 193,
+          "2015": 250,
+          "2016": 182,
+          "2017": 261
+        }
+      },
+      {
+        "code": "10009",
+        "name": {
+          "en": "Yunlin County",
+          "zh": "雲林縣"
+        },
+        "total": 646,
+        "byYear": {
+          "2014": 94,
+          "2015": 157,
+          "2016": 200,
+          "2017": 195
+        }
+      },
+      {
+        "code": "10008",
+        "name": {
+          "en": "Nantou County",
+          "zh": "南投縣"
+        },
+        "total": 615,
+        "byYear": {
+          "2014": 145,
+          "2015": 137,
+          "2016": 104,
+          "2017": 229
+        }
+      },
+      {
+        "code": "68000",
+        "name": {
+          "en": "Taoyuan City",
+          "zh": "桃園市"
+        },
+        "total": 515,
+        "byYear": {
+          "2014": 156,
+          "2015": 164,
+          "2016": 101,
+          "2017": 94
+        }
+      }
+    ]
+  },
+  "parks": {
+    "total": 812,
+    "withYear": 777,
+    "withoutYear": 35,
+    "byDecade": [
+      {
+        "decade": 1890,
+        "parks": 1,
+        "areaHa": 7.62
+      },
+      {
+        "decade": 1930,
+        "parks": 1,
+        "areaHa": 9.8
+      },
+      {
+        "decade": 1950,
+        "parks": 1,
+        "areaHa": 39.73
+      },
+      {
+        "decade": 1960,
+        "parks": 3,
+        "areaHa": 2.04
+      },
+      {
+        "decade": 1970,
+        "parks": 94,
+        "areaHa": 135.88
+      },
+      {
+        "decade": 1980,
+        "parks": 285,
+        "areaHa": 152.5
+      },
+      {
+        "decade": 1990,
+        "parks": 223,
+        "areaHa": 161.38
+      },
+      {
+        "decade": 2000,
+        "parks": 100,
+        "areaHa": 73.52
+      },
+      {
+        "decade": 2010,
+        "parks": 51,
+        "areaHa": 35.02
+      },
+      {
+        "decade": 2020,
+        "parks": 18,
+        "areaHa": 32.45
+      }
+    ],
+    "oldest": {
+      "en": "228 Peace Park",
+      "zh": "二二八和平公園",
+      "year": 1899
+    },
+    "newest": {
+      "en": "Zhuyuan Park",
+      "zh": "朱園公園",
+      "year": 2025
+    }
+  },
+  "trees": {
+    "park": {
+      "total": 85177,
+      "undated": 481,
+      "byYear": {
+        "2016": 245,
+        "2022": 3858,
+        "2023": 32897,
+        "2024": 19520,
+        "2025": 24426,
+        "2026": 3750
+      },
+      "firstDate": "2016-06-02",
+      "lastDate": "2026-10-02"
+    },
+    "riverside": {
+      "total": 10735,
+      "undated": 2,
+      "byYear": {
+        "2016": 9988,
+        "2017": 745
+      },
+      "firstDate": "2016-11-04",
+      "lastDate": "2017-06-16"
+    }
+  }
+}

@@ -80,12 +80,14 @@ test("the optional 10 km grid draws squares and a square opens a readable panel"
   expect(errors).toEqual([]);
 });
 
-test("the culture map links to the peoples guide, and a record opens the bigger panel with its people", async ({
+test("the culture map has a tab for the peoples guide, and a record opens the bigger panel with its people", async ({
   page,
 }) => {
   await openMap(page, "/culture?q=Wsilung&shade=0");
   await expect(
-    page.getByRole("link", { name: /Meet the sixteen peoples/ }),
+    page
+      .getByRole("navigation", { name: "Pages in this subject" })
+      .getByRole("link", { name: /Sixteen peoples/ }),
   ).toHaveAttribute("href", "/culture/peoples");
   await page.getByRole("button", { name: "View Wsilung" }).click();
   const peek = page.locator(".atlas-peek");

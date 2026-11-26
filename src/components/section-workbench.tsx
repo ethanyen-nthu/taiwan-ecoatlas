@@ -62,6 +62,7 @@ import {
 import { Status, useFormatTime } from "./status";
 import { lessonsFor, trackLabel } from "@/content/lesson-index";
 import { Footer } from "./footer";
+import { SectionTabs } from "./section-tabs";
 import "./section-workbench.css";
 
 /** Wildlife records are filed under scientific names only; show the name
@@ -718,17 +719,6 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         <div className="atlas-head-copy">
           <h1>{title[language]}</h1>
           <p>{title.description[language === "en" ? 0 : 1]}</p>
-          {section === "culture" && (
-            <Link className="atlas-head-link" href="/culture/peoples">
-              {t("Meet the sixteen peoples", "認識十六個族群")} →
-            </Link>
-          )}
-          {section === "environment" && (
-            <Link className="atlas-head-link" href="/environment/air-over-time">
-              {t("Has the air improved? 2013–2025", "空氣有變好嗎？2013–2025")}{" "}
-              →
-            </Link>
-          )}
         </div>
         <nav
           className="atlas-section-nav"
@@ -757,6 +747,7 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           <path d={islandPath} />
         </svg>
       </header>
+      <SectionTabs section={section} current="map" />
       <SectionGuide guide={sectionGuides[section]} />
       {section === "urban" && <CityCoverage />}
       {catalogue.error && (

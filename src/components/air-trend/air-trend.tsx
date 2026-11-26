@@ -1,6 +1,4 @@
 "use client";
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import {
   airSources,
   centralSouthPm25,
@@ -10,11 +8,10 @@ import {
   redAlerts,
   yearSpan,
 } from "@/content/air-history";
-import { islandPath, islandViewBox } from "@/lib/island-path";
+import { localiseSources } from "@/content/history-types";
 import { useLanguage } from "../providers";
-import { Footer } from "../footer";
+import { TimePage, TimePanel } from "../trends/time-page";
 import { AirChart } from "./air-chart";
-import "../teach/teach.css";
 import "./air-trend.css";
 
 const one = (value: number) => value.toFixed(1);
@@ -95,194 +92,102 @@ export function AirTrend() {
   }));
 
   return (
-    <main
-      id="main"
-      className="document-page teach air"
-      data-subject="environment"
+    <TimePage
+      section="environment"
+      tab="air"
+      crumb={t("Air over time", "空氣的長期變化")}
+      title={t("Has Taiwan’s air improved?", "臺灣的空氣有變好嗎？")}
+      lede={t(
+        "Fine-particle (PM2.5) pollution has fallen by nearly half since 2013, measured the ministry’s standard way. Here is the record, what it can show, and where to be careful.",
+        "以環境部的標準方法測量，細懸浮微粒（PM2.5）自 2013 年以來已下降近一半。以下是這段紀錄、它能說明什麼，以及需要小心之處。",
+      )}
+      facts={[
+        {
+          num: minus(drop),
+          what: t(
+            `National annual average PM2.5, ${first.year} to ${last.year}`,
+            `全國 PM2.5 年平均濃度，${first.year} 至 ${last.year} 年`,
+          ),
+          detail: `${one(first.value)} → ${one(last.value)} µg/m³`,
+        },
+        {
+          num: minus(southDrop),
+          what: t(
+            `Central and southern Taiwan, ${southFirst.year} to ${southLast.year}`,
+            `中南部地區，${southFirst.year} 至 ${southLast.year} 年`,
+          ),
+          detail: `${one(southFirst.value)} → ${one(southLast.value)} µg/m³${t(
+            ", still above the national average",
+            "，仍高於全國平均",
+          )}`,
+        },
+        {
+          num: `${redAlerts[0].count} → ${redAlerts[1].count}`,
+          what: t(
+            `PM2.5 red-alert station-days, ${redAlerts[0].year} to ${redAlerts[1].year}`,
+            `PM2.5 紅色警示站日數，${redAlerts[0].year} 至 ${redAlerts[1].year} 年`,
+          ),
+          detail: t(
+            "15 in 2020 (to 20 December, preliminary)",
+            "2020 年降為 15（至 12 月 20 日，初步數字）",
+          ),
+        },
+      ]}
+      notes={notes}
+      questions={questions}
+      next={[
+        {
+          href: "/environment",
+          label: t("Open the live air-quality map", "開啟即時空氣品質地圖"),
+        },
+        {
+          href: "/teach/air-quality-index",
+          label: t(
+            "Lesson: Reading the Air Quality Index",
+            "課程：讀懂空氣品質指標",
+          ),
+        },
+      ]}
+      sourcesIntro={t(
+        "Every number on this page was copied by hand from the documents below; the atlas has no live archive of past air quality. Please check against the originals before citing. Two figures that differ between sources are never averaged: where releases disagreed, the year is left out.",
+        "本頁每個數字都是從下列文件人工抄錄；本平台沒有過去空氣品質的即時存檔。引用前請對照原文。不同來源之間有出入的數字不會取平均：發布內容不一致的年份就不列入。",
+      )}
+      sources={localiseSources(airSources, language)}
     >
-      <p className="teach-crumb">
-        <Link href="/environment">{t("Environment", "環境")}</Link>
-        <span aria-hidden="true"> / </span>
-        {t("Air over time", "空氣的長期變化")}
-      </p>
-      <header className="teach-head">
-        <div className="teach-head-copy">
-          <h1>{t("Has Taiwan’s air improved?", "臺灣的空氣有變好嗎？")}</h1>
-          <p>
-            {t(
-              "Fine-particle (PM2.5) pollution has fallen by nearly half since 2013, measured the ministry’s standard way. Here is the record, what it can show, and where to be careful.",
-              "以環境部的標準方法測量，細懸浮微粒（PM2.5）自 2013 年以來已下降近一半。以下是這段紀錄、它能說明什麼，以及需要小心之處。",
-            )}
-          </p>
-        </div>
-        <svg
-          className="teach-island"
-          viewBox={islandViewBox}
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path d={islandPath} />
-        </svg>
-      </header>
-
-      <ul className="air-facts">
-        <li>
-          <p className="air-num">{minus(drop)}</p>
-          <p className="air-what">
-            {t(
-              `National annual average PM2.5, ${first.year} to ${last.year}`,
-              `全國 PM2.5 年平均濃度，${first.year} 至 ${last.year} 年`,
-            )}
-          </p>
-          <p className="air-detail">
-            {one(first.value)} → {one(last.value)} µg/m³
-          </p>
-        </li>
-        <li>
-          <p className="air-num">{minus(southDrop)}</p>
-          <p className="air-what">
-            {t(
-              `Central and southern Taiwan, ${southFirst.year} to ${southLast.year}`,
-              `中南部地區，${southFirst.year} 至 ${southLast.year} 年`,
-            )}
-          </p>
-          <p className="air-detail">
-            {one(southFirst.value)} → {one(southLast.value)} µg/m³
-            {t(", still above the national average", "，仍高於全國平均")}
-          </p>
-        </li>
-        <li>
-          <p className="air-num">
-            {redAlerts[0].count} → {redAlerts[1].count}
-          </p>
-          <p className="air-what">
-            {t(
-              `PM2.5 red-alert station-days, ${redAlerts[0].year} to ${redAlerts[1].year}`,
-              `PM2.5 紅色警示站日數，${redAlerts[0].year} 至 ${redAlerts[1].year} 年`,
-            )}
-          </p>
-          <p className="air-detail">
-            {t(
-              "15 in 2020 (to 20 December, preliminary)",
-              "2020 年降為 15（至 12 月 20 日，初步數字）",
-            )}
-          </p>
-        </li>
-      </ul>
-
-      <section className="air-panel" aria-labelledby="air-chart-title">
-        <div className="air-panel-head">
-          <h2 id="air-chart-title">
-            {t("Annual average PM2.5 in Taiwan", "臺灣 PM2.5 年平均濃度")}
-          </h2>
-          <p>
-            {t(
-              "µg/m³ · ministry standard method, 31 stations · lower is better",
-              "µg/m³ · 環境部標準方法，31 個測站 · 數值越低越好",
-            )}
-          </p>
-        </div>
-        <AirChart />
-        <p className="air-caption">
-          {t(
-            `${gapYears.join(" and ")} are not plotted: the ministry’s preliminary figures for those years could not be reconciled with its final series, so the atlas leaves a gap until the final annual values are added.`,
-            `${gapYears.join("、")} 年未繪出：環境部這兩年的初步數字與最終數列無法對上，本平台在補上最終年值前先留空。`,
-          )}
-        </p>
-        <details className="air-table">
-          <summary>{t("See the numbers", "查看數字")}</summary>
-          <table>
-            <caption className="air-sr">
-              {t("PM2.5 annual averages, µg/m³", "PM2.5 年平均濃度，µg/m³")}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">{t("Year", "年")}</th>
-                <th scope="col">{t("National", "全國")}</th>
-                <th scope="col">{t("Central and south", "中南部")}</th>
-                <th scope="col">{t("Note", "備註")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.year}>
-                  <th scope="row">{row.year}</th>
-                  <td>{row.national ? one(row.national.value) : "—"}</td>
-                  <td>{row.south ? one(row.south.value) : "—"}</td>
-                  <td>
-                    {gapYears.includes(row.year)
-                      ? t(
-                          "Not plotted: preliminary figures could not be reconciled",
-                          "未繪出：初步數字無法對上",
-                        )
-                      : ""}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </details>
-      </section>
-
-      <section className="air-section" aria-labelledby="air-read">
-        <h2 id="air-read">{t("How to read it", "如何解讀")}</h2>
-        <ol className="air-notes">
-          {notes.map((note) => (
-            <li key={note.title}>
-              <h3>{note.title}</h3>
-              <p>{note.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="air-class" aria-labelledby="air-class-title">
-        <h2 id="air-class-title">{t("Questions for class", "課堂討論題")}</h2>
-        <ol>
-          {questions.map((question) => (
-            <li key={question}>{question}</li>
-          ))}
-        </ol>
-        <p className="air-next">
-          <Link href="/environment">
-            {t("Open the live air-quality map", "開啟即時空氣品質地圖")}
-            <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-          <Link href="/teach/air-quality-index">
-            {t(
-              "Lesson: Reading the Air Quality Index",
-              "課程：讀懂空氣品質指標",
-            )}
-            <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </p>
-      </section>
-
-      <section
-        className="air-section air-sources"
-        aria-labelledby="air-sources-title"
+      <TimePanel
+        id="air-chart-title"
+        title={t("Annual average PM2.5 in Taiwan", "臺灣 PM2.5 年平均濃度")}
+        sub={t(
+          "µg/m³ · ministry standard method, 31 stations · lower is better",
+          "µg/m³ · 環境部標準方法，31 個測站 · 數值越低越好",
+        )}
+        caption={t(
+          `${gapYears.join(" and ")} are not plotted: the ministry’s preliminary figures for those years could not be reconciled with its final series, so the atlas leaves a gap until the final annual values are added.`,
+          `${gapYears.join("、")} 年未繪出：環境部這兩年的初步數字與最終數列無法對上，本平台在補上最終年值前先留空。`,
+        )}
+        table={{
+          caption: t("PM2.5 annual averages, µg/m³", "PM2.5 年平均濃度，µg/m³"),
+          head: [
+            t("Year", "年"),
+            t("National", "全國"),
+            t("Central and south", "中南部"),
+            t("Note", "備註"),
+          ],
+          rows: rows.map((row) => [
+            String(row.year),
+            row.national ? one(row.national.value) : "—",
+            row.south ? one(row.south.value) : "—",
+            gapYears.includes(row.year)
+              ? t(
+                  "Not plotted: preliminary figures could not be reconciled",
+                  "未繪出：初步數字無法對上",
+                )
+              : "",
+          ]),
+        }}
       >
-        <h2 id="air-sources-title">{t("Sources", "資料來源")}</h2>
-        <p>
-          {t(
-            "Every number on this page was copied by hand from the documents below; the atlas has no live archive of past air quality. Please check against the originals before citing. Two figures that differ between sources are never averaged: where releases disagreed, the year is left out.",
-            "本頁每個數字都是從下列文件人工抄錄；本平台沒有過去空氣品質的即時存檔。引用前請對照原文。不同來源之間有出入的數字不會取平均：發布內容不一致的年份就不列入。",
-          )}
-        </p>
-        <ul>
-          {airSources.map((source) => (
-            <li key={source.id}>
-              <a href={source.url} target="_blank" rel="noopener noreferrer">
-                {source.title[language]}
-              </a>
-              <span>
-                {source.publisher} · {source.used[language]}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <Footer />
-    </main>
+        <AirChart />
+      </TimePanel>
+    </TimePage>
   );
 }

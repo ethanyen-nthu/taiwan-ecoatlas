@@ -12,6 +12,7 @@ import type { PeopleProfile } from "@/content/peoples";
 import type { PeoplePageData } from "@/lib/culture-types";
 import { islandPath, islandViewBox } from "@/lib/island-path";
 import { Footer } from "../footer";
+import { SectionTabs } from "../section-tabs";
 import { useLanguage } from "../providers";
 import { OutlineMap } from "./outline-map";
 import { PeopleFacts, useFactText } from "./people-facts";
@@ -110,13 +111,14 @@ export function PeoplesIndex({ counts }: { counts: Record<string, number> }) {
           <path d={islandPath} />
         </svg>
       </header>
+      <SectionTabs section="culture" current="peoples" />
 
       <section className="cp-block" aria-labelledby="cp-timeline">
         <h2 id="cp-timeline">{t("How the list grew", "名單如何增加")}</h2>
         <p className="cp-lede">
           {t(
-            "Nine peoples were already on the state's list. Seven more were recognised between 2001 and 2014, most of them after decades of campaigning by communities that had been counted inside another group. Ten plains peoples, such as the Siraya, are still not on the list.",
-            "原本的名單有九族；2001 至 2014 年間又增加七族，多半經歷了原本被算在其他族群之下的社群數十年的爭取。西拉雅等十個平埔族群仍不在名單上。",
+            "Nine peoples were already on the state's list. Seven more were recognised between 2001 and 2014, most of them after decades of campaigning by communities that had been counted inside another group. Ten plains peoples, such as the Siraya, are still not on the list. A law on plains Indigenous status was promulgated on 23 October 2025, but each people must first apply to be recognised.",
+            "原本的名單有九族；2001 至 2014 年間又增加七族，多半經歷了原本被算在其他族群之下的社群數十年的爭取。西拉雅等十個平埔族群仍不在名單上。2025 年 10 月 23 日公布施行了規範平埔原住民身分的法律，但各族須先申請認定。",
           )}
         </p>
         <ol className="cp-timeline">
