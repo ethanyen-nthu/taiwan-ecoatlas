@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/header";
+import { TodayBar } from "@/components/today/today";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
             Skip to content / 跳至內容
           </a>
           <Header />
+          <TodayBar />
           {children}
         </Providers>
       </body>

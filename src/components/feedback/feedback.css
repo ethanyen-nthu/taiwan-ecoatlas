@@ -1,0 +1,196 @@
+/* Suggestions and bug reports. A form on a white card, the way to reach the
+   maker beside it, and the exact email shown before anything is opened. */
+.fb-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 32px clamp(28px, 4vw, 56px);
+  align-items: start;
+  margin-top: 32px;
+}
+.fb-form {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+  padding: clamp(18px, 2.6vw, 32px);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.fb-kinds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fb-kinds legend,
+.fb-field > label {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+.fb-kind {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.fb-kind:has(input:checked) {
+  background: var(--soft);
+  border-color: var(--ink);
+}
+.fb-kind:has(input:focus-visible) {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.fb-kind input,
+.fb-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ink);
+}
+.fb-field {
+  display: grid;
+  min-width: 0;
+}
+.fb-field > label {
+  display: block;
+}
+.fb-hint {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  max-width: 62ch;
+}
+.fb-field textarea,
+.fb-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.fb-field textarea {
+  min-height: 170px;
+  resize: vertical;
+}
+.fb-field textarea:focus-visible,
+.fb-field input:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 1px;
+}
+.fb-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+.fb-preview {
+  min-width: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.fb-preview h2,
+.fb-side h2 {
+  margin: 0 0 8px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.fb-preview pre {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--soft);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.fb-send {
+  gap: 12px;
+}
+.fb-send[aria-disabled="true"] {
+  background: #d9d6cf;
+  border-color: #d9d6cf;
+  color: #4d555c;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.fb-warn {
+  margin: 0;
+  max-width: 62ch;
+  padding: 10px 14px;
+  background: #fbf0d4;
+  border-radius: 8px;
+  color: #4a3600;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.fb-side {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.fb-side p {
+  margin: 0;
+}
+.fb-side h2:not(:first-child) {
+  margin-top: 14px;
+}
+.fb-side a {
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fb-side .teach-copy {
+  justify-self: start;
+}
+.fb-side .fb-issue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  min-height: 44px;
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .fb-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .fb-kinds {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media print {
+  .fb-actions {
+    display: none !important;
+  }
+}

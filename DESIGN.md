@@ -100,6 +100,16 @@ Bars are `HBars` (`src/components/environment-now/h-bars.tsx`): horizontal, from
 
 The landing page's `CountySnapshot` shows six subject cards for one county: air and weather now (live), forest 2023, roadkill records, listed villages, Taipei parks and Taipei tree kinds. The figures come from the same `countyDetail` the county profile pages use, and a test checks they agree. Urban and tree cards show a dash with "Taipei City only" elsewhere.
 
+## Today
+
+The home page's first screen has "Today in Taiwan" beside the map (`src/components/today/today.tsx`): four figures (air quality, temperature, rain so far, reservoir storage) in plain type with the unit and a line saying what each is the middle of or the total of, each linking to its page, then the three source statuses. On a phone the figures come before the map. Every other page except the full-screen map has the same figures as a slim strip under the header. All of it comes from one small request, `/api/today`, which boils down the feeds the live pages already use (shared by the CDN for two minutes) so a page view does not download 874 stations.
+
+A part with no reading is left out, never shown as 0, and if nothing has a reading the strip disappears and the home panel says there are no live readings. A stale feed says "older reading". The only colour is the air-quality band dot, and the band is named in words beside it; reservoir storage stays a plain number because the Water Resources Agency asks that it not be coloured like its water situation lights.
+
+## Feedback
+
+`/feedback` is deliberately not a form that posts to a server: the site has no database and no account, and a mail service would need a key and would store people's words. It builds a `mailto:` link instead, so the message goes from the visitor's own address and can be answered there. The exact email (to, subject, body) is shown first, the screen size and browser line is optional, and a "copy the message" button covers people with only webmail. The page address comes from the footer link, and only a plain path on this site is accepted. The same page links the public GitHub issues page.
+
 ## Cite and download
 
 Every `TimePage` ends with "Cite this page and take the numbers" (`src/components/trends/cite-download.tsx`). It gives a copy-ready citation (site, year, page title, address, the agencies behind the data, and the day it was opened in Taiwan time), a print or save-as-PDF button, and one CSV download for each table on the page. Live pages (weather, reservoirs) add the clock time to the citation and say why. The citation date is filled in the browser, so the statically built page never prints a date it cannot know.

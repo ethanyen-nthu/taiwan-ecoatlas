@@ -1,9 +1,11 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowUpRight, Leaf } from "lucide-react";
 import { useLanguage } from "./providers";
 export function Footer() {
   const { t, language } = useLanguage();
+  const pathname = usePathname();
   return (
     <footer className="site-footer">
       <span>
@@ -20,6 +22,15 @@ export function Footer() {
         </Link>
         <Link href="/data">{t("Open data", "開放資料")}</Link>
         <Link href="/sources">{t("Sources & licences", "來源與授權")}</Link>
+        <Link
+          href={
+            pathname && pathname !== "/feedback"
+              ? `/feedback?from=${encodeURIComponent(pathname).replaceAll("%2F", "/")}`
+              : "/feedback"
+          }
+        >
+          {t("Suggest or report a bug", "建議或回報問題")}
+        </Link>
         <Link href="/about">
           {t("About the project", "關於專案")}
           <ArrowUpRight size={13} />

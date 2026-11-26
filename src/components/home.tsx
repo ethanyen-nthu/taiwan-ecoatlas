@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CircleCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Explorer from "./map/explorer";
 import { useLanguage, useObservations } from "./providers";
 import { Footer } from "./footer";
-import { Status } from "./status";
+import { TodayHero } from "./today/today";
 import { HomeJourney } from "./home-journey";
 import { CountySnapshot } from "./county-snapshot";
 import type { SnapshotCounty } from "@/lib/county-snapshot";
@@ -64,41 +64,12 @@ export function Home({
             </Link>
           </div>
         </div>
-        <div className="hero-status">
-          <p className="hero-status-title">
-            {t("Source status right now", "目前的資料來源狀態")}
-          </p>
-          <dl>
-            <div>
-              <dt>{t("County geography", "縣市地理")}</dt>
-              <dd>
-                <span className="verified-inline">
-                  <CircleCheck size={14} />
-                  22 {t("verified units", "已驗證行政區")}
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Air quality · MOENV", "空氣品質・環境部")}</dt>
-              <dd>
-                <Status status={aqi.data?.status} loading={aqi.loading} />
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Weather · CWA", "氣象・中央氣象署")}</dt>
-              <dd>
-                <Status
-                  status={weather.data?.status}
-                  loading={weather.loading}
-                />
-              </dd>
-            </div>
-          </dl>
-          <Link className="text-link" href="/sources">
-            {t("All sources and licences", "所有來源與授權")}
-            <ArrowUpRight size={16} />
-          </Link>
-        </div>
+        <TodayHero
+          airStatus={aqi.data?.status}
+          weatherStatus={weather.data?.status}
+          airLoading={aqi.loading}
+          weatherLoading={weather.loading}
+        />
         <div className="hero-map">
           <Explorer compact island />
           <div className="map-caption">

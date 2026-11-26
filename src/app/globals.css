@@ -2576,13 +2576,15 @@ h3,
   .hero-copy {
     grid-row: 1;
   }
-  .hero-map {
+  /* On a narrow screen the figures come before the map, so they are seen
+     without scrolling past a tall map. */
+  .hero-status {
     grid-row: 2;
+  }
+  .hero-map {
+    grid-row: 3;
     min-height: 0;
     height: 480px;
-  }
-  .hero-status {
-    grid-row: 3;
   }
   .principles {
     grid-template-columns: minmax(0, 1fr);
