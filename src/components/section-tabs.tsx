@@ -1,6 +1,13 @@
 "use client";
 import Link from "next/link";
-import { BookOpen, ChartNoAxesColumn, MapPin, Users } from "lucide-react";
+import {
+  BookOpen,
+  ChartNoAxesColumn,
+  CloudSun,
+  Droplets,
+  MapPin,
+  Users,
+} from "lucide-react";
 import { sectionTabs, type SectionKey } from "@/content/section-tabs";
 import { useLanguage } from "./providers";
 import "./section-tabs.css";
@@ -10,6 +17,8 @@ const icons = {
   trend: ChartNoAxesColumn,
   people: Users,
   guide: BookOpen,
+  weather: CloudSun,
+  water: Droplets,
 };
 
 /** The visible tab strip at the top of each subject. Tabs are links to real

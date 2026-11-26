@@ -92,6 +92,14 @@ Every subject (Environment, Forests, Wildlife, Culture, City, Plants) now opens 
 - **Heat tables** (`heat-table.tsx`) tint a cell by its size but print every number, so colour is a hint, not the message. Rows are tinted against their own largest value, or the whole table against one scale where noted; the wildlife page uses both.
 - Pages show only figures traced to a source or counted from the atlas's own files, and say what is unavailable (temperature, county-level history, 2020–21 air, a raster comparison of forest change) rather than filling the gap.
 
+## Live pages: weather, reservoirs and the county section
+
+`/environment/weather` and `/environment/reservoirs` reuse the `TimePage` layout (headline, figures, how to read it, questions, sources) but show the latest readings instead of a history, so each says so plainly ("right now, not what is normal"; "this is now, not history"). Both start with a status bar (fresh/stale, newest reading time, Refresh). When a feed is down or not configured the page shows one plain notice and nothing else: no figures, no chart, no table, nothing estimated.
+
+Bars are `HBars` (`src/components/environment-now/h-bars.tsx`): horizontal, from zero, one scale, the number written beside each bar. Reservoir bars use one colour. The Water Resources Agency asks that storage percentages not be coloured green, yellow, orange or red so they are not mistaken for its water-situation lights. A bar that would pass the end of its track is drawn full with a hatch and the words "above 100%"; it is never cut short silently. A county's weather figure is its middle station (the median) with the coolest and warmest beside it, not an average, because stations are unevenly spread and some are on high peaks. Tables scroll inside their own box on a phone, and the box is positioned so hidden screen-reader text cannot widen the page.
+
+The landing page's `CountySnapshot` shows six subject cards for one county: air and weather now (live), forest 2023, roadkill records, listed villages, Taipei parks and Taipei tree kinds. The figures come from the same `countyDetail` the county profile pages use, and a test checks they agree. Urban and tree cards show a dash with "Taipei City only" elsewhere.
+
 ## Air over time
 
 `/environment/air-over-time` answers one question for a lecturer: has Taiwan's air improved? It is a single hand-built SVG line chart (`src/components/air-trend/air-chart.tsx`), not a charting library, so the honesty rules are in the drawing.

@@ -11,7 +11,7 @@ export type SectionKey =
 export interface SectionTab {
   key: string;
   href: string;
-  icon: "map" | "trend" | "people" | "guide";
+  icon: "map" | "trend" | "people" | "guide" | "weather" | "water";
   label: Localized;
   hint: Localized;
 }
@@ -31,6 +31,20 @@ export const sectionTabs: Record<SectionKey, SectionTab[]> = {
       icon: "trend",
       label: { en: "Air over time", zh: "空氣的變化" },
       hint: { en: "PM2.5, 2013–2025", zh: "PM2.5，2013–2025" },
+    },
+    {
+      key: "weather",
+      href: "/environment/weather",
+      icon: "weather",
+      label: { en: "Weather now", zh: "此刻的天氣" },
+      hint: { en: "Every county, latest readings", zh: "各縣市最新讀數" },
+    },
+    {
+      key: "reservoirs",
+      href: "/environment/reservoirs",
+      icon: "water",
+      label: { en: "Reservoirs now", zh: "水庫現況" },
+      hint: { en: "How full each one is", zh: "各水庫蓄水比例" },
     },
     {
       key: "rivers",

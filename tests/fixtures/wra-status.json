@@ -1,0 +1,62 @@
+[
+  {
+    "accumulaterainfallincatchment": "",
+    "desiltingtunneloutflow": "",
+    "drainagetunneloutflow": "",
+    "effectivewaterstoragecapacity": "",
+    "inflowdischarge": "",
+    "observationtime": "2026-11-26T07:00:00",
+    "othersoutflow": "",
+    "poweroutletoutflow": "",
+    "predeterminedcrossflow": "",
+    "predeterminedoutflowtime": "",
+    "reservoiridentifier": "10802",
+    "spillwayoutflow": "",
+    "statustype": "",
+    "totaloutflow": "0.0",
+    "waterdraw": "",
+    "waterlevel": "4.82"
+  },
+  {
+    "accumulaterainfallincatchment": "",
+    "effectivewaterstoragecapacity": "0.0",
+    "observationtime": "2026-11-26T07:00:00",
+    "reservoiridentifier": "50213",
+    "waterlevel": "11.47"
+  },
+  {
+    "accumulaterainfallincatchment": "0.9",
+    "effectivewaterstoragecapacity": "38825",
+    "observationtime": "2026-11-26T14:00:00",
+    "reservoiridentifier": "30502",
+    "waterlevel": "224.44"
+  },
+  {
+    "accumulaterainfallincatchment": "0",
+    "effectivewaterstoragecapacity": "33168.25",
+    "observationtime": "2026-11-26T14:00:00",
+    "reservoiridentifier": "10205",
+    "waterlevel": "165.75"
+  },
+  {
+    "accumulaterainfallincatchment": "0",
+    "effectivewaterstoragecapacity": "20227.02",
+    "observationtime": "2026-11-26T14:00:00",
+    "reservoiridentifier": "10201",
+    "waterlevel": "244.65"
+  },
+  {
+    "accumulaterainfallincatchment": "0.1",
+    "effectivewaterstoragecapacity": "1745",
+    "observationtime": "2026-11-26T14:00:00",
+    "reservoiridentifier": "30802",
+    "waterlevel": "37.87"
+  },
+  {
+    "accumulaterainfallincatchment": "",
+    "effectivewaterstoragecapacity": "1064.42",
+    "observationtime": "2026-11-26T14:00:00",
+    "reservoiridentifier": "20501",
+    "waterlevel": "997.86"
+  }
+]

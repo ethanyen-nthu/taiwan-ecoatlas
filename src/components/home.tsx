@@ -6,6 +6,8 @@ import { useLanguage, useObservations } from "./providers";
 import { Footer } from "./footer";
 import { Status } from "./status";
 import { HomeJourney } from "./home-journey";
+import { CountySnapshot } from "./county-snapshot";
+import type { SnapshotCounty } from "@/lib/county-snapshot";
 import type { JourneyMarks } from "@/server/journey";
 
 /** Numbers counted from the published data files on the server. */
@@ -25,9 +27,11 @@ export interface HomeFacts {
 export function Home({
   facts,
   marks,
+  counties,
 }: {
   facts: HomeFacts;
   marks: JourneyMarks;
+  counties: SnapshotCounty[];
 }) {
   const { t } = useLanguage(),
     aqi = useObservations("aqi"),
@@ -45,8 +49,8 @@ export function Home({
           </h1>
           <p>
             {t(
-              "Air quality and weather from MOENV and CWA, 2023 forest cover, a screened wildlife subset, 730 villages and a guide to Taipei’s trees. Every layer shows its source, its date and its gaps.",
-              "環境部與中央氣象署的空品與氣象、2023 年森林覆蓋、經篩選的野生動物子集、730 個部落與臺北樹木導覽。每個圖層都標明來源、日期與缺口。",
+              "Air quality and weather from MOENV and CWA, reservoir storage from the Water Resources Agency, 2023 forest cover, a screened wildlife subset, 730 villages and a guide to Taipei’s trees. Every layer shows its source, its date and its gaps.",
+              "環境部與中央氣象署的空品與氣象、水利署的水庫蓄水、2023 年森林覆蓋、經篩選的野生動物子集、730 個部落與臺北樹木導覽。每個圖層都標明來源、日期與缺口。",
             )}
           </p>
           <div className="hero-actions">
@@ -106,6 +110,7 @@ export function Home({
         </div>
       </section>
       <HomeJourney facts={facts} marks={marks} />
+      <CountySnapshot counties={counties} />
       <section className="principles">
         <h2>
           {t(

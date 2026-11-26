@@ -167,20 +167,22 @@ export function TimePage({
       </header>
       <SectionTabs section={section} current={tab} />
 
-      <ul className="tp-facts">
-        {facts.map((fact) => (
-          <li key={fact.what}>
-            <p
-              className="tp-num"
-              data-long={fact.num.length > 11 ? "true" : undefined}
-            >
-              {fact.num}
-            </p>
-            <p className="tp-what">{fact.what}</p>
-            {fact.detail && <p className="tp-detail">{fact.detail}</p>}
-          </li>
-        ))}
-      </ul>
+      {facts.length > 0 && (
+        <ul className="tp-facts">
+          {facts.map((fact) => (
+            <li key={fact.what}>
+              <p
+                className="tp-num"
+                data-long={fact.num.length > 11 ? "true" : undefined}
+              >
+                {fact.num}
+              </p>
+              <p className="tp-what">{fact.what}</p>
+              {fact.detail && <p className="tp-detail">{fact.detail}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {children}
 

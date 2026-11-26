@@ -62,6 +62,21 @@ All of these live in `src/content/` and `src/components/trends/`. Hand-copied fi
 - Both network requests must validate before replacing a complete weather snapshot; partial upstream failure retains the previous complete snapshot as stale.
 - Authenticated production requests to both networks were verified on 2026-11-15: 874 valid station observations after validation/deduplication, with a real public map popup. Counts vary as the providers update; see `LAUNCH_AUDIT.md`.
 
+## Integrated adapters: WRA reservoir storage (`/environment/reservoirs`)
+
+Two Water Resources Agency datasets under the Open Government Data License 1.0, read server-side from `https://opendata.wra.gov.tw/api/v2/<id>` (no API key; `page` and `size`, at most 1,000 rows per page) and cached for 30 minutes:
+
+- `2be9044c-6e44-4856-aad5-dd108c2e6679` (data.gov.tw 45501, 水庫水情資料): latest storage and water level, hourly for automatic reservoirs or once a day for hand-read ones. Fields used: `reservoiridentifier`, `observationtime`, `effectivewaterstoragecapacity` (萬 m³), `waterlevel` (m), `accumulaterainfallincatchment` (mm). On 26 Nov 2026 it returned 449 rows (about the last 24 hours) for 58 reservoirs.
+- `51023e88-4c76-4dbc-bbb9-470da690d539` (data.gov.tw 41568, 水庫每日營運狀況): `reservoirname`, `capacity` (effective capacity, 萬 m³) and `nwlmax` (full water level). 68 reservoirs on 26 Nov 2026.
+
+The feeds return a bare array of rows with every value a string and every gap an empty string; gaps stay null, never zero. Neither feed carries a storage percentage or a name next to the storage figure, so the atlas joins them on the reservoir number and computes percent full as storage ÷ effective capacity, unrounded and never capped (a reservoir can exceed 100% when the two figures are not from the same moment or the listed capacity is out of date; the page hatches and labels those above 100.0% after rounding). Storage is shown in million m³ (萬 m³ ÷ 100). The data page labels `nwlmax`'s unit as 萬 m³, but the values are elevations (Shihmen's is 245), so it is read as metres; "below full level" is `nwlmax` minus `waterlevel`. The first two digits of the reservoir number give the region (10 north, 20 central, 30 south, 40 east, 50 offshore islands). For each reservoir the newest reading that has a storage figure is used; its own reading time is shown. Three reservoirs have no name and two have no capacity in the daily list; they appear with dashes. Large means 10 million m³ of effective capacity or more.
+
+No history is kept or shown: the feed holds only about a day, so there is no "compared with before" page for reservoirs, and none is estimated. English names are given for 15 well-known reservoirs; the rest keep the published name.
+
+## Weather page (`/environment/weather`)
+
+Uses the CWA station readings described below, with no new source. Each county is summarised by its middle station (median) with the coolest and warmest station beside it; humidity is the middle station's; rain and wind are the highest at any station in the county. Rain is the running total so far today. Nothing is interpolated or stored, and there is no comparison with normals because the atlas holds none.
+
 ## Integrated river sample adapter
 
 - MOENV [WQX_P_01](https://data.moenv.gov.tw/en/dataset/detail/WQX_P_01), **Open Government Data License 1.0**, using server-side `MOENV_API_KEY`.

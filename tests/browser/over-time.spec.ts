@@ -8,7 +8,12 @@ const subjects = [
   {
     path: "/environment",
     current: /Live map/,
-    others: [/Air over time/, /Rivers over time/],
+    others: [
+      /Air over time/,
+      /Weather now/,
+      /Reservoirs now/,
+      /Rivers over time/,
+    ],
   },
   { path: "/forests", current: /Land-cover map/, others: [/Forest over time/] },
   { path: "/wildlife", current: /Roadkill map/, others: [/Year by year/] },

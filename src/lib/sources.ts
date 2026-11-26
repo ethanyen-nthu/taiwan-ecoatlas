@@ -86,6 +86,30 @@ export const sources: Source[] = [
     },
   },
   {
+    id: "reservoirs",
+    name: { en: "Reservoir storage", zh: "水庫蓄水" },
+    agency: { en: "Water Resources Agency", zh: "經濟部水利署" },
+    url: "https://data.gov.tw/dataset/45501",
+    datasetId: "45501 水庫水情資料 / 41568 水庫每日營運狀況",
+    licence: "Open Government Data License 1.0",
+    licenceUrl: openLicence,
+    verifiedLicence: true,
+    frequency: {
+      en: "Hourly (automatic) or daily (read by hand), by reservoir",
+      zh: "每小時（自動）或每日（人工），依水庫而定",
+    },
+    cacheSeconds: 1800,
+    coverage: {
+      en: "Latest day of readings; no history",
+      zh: "最近一天的讀數；無歷史資料",
+    },
+    stage: "ready",
+    note: {
+      en: "Storage and water level come from the hourly water-situation feed; names and effective capacity from the daily operations list. The percentage full is computed here (storage ÷ effective capacity) and never capped, so a reservoir can exceed 100%. Gaps stay empty. The agency asks that storage percentages not be coloured green, yellow, orange or red, so they are drawn in one colour.",
+      zh: "蓄水量與水位來自每小時水情資料；名稱與有效容量來自每日營運狀況。蓄水比例由本平台計算（蓄水量 ÷ 有效容量），不設上限，因此可能超過 100%。缺漏保持空白。水利署請勿將蓄水比例塗成綠、黃、橙、紅，因此只用單一顏色。",
+    },
+  },
+  {
     id: "river",
     name: { en: "River water quality", zh: "河川水質" },
     agency: { en: "Ministry of Environment", zh: "環境部" },

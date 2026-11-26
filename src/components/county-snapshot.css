@@ -1,0 +1,189 @@
+/* "Your county, side by side" on the landing page. Each card carries its
+   subject's colour on a top rule and in its number; nothing else is tinted. */
+.cs {
+  padding: 64px 5% 56px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+.cs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px 40px;
+}
+.cs-head > div {
+  min-width: 0;
+  max-width: 62ch;
+}
+.cs-head h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.3vw, 2.1rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+.cs-head p {
+  margin: 10px 0 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.cs-pick {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 300px);
+  min-width: 0;
+}
+.cs-pick span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-pick select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 48px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--white);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+}
+.cs-pick select:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.cs-now {
+  margin: 22px 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.cs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-card {
+  --tone: var(--ink);
+  --tone-ink: var(--ink);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px 22px 18px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--tone);
+  border-radius: 4px;
+}
+.cs-card[data-tone="environment"] {
+  --tone: var(--c-environment);
+  --tone-ink: var(--c-environment-ink);
+}
+.cs-card[data-tone="forests"] {
+  --tone: var(--c-forests);
+  --tone-ink: var(--c-forests-ink);
+}
+.cs-card[data-tone="wildlife"] {
+  --tone: var(--c-wildlife);
+  --tone-ink: var(--c-wildlife-ink);
+}
+.cs-card[data-tone="culture"] {
+  --tone: var(--c-culture);
+  --tone-ink: var(--c-culture-ink);
+}
+.cs-card[data-tone="urban"] {
+  --tone: var(--c-urban);
+  --tone-ink: var(--c-urban-ink);
+}
+.cs-card[data-tone="plants"] {
+  --tone: var(--c-plants);
+  --tone-ink: var(--c-plants-ink);
+}
+.cs-card h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--tone-ink);
+}
+.cs-card p {
+  margin: 0;
+}
+.cs-num {
+  margin-top: 10px !important;
+  font-size: clamp(2.4rem, 3.4vw, 3rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tone-ink);
+}
+.cs-label {
+  margin-top: 8px !important;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+.cs-extra {
+  margin-top: 10px !important;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.cs-note {
+  margin-top: 10px !important;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.cs-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 44px;
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tone-ink);
+}
+.cs-go:focus-visible,
+.cs-links a:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.cs-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin: 22px 0 0;
+}
+.cs-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+@media (max-width: 900px) {
+  .cs {
+    padding: 44px 5% 40px;
+  }
+  .cs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .cs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-pick {
+    width: 100%;
+  }
+}

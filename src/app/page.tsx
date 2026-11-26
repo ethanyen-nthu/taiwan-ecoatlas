@@ -1,4 +1,5 @@
 import { Home } from "@/components/home";
+import { snapshotCounties } from "@/lib/county-snapshot";
 import { atlasFacts } from "@/server/facts";
 import { journeyMarks } from "@/server/journey";
 import { loadPlants } from "@/server/plants";
@@ -12,6 +13,10 @@ export default async function Page() {
   return (
     <Home
       marks={marks}
+      counties={snapshotCounties(facts, {
+        trees: plants.totalTrees,
+        kinds: plants.rows.length,
+      })}
       facts={{
         wildlifeRecords: facts.wildlife.records,
         species: facts.wildlife.species,

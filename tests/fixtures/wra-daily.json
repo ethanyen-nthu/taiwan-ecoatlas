@@ -1,0 +1,60 @@
+[
+  {
+    "basinrainfall": "0.0",
+    "capacity": "",
+    "crossflow": "0.0",
+    "datetime": "2026-11-25T00:00:00",
+    "dwl": "",
+    "inflow": "",
+    "nwlmax": "",
+    "outflow": "",
+    "outflowdischarge": "",
+    "outflowtotal": "0.0",
+    "regulatorydischarge": "",
+    "reservoiridentifier": "10802",
+    "reservoirname": "羅東攔河堰"
+  },
+  {
+    "capacity": "2.7",
+    "datetime": "2026-11-25T00:00:00",
+    "dwl": "2.0",
+    "nwlmax": "8.0",
+    "reservoiridentifier": "50109",
+    "reservoirname": "烏溝蓄水塘"
+  },
+  {
+    "capacity": "48654",
+    "datetime": "2026-11-25T00:00:00",
+    "nwlmax": "230",
+    "reservoiridentifier": "30502",
+    "reservoirname": "曾文水庫"
+  },
+  {
+    "capacity": "36997.6",
+    "datetime": "2026-11-25T00:00:00",
+    "nwlmax": "170",
+    "reservoiridentifier": "10205",
+    "reservoirname": "翡翠水庫"
+  },
+  {
+    "capacity": "20526",
+    "datetime": "2026-11-25T00:00:00",
+    "nwlmax": "245",
+    "reservoiridentifier": "10201",
+    "reservoirname": "石門水庫"
+  },
+  {
+    "capacity": "1480.05",
+    "datetime": "2026-11-25T00:00:00",
+    "nwlmax": "37",
+    "reservoiridentifier": "30802",
+    "reservoirname": "阿公店水庫"
+  },
+  {
+    "capacity": "2433.42",
+    "datetime": "2026-11-25T00:00:00",
+    "nwlmax": "1005",
+    "reservoiridentifier": "20501",
+    "reservoirname": "霧社水庫"
+  }
+]
