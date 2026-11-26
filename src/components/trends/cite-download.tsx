@@ -135,24 +135,26 @@ export function CiteAndDownload({
     const main = document.querySelector("main");
     if (!main) return;
     let signature = "";
-    let frame = 0;
+    let timer = 0;
     const scan = () => {
-      frame = 0;
+      timer = 0;
       const found = findTables().map(describeTable);
       const next = found.map((f) => `${f.caption}|${f.rows}`).join("\n");
       if (next === signature) return;
       signature = next;
       setTables(found);
     };
+    // A short timer, not an animation frame: frames do not run in a page
+    // that is in a background tab or not on screen yet.
     const queue = () => {
-      if (!frame) frame = window.requestAnimationFrame(scan);
+      if (!timer) timer = window.setTimeout(scan, 60);
     };
     queue();
     const observer = new MutationObserver(queue);
     observer.observe(main, { childList: true, subtree: true });
     return () => {
       observer.disconnect();
-      if (frame) window.cancelAnimationFrame(frame);
+      if (timer) window.clearTimeout(timer);
     };
   }, [pathname]);
 
