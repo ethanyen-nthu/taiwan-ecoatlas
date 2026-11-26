@@ -206,6 +206,7 @@ export function WeatherNow() {
     <TimePage
       section="environment"
       tab="weather"
+      live
       crumb={t("Weather now", "此刻的天氣")}
       title={t("What is the weather doing right now?", "此刻各地的天氣如何？")}
       lede={t(

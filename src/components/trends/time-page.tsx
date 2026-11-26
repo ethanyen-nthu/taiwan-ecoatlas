@@ -7,6 +7,7 @@ import { islandPath, islandViewBox } from "@/lib/island-path";
 import { useLanguage } from "../providers";
 import { Footer } from "../footer";
 import { SectionTabs } from "../section-tabs";
+import { CiteAndDownload } from "./cite-download";
 import "../teach/teach.css";
 import "./time-page.css";
 
@@ -120,6 +121,7 @@ export function TimePage({
   next,
   sourcesIntro,
   sources,
+  live = false,
   children,
 }: {
   section: SectionKey;
@@ -133,6 +135,8 @@ export function TimePage({
   next: TimeLink[];
   sourcesIntro: string;
   sources: TimeSourceItem[];
+  /** True where the page shows the latest reading rather than a history. */
+  live?: boolean;
   children: ReactNode;
 }) {
   const { language, t } = useLanguage();
@@ -234,6 +238,7 @@ export function TimePage({
           ))}
         </ul>
       </section>
+      <CiteAndDownload title={title} sources={sources} live={live} />
       <Footer />
     </main>
   );

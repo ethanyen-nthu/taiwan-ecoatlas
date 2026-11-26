@@ -486,3 +486,83 @@
     padding: 8px 3px;
   }
 }
+
+/* Cite this page, and take the tables as files. */
+.tp-cite-text {
+  max-width: 76ch;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  background: var(--soft);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.tp-cite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tp-cite-note {
+  max-width: 76ch;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.tp-cite-files {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.tp-cite-files h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.tp-cite-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 6px;
+  font-size: 0.9375rem;
+}
+.tp-cite-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-ink);
+}
+.tp-cite-files ul {
+  display: grid;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tp-cite-files li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.tp-cite-name {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 260px;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.tp-cite-name small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+@media print {
+  .tp-cite-actions,
+  .tp-cite-files {
+    display: none !important;
+  }
+}

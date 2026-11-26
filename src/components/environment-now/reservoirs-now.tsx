@@ -90,6 +90,7 @@ export function ReservoirsNow() {
     <TimePage
       section="environment"
       tab="reservoirs"
+      live
       crumb={t("Reservoirs now", "水庫現況")}
       title={t(
         "How full are Taiwan’s reservoirs?",
@@ -314,7 +315,10 @@ export function ReservoirsNow() {
                     <tr key={r.id}>
                       <th scope="row">
                         {label(r)}
-                        <small>
+                        <small
+                          data-csv-extra={t("Reservoir no.", "水庫編號")}
+                          data-csv={r.id}
+                        >
                           {t("No.", "編號")} {r.id}
                         </small>
                       </th>

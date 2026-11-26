@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 
 // Every figure below is synthetic and exists only inside these tests'
 // network mocks. The application never uses it.
@@ -371,4 +372,194 @@ test("home: the county section works in Chinese and on a phone", async ({
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual(
     [],
   );
+});
+
+// ---- Cite this page, and take the tables as files ----
+
+/** A small CSV reader: quoted fields, doubled quotes, CRLF. */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+  const body = text.replace(/^\ufeff/, "");
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i];
+    if (quoted) {
+      if (ch === '"' && body[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && body[i + 1] === "\n") i += 1;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else field += ch;
+  }
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
+async function takeCsv(page: Page, buttonName: RegExp | string, nth = 0) {
+  const button = page.getByRole("button", { name: buttonName }).nth(nth);
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    button.click(),
+  ]);
+  const text = await readFile((await download.path())!, "utf8");
+  return { name: download.suggestedFilename(), text, rows: parseCsv(text) };
+}
+
+test("reservoirs: the table downloads as CSV, gaps empty, number kept", async ({
+  page,
+}) => {
+  await mockData(page);
+  await page.goto("/environment/reservoirs");
+  const cite = page.locator("[data-cite]");
+  await expect(cite.getByRole("heading", { level: 2 })).toHaveText(
+    "Cite this page and take the numbers",
+  );
+  await expect(cite.locator(".tp-cite-text")).toContainText(
+    "/environment/reservoirs",
+  );
+  // The title already ends in a question mark: no second full stop after it.
+  await expect(cite.locator(".tp-cite-text")).toContainText(
+    "reservoirs? https",
+  );
+  await expect(cite.locator(".tp-cite-text")).not.toContainText("?.");
+  // A live page puts the time in the citation.
+  await expect(cite.locator(".tp-cite-text")).toContainText(
+    /Accessed \d{1,2} \w+ 20\d\d, \d\d:\d\d \(Taiwan time\)\./,
+  );
+  await expect(cite.getByRole("button", { name: /Download CSV/ })).toHaveCount(
+    1,
+  );
+
+  const file = await takeCsv(page, /Download CSV/);
+  expect(file.name).toBe("taiwan-ecoatlas-environment-reservoirs-1.csv");
+  expect(file.text.startsWith("\ufeff")).toBe(true);
+  const [head, ...rest] = file.rows;
+  expect(head.slice(0, 2)).toEqual(["Reservoir", "Region"]);
+  expect(head.at(-1)).toBe("Reservoir no.");
+  const width = head.length;
+  const data = rest.slice(0, 6);
+  for (const row of data) expect(row).toHaveLength(width);
+  const luodong = data.find((row) => row.at(-1) === "10802")!;
+  // No stored figure, no capacity, no percentage: empty, never zero.
+  expect(luodong.slice(2, 5)).toEqual(["", "", ""]);
+  expect(luodong[5]).toBe("4.82");
+  // Numbers are as the page shows them (one decimal), not the raw feed value.
+  expect(data.find((row) => row.at(-1) === "10201")![2]).toBe("202.3");
+  await expect(page.locator("[data-cite]")).toContainText(
+    "rounded the same way",
+  );
+  expect(file.text).not.toMatch(/Not given|No reading|—|NaN|undefined/);
+  // The source lines sit under a blank line.
+  const blank = file.rows.findIndex((row) => row.length === 1 && row[0] === "");
+  expect(blank).toBe(7);
+  expect(file.rows.slice(blank + 1).map((row) => row[0])).toEqual([
+    "Source",
+    "Page",
+    "Underlying data",
+    "Accessed",
+  ]);
+  expect(file.rows[blank + 2][1]).toContain("/environment/reservoirs");
+
+  // Without the source lines the file is only the table.
+  await page
+    .getByLabel("Add source lines at the bottom of each file")
+    .uncheck();
+  const bare = await takeCsv(page, /Download CSV/);
+  expect(bare.rows).toHaveLength(7);
+  expect(bare.text).not.toContain("Accessed");
+});
+
+test("weather: the county table downloads with its gaps empty", async ({
+  page,
+}) => {
+  await mockData(page);
+  await page.goto("/environment/weather");
+  await expect(page.locator(".now-table tbody tr")).toHaveCount(3);
+  const file = await takeCsv(page, /Download CSV/);
+  expect(file.name).toBe("taiwan-ecoatlas-environment-weather-1.csv");
+  expect(file.rows[0]).toEqual([
+    "County",
+    "Stations",
+    "Middle °C",
+    "Coolest °C",
+    "Warmest °C",
+    "Humidity %",
+    "Rain today mm",
+    "Wind m/s",
+  ]);
+  const yilan = file.rows.find((row) => row[0] === "Yilan County")!;
+  expect(yilan.slice(0, 5)).toEqual(["Yilan County", "1", "", "", ""]);
+  const taipei = file.rows.find((row) => row[0] === "Taipei City")!;
+  expect(taipei[2]).toBe("23.0");
+});
+
+test("a history page: every table has a file that matches what it shows", async ({
+  page,
+}) => {
+  await page.goto("/wildlife/year-by-year");
+  const tables = await page.locator("main table").count();
+  expect(tables).toBeGreaterThan(0);
+  const buttons = page.locator("[data-cite]").getByRole("button", {
+    name: /Download CSV/,
+  });
+  await expect(buttons).toHaveCount(tables);
+  await expect(page.locator("[data-cite] .tp-cite-text")).toContainText(
+    /Accessed \d{1,2} \w+ 20\d\d\./,
+  );
+
+  const shown = await page.evaluate(() => {
+    const table = document.querySelector("main table")!;
+    const text = (cell: Element) =>
+      cell.textContent!.replace(/\s+/g, " ").trim();
+    return {
+      head: [...(table as HTMLTableElement).tHead!.rows[0].cells].map(text),
+      rows: (table as HTMLTableElement).tBodies[0].rows.length,
+    };
+  });
+  const file = await takeCsv(page, /Download CSV/, 0);
+  expect(file.name).toBe("taiwan-ecoatlas-wildlife-year-by-year-1.csv");
+  expect(file.rows[0]).toEqual(shown.head);
+  expect(file.rows.slice(1, 1 + shown.rows)).toHaveLength(shown.rows);
+  for (const row of file.rows.slice(1, 1 + shown.rows))
+    expect(row).toHaveLength(shown.head.length);
+  expect(file.text).not.toMatch(/NaN|undefined/);
+  // A history page is not a live reading: the date has no clock time.
+  await expect(page.locator("[data-cite] .tp-cite-text")).not.toContainText(
+    "Taiwan time",
+  );
+});
+
+test("the citation reads in Chinese and copies", async ({ page }) => {
+  await page.goto("/plants/surveys");
+  await page.getByRole("button", { name: "繁中", exact: true }).click();
+  const cite = page.locator("[data-cite]");
+  await expect(cite.getByRole("heading", { level: 2 })).toHaveText(
+    "引用本頁，取得數字",
+  );
+  await expect(cite.locator(".tp-cite-text")).toContainText(
+    "臺灣環境與文化地圖",
+  );
+  await expect(cite.locator(".tp-cite-text")).toContainText(
+    /檢索日期：20\d\d年\d{1,2}月\d{1,2}日。/,
+  );
+  await expect(
+    cite.getByRole("button", { name: /下載 CSV/ }).first(),
+  ).toBeVisible();
+  await cite.getByRole("button", { name: "複製引用" }).click();
+  await expect(cite.getByRole("button", { name: "已複製引用" })).toBeVisible();
 });

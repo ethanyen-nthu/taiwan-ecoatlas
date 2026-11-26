@@ -100,6 +100,12 @@ Bars are `HBars` (`src/components/environment-now/h-bars.tsx`): horizontal, from
 
 The landing page's `CountySnapshot` shows six subject cards for one county: air and weather now (live), forest 2023, roadkill records, listed villages, Taipei parks and Taipei tree kinds. The figures come from the same `countyDetail` the county profile pages use, and a test checks they agree. Urban and tree cards show a dash with "Taipei City only" elsewhere.
 
+## Cite and download
+
+Every `TimePage` ends with "Cite this page and take the numbers" (`src/components/trends/cite-download.tsx`). It gives a copy-ready citation (site, year, page title, address, the agencies behind the data, and the day it was opened in Taiwan time), a print or save-as-PDF button, and one CSV download for each table on the page. Live pages (weather, reservoirs) add the clock time to the citation and say why. The citation date is filled in the browser, so the statically built page never prints a date it cannot know.
+
+The CSV is read from the table as it appears, so it always agrees with the page: numbers are written as shown (same rounding), thousands commas are removed so spreadsheets read them as numbers, and a dash becomes an empty field, never zero. A byte-order mark keeps Chinese names intact in Excel. Source lines (page, agencies, access date) can be added under a blank line at the bottom of each file, on by default. Hidden screen-reader text never reaches a file; an element marked `data-csv-extra="Name"` inside a row becomes an extra column (the reservoir number), and `data-csv` on a cell overrides its text.
+
 ## Air over time
 
 `/environment/air-over-time` answers one question for a lecturer: has Taiwan's air improved? It is a single hand-built SVG line chart (`src/components/air-trend/air-chart.tsx`), not a charting library, so the honesty rules are in the drawing.
