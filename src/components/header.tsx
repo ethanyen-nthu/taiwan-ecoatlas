@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Leaf, Menu, X } from "lucide-react";
+import { ArrowUpRight, Leaf, Menu, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "./providers";
 const navigation = [
@@ -71,6 +71,15 @@ export function Header() {
         </Link>
       </nav>
       <div className="header-actions">
+        <Link
+          className="search-link icon-button"
+          href="/search"
+          aria-label={t("Search the atlas", "搜尋平台")}
+          aria-current={path === "/search" ? "page" : undefined}
+          onClick={() => setOpen(false)}
+        >
+          <Search size={20} aria-hidden="true" />
+        </Link>
         <div className="language-switch" aria-label={t("Language", "語言")}>
           <button
             onClick={() => setLanguage("en")}

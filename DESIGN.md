@@ -110,6 +110,10 @@ A part with no reading is left out, never shown as 0, and if nothing has a readi
 
 `/feedback` is deliberately not a form that posts to a server: the site has no database and no account, and a mail service would need a key and would store people's words. It builds a `mailto:` link instead, so the message goes from the visitor's own address and can be answered there. The exact email (to, subject, body) is shown first, the screen size and browser line is optional, and a "copy the message" button covers people with only webmail. The page address comes from the footer link, and only a plain path on this site is accepted. The same page links the public GitHub issues page.
 
+## Search
+
+`/search` is a plain list and a plain matcher, not a search service. The server builds one JSON list (about 1,400 rows, roughly 250 KB) from the pages' own data files; the browser downloads it only when the search page is opened and filters it locally, so nothing a visitor types leaves their device and there is no key to protect. Every word typed must match (a title match outranks a match in the quiet extra words; an exact title outranks a title that merely starts with the word), text is lower-cased and stripped of accents, and 台 is read as 臺 so either spelling finds the county. Results are grouped by kind in a fixed order, with the other language shown smaller beside each title, and a group longer than eight shows the rest on request. The query is kept in the address (`?q=`) with `history.replaceState`, so a search can be shared without adding a history entry for every keystroke.
+
 ## Cite and download
 
 Every `TimePage` ends with "Cite this page and take the numbers" (`src/components/trends/cite-download.tsx`). It gives a copy-ready citation (site, year, page title, address, the agencies behind the data, and the day it was opened in Taiwan time), a print or save-as-PDF button, and one CSV download for each table on the page. Live pages (weather, reservoirs) add the clock time to the citation and say why. The citation date is filled in the browser, so the statically built page never prints a date it cannot know.

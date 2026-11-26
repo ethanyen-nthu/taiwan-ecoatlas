@@ -254,6 +254,15 @@ svg {
   align-items: center;
   gap: 22px;
 }
+.search-link {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--ink);
+}
+.search-link:hover,
+.search-link[aria-current="page"] {
+  color: var(--green);
+}
 .language-switch {
   display: flex;
   align-items: center;
@@ -2322,6 +2331,29 @@ svg {
   }
   .download-grid code {
     overflow-wrap: anywhere;
+  }
+}
+/* Narrow phones: keep the brand, search, language and menu on one row. */
+@media (max-width: 420px) {
+  .site-header .header-actions {
+    gap: 2px;
+  }
+  .site-header .search-link {
+    min-width: 40px;
+  }
+  .site-header .language-switch button {
+    min-width: 29px;
+  }
+  .site-header .brand {
+    font-size: 1rem;
+    gap: 7px;
+  }
+  .site-header .brand-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .site-header .brand-icon > svg {
+    width: 19px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
