@@ -608,6 +608,16 @@ ul.subject-tiles.teach-tiles > li:nth-child(n) {
   color: var(--muted);
   font-size: 0.9375rem;
 }
+.county-sheet-link {
+  margin: -8px 0 22px;
+}
+.county-sheet-link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 600;
+}
 .county-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
@@ -754,6 +764,7 @@ ul.subject-tiles.teach-tiles > li:nth-child(n) {
   .lesson-toc,
   .teach-crumb,
   .teach-copy,
+  .county-sheet-link,
   .lesson-next {
     display: none !important;
   }

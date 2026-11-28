@@ -59,3 +59,10 @@ SOFTWARE.
 ## Wikipedia and Wikimedia Commons (loaded at runtime)
 
 Animal and tree pages ask `*.wikipedia.org` (anonymous, cross-origin) from the visitor's browser for a summary and photos. Nothing is copied into this repository. Summaries are shown with a CC BY-SA 4.0 notice and a link to the article. Photos are shown only if Commons hosts them, with the artist, licence short name, licence link and file-page link taken from each file's metadata.
+
+## Noto Sans CJK (share-picture font)
+
+- Used for: the pictures a link to a county or to the atlas shows in chat apps, drawn on the server (`src/app/opengraph-image.tsx`, `src/app/county/[code]/opengraph-image.tsx`).
+- Files: `src/assets/fonts/card-regular.otf`, `card-bold.otf`, subsets of the Traditional Chinese face of Noto Sans CJK, made with `scripts/subset-card-font.py`; `card-glyphs.txt` lists the characters kept.
+- Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name "Source". Licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org/open-font-license-official-text/
+- The subsets are derived from the original files by dropping glyphs and layout tables; no outlines were changed.

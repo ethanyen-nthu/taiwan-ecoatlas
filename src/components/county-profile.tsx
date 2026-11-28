@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowUpDown, ArrowUpRight } from "lucide-react";
+import { ArrowUpDown, ArrowUpRight, FileText } from "lucide-react";
 import type { CountyDetail, CountyRow } from "@/lib/county-rows";
 import { islandPath, islandViewBox } from "@/lib/island-path";
 import { useLanguage } from "./providers";
@@ -65,6 +65,15 @@ export function CountyProfile({
           "What this atlas holds for the county, side by side. Each number comes with its limits: counts are not rates, and a county missing from a dataset has no data there, not zero.",
           "本平台在這個縣市的資料並列。每個數字都附有限制：數量不是比率；資料集中沒有該縣市，是沒有資料，而不是零。",
         )}
+      </p>
+      <p className="county-sheet-link">
+        <Link href={`/county/${county.code}/card`}>
+          <FileText size={16} aria-hidden="true" />
+          {t(
+            "One-page report card to print or share",
+            "一頁式報告卡，可列印或分享",
+          )}
+        </Link>
       </p>
       <ul className="county-tiles">
         <li data-tone="wildlife">
