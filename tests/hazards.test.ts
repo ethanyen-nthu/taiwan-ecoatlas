@@ -254,6 +254,56 @@ describe("earthquake reports", () => {
     expect(q.areas.map((a) => a.county)).toEqual(["花蓮縣", "宜蘭縣"]);
     expect(q.reportUrl).toBe("https://www.cwa.gov.tw/V8/C/E/EQ/EQ115021.html");
   });
+  it("splits summary rows that name several counties and keeps each county's strongest intensity", () => {
+    const area = (name: string, value: number) => ({
+      areaName: name,
+      areaIntensity: { unit: "級", value },
+    });
+    const report = (time: string) => ({
+      earthquakeNo: 115000,
+      earthquakeInfo: {
+        originTime: time,
+        epiCenter: {
+          location: "花蓮縣政府北北東方  29.4  公里",
+          epiCenterLat: 24.25,
+          epiCenterLon: 121.68,
+        },
+        magnitude: { magnitudeValue: 3.1 },
+      },
+      intensity: {
+        shakingArea: [
+          area("臺東縣", 2),
+          area("臺東縣", 4),
+          area("花蓮縣、宜蘭縣", 3),
+          area("花蓮縣", 1),
+        ],
+      },
+    });
+    const { items } = parseEarthquakes(
+      {
+        records: {
+          earthquake: [
+            report("2026-11-26 17:24:53"),
+            report("2026-11-26 08:43:47"),
+          ],
+        },
+      },
+      "local",
+    );
+    expect(items[0].areas).toEqual([
+      { county: "臺東縣", intensity: { label: "4", rank: 4 } },
+      { county: "花蓮縣", intensity: { label: "3", rank: 3 } },
+      { county: "宜蘭縣", intensity: { label: "3", rank: 3 } },
+    ]);
+    expect(items[0].maxIntensity?.rank).toBe(4);
+    // Whitespace the agency pads its distances with is collapsed.
+    expect(items[0].locationZh).toBe("花蓮縣政府北北東方 29.4 公里");
+    // Every small-area report carries the same number, so the id adds the
+    // time and two reports are never mistaken for one.
+    expect(items[0].number).toBe("115000");
+    expect(items[0].id).not.toBe(items[1].id);
+    expect(new Set(items.map((item) => item.id)).size).toBe(2);
+  });
   it("reads the PascalCase layout the same way", () => {
     const { items } = parseEarthquakes(quakePascal, "local");
     expect(items).toHaveLength(1);
@@ -625,6 +675,42 @@ describe("the hazard service", () => {
     const logged = JSON.stringify(warn.mock.calls);
     expect(logged).toContain("source_payload_invalid");
     expect(logged).not.toContain("secret-looking text");
+    expect(logged).not.toContain("test-key");
+  });
+
+  it("counts a cyclone it cannot read, logs only its field names, and does not call it none", async () => {
+    vi.stubEnv("CWA_API_KEY", "test-key");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const clock = clockAt(Date.parse("2026-11-28T03:00:00Z"));
+    const fetchJson = route({
+      "E-A0015-001": quakeCamel,
+      "E-A0016-001": quakePascal,
+      "W-C0034-005": {
+        records: {
+          tropicalCyclones: {
+            tropicalCyclone: [
+              {
+                typhoonName: "secret-looking name",
+                analysisData: { fix: [{ fixTime: "2026-11-28 08:00:00" }] },
+              },
+            ],
+          },
+        },
+      },
+    });
+    const result = await new HazardService({
+      fetchJson,
+      now: clock.now,
+    }).get();
+    expect(result.typhoon.status).toBe("fresh");
+    expect(result.typhoon.cyclones).toEqual([]);
+    expect(result.typhoon.excluded).toBe(1);
+    const logged = JSON.stringify(warn.mock.calls);
+    expect(logged).toContain("source_record_excluded");
+    expect(logged).toContain("analysisData");
+    expect(logged).toContain("fixTime");
+    expect(logged).not.toContain("secret-looking name");
+    expect(logged).not.toContain("2026-11-28 08:00:00");
     expect(logged).not.toContain("test-key");
   });
 

@@ -169,19 +169,32 @@ export function parseEarthquake(
   if (!withinTaiwanRegion(latitude, longitude)) return null;
   const magnitudeBlock = field(info, "magnitude", "earthquakeMagnitude");
   const magnitude = num(field(magnitudeBlock, "magnitudeValue", "value"));
-  const areas: ShakingArea[] = [];
+  // The feed repeats a county once per township and adds summary rows that
+  // name several counties at once ("花蓮縣、宜蘭縣"), so each name is split,
+  // and a county keeps the strongest intensity reported for it.
+  const byCounty = new Map<string, ShakingArea>();
   const shaking = field(field(record, "intensity"), "shakingArea");
   for (const area of asList(shaking)) {
-    const county = text(field(area, "countyName", "areaName"));
+    const names = text(field(area, "countyName", "areaName"));
     const intensity = parseIntensity(field(area, "areaIntensity"));
-    if (county && intensity) areas.push({ county, intensity });
+    if (!names || !intensity) continue;
+    for (const county of names.split(/[、,，；;]/).map((part) => part.trim())) {
+      if (!county) continue;
+      const known = byCounty.get(county);
+      if (!known || known.intensity.rank < intensity.rank)
+        byCounty.set(county, { county, intensity });
+    }
   }
-  areas.sort((a, b) => b.intensity.rank - a.intensity.rank);
+  const areas = [...byCounty.values()].sort(
+    (a, b) => b.intensity.rank - a.intensity.rank,
+  );
   const number = text(field(record, "earthquakeNo"));
   const web = text(field(record, "web"));
   const depth = num(field(info, "focalDepth"));
   return {
-    id: `${feed}-${number ?? originTime}`,
+    // The small-area feed numbers every report the same, so the time is part
+    // of the identity.
+    id: `${feed}-${number ?? "n"}-${Math.floor(Date.parse(originTime) / 1000)}`,
     feed,
     number,
     originTime,
@@ -190,7 +203,8 @@ export function parseEarthquake(
     depthKm: depth !== null && depth >= 0 ? depth : null,
     magnitude: magnitude !== null && magnitude >= 0 ? magnitude : null,
     magnitudeType: text(field(magnitudeBlock, "magnitudeType")),
-    locationZh: text(field(epicentre, "location")),
+    locationZh:
+      text(field(epicentre, "location"))?.replace(/\s+/g, " ") ?? null,
     maxIntensity: areas[0]?.intensity ?? null,
     areas,
     summaryZh:

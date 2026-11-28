@@ -141,13 +141,39 @@ function describeShape(payload: unknown) {
   };
 }
 
+/** The nesting of a payload as names and types, never values, for the same
+ *  reason: a record this code left out can then be understood from the logs. */
+function typeTree(value: unknown, depth = 0): unknown {
+  if (Array.isArray(value))
+    return { list: value.length, first: typeTree(value[0], depth + 1) };
+  if (value && typeof value === "object") {
+    if (depth >= 7) return "object";
+    const tree: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value).slice(0, 40))
+      if (/^[A-Za-z0-9_]{1,40}$/.test(key))
+        tree[key] = typeTree(item, depth + 1);
+    return tree;
+  }
+  return value === null ? "null" : typeof value;
+}
+
 function read<T>(
   name: string,
   payload: unknown,
   parse: (payload: unknown) => FeedRead<T>,
 ): FeedRead<T> {
   try {
-    return parse(payload);
+    const result = parse(payload);
+    if (result.excluded > 0)
+      console.warn("source_record_excluded", {
+        source: name,
+        excluded: result.excluded,
+        kept: result.items.length,
+        shape: JSON.stringify(
+          typeTree((payload as { records?: unknown } | null)?.records),
+        ).slice(0, 3000),
+      });
+    return result;
   } catch {
     console.warn("source_payload_invalid", {
       source: name,
