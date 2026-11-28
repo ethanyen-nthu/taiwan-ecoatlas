@@ -6,6 +6,7 @@ import {
   cycloneName,
   destination,
   intensityBand,
+  isTracked,
   intensityText,
   latestFeltQuake,
   mergeEarthquakes,
@@ -836,6 +837,33 @@ describe("the hazard service", () => {
     expect(logged).not.toContain("test-key");
   });
 
+  it("does not show a track the agency has not analysed for days as a storm being tracked", async () => {
+    vi.stubEnv("CWA_API_KEY", "test-key");
+    const fetchJson = route({
+      "E-A0015-001": quakeCamel,
+      "E-A0016-001": quakePascal,
+      "W-C0034-005": cycloneCamel,
+    });
+    const soon = await new HazardService({
+      fetchJson,
+      now: clockAt(Date.parse("2026-11-28T03:00:00Z")).now,
+    }).get();
+    expect(soon.typhoon.cyclones).toHaveLength(1);
+    expect(soon.typhoon.older).toBeNull();
+    // Seventeen days later nothing new has been analysed and every forecast
+    // position is in the past.
+    const later = await new HazardService({
+      fetchJson,
+      now: clockAt(Date.parse("2026-12-15T03:00:00Z")).now,
+    }).get();
+    expect(later.typhoon.status).toBe("fresh");
+    expect(later.typhoon.cyclones).toEqual([]);
+    expect(later.typhoon.older).toEqual({
+      count: 1,
+      newestAt: "2026-11-27T12:00:00.000Z",
+    });
+  });
+
   it("still shows one earthquake feed when the other is down, and says so", async () => {
     vi.stubEnv("CWA_API_KEY", "test-key");
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -898,6 +926,50 @@ describe("the sentence under each layer switch", () => {
     expect(
       earthquakeLine(section({ events: quakes(), feeds }) as never, now, "zh"),
     ).toContain("2 筆有感地震");
+  });
+  it("names an old track as not current instead of calling the feed empty", () => {
+    const older = { count: 1, newestAt: "2026-11-11T06:00:00.000Z" };
+    const later = Date.parse("2026-11-28T06:00:00Z");
+    expect(
+      typhoonLine(
+        section({ cyclones: [], feed: "ok", older }) as never,
+        later,
+        "en",
+      ),
+    ).toBe(
+      "No tropical cyclone is being tracked right now. The agency's feed still lists one last updated 17 days ago; it is not shown as current.",
+    );
+    expect(
+      typhoonLine(
+        section({ cyclones: [], feed: "ok", older }) as never,
+        later,
+        "zh",
+      ),
+    ).toBe(
+      "目前沒有受追蹤的熱帶氣旋。氣象署資料中仍列有 1 個，最後更新於17 天前，不視為目前追蹤。",
+    );
+  });
+  it("judges a track by its newest analysis or a forecast still ahead", () => {
+    const at = (iso: string | null, tau: number | null = null) =>
+      ({
+        time: iso,
+        tauHours: tau,
+        latitude: 20,
+        longitude: 125,
+      }) as never;
+    const storm = (current: string | null, forecast: string[] = []) =>
+      ({
+        current: at(current),
+        forecast: forecast.map((time) => at(time, 12)),
+      }) as never;
+    const now = Date.parse("2026-11-28T00:00:00Z");
+    expect(isTracked(storm("2026-11-27T12:00:00Z"), now)).toBe(true);
+    expect(isTracked(storm("2026-11-26T00:00:00Z"), now)).toBe(false);
+    expect(
+      isTracked(storm("2026-11-26T00:00:00Z", ["2026-11-28T12:00:00Z"]), now),
+    ).toBe(true);
+    // Unknown age is shown, not hidden.
+    expect(isTracked(storm(null), now)).toBe(true);
   });
   it("says none reported only when the feed answered with none", () => {
     expect(earthquakeLine(empty as never, now, "en")).toContain(

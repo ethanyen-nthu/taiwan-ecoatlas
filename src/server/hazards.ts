@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  isTracked,
   mergeEarthquakes,
   parseCyclones,
   parseEarthquakes,
@@ -307,9 +308,20 @@ export class HazardService {
             ? "unreadable-payload"
             : "upstream-unavailable",
       };
+    const now = this.deps.now();
+    const tracked = feed.value.items.filter((item) => isTracked(item, now));
+    const older = feed.value.items.filter((item) => !isTracked(item, now));
+    const newest = older
+      .map((item) => item.current?.time ?? null)
+      .filter((time): time is string => !!time)
+      .sort()
+      .pop();
     return {
       status: feed.retained ? "stale" : "fresh",
-      cyclones: feed.value.items,
+      cyclones: tracked,
+      older: older.length
+        ? { count: older.length, newestAt: newest ?? null }
+        : null,
       feed: "ok",
       excluded: feed.value.excluded,
       retrievedAt: new Date(feed.at!).toISOString(),

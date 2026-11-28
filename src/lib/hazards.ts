@@ -470,6 +470,19 @@ export function parseCyclones(payload: unknown): FeedRead<Cyclone> {
   return { items, excluded };
 }
 
+/** A cyclone is being tracked while its newest analysed position is less than
+ *  this old, or a forecast position is still ahead. The feed was seen holding a
+ *  track 17 days after its last analysis, and a storm that old is not "now". */
+export const trackedWithinHours = 36;
+export function isTracked(cyclone: Cyclone, now: number): boolean {
+  const latest = cyclone.current?.time ? Date.parse(cyclone.current.time) : NaN;
+  // With no time on the latest position its age cannot be judged, so it is
+  // shown with no age rather than hidden.
+  if (!Number.isFinite(latest)) return true;
+  if (now - latest <= trackedWithinHours * 3600_000) return true;
+  return cyclone.forecast.some((fix) => fix.time && Date.parse(fix.time) > now);
+}
+
 /** CWA's classes by maximum sustained wind (m/s). */
 export type CycloneClass = "depression" | "mild" | "moderate" | "intense";
 export function cycloneClass(maxWindMs: number | null): CycloneClass | null {
@@ -506,7 +519,11 @@ export interface EarthquakeSection {
 }
 export interface TyphoonSection {
   status: Freshness;
+  /** Cyclones being tracked now (see isTracked). */
   cyclones: Cyclone[];
+  /** Tracks the feed still holds that are no longer current: how many, and
+   *  when the newest was last analysed. Never drawn as a live storm. */
+  older?: { count: number; newestAt: string | null } | null;
   feed: HazardFeedState;
   excluded: number;
   retrievedAt: string | null;
@@ -730,10 +747,21 @@ export function typhoonLine(
   if (section.status === "not-configured") return keyMissing(en);
   if (section.status === "unavailable") return feedDown(section.message, en);
   const note = section.status === "stale" ? lastReading(en) : "";
-  if (!section.cyclones.length)
+  if (!section.cyclones.length) {
+    const older = section.older;
+    const age = older?.newestAt
+      ? ageWords(older.newestAt, now, language)
+      : null;
+    const extra =
+      older && older.count > 0
+        ? en
+          ? ` The agency's feed still lists ${older.count === 1 ? "one" : older.count}${age ? ` last updated ${age}` : ""}; ${older.count === 1 ? "it is" : "they are"} not shown as current.`
+          : `氣象署資料中仍列有 ${older.count} 個${age ? `，最後更新於${age}` : ""}，不視為目前追蹤。`
+        : "";
     return en
-      ? `No tropical cyclone is being tracked right now.${note}`
-      : `目前沒有受追蹤的熱帶氣旋。${note}`;
+      ? `No tropical cyclone is being tracked right now.${extra}${note}`
+      : `目前沒有受追蹤的熱帶氣旋。${extra}${note}`;
+  }
   const ordered = byStrength(section.cyclones);
   if (ordered.length > 1) {
     const names = ordered.map((c) => cycloneName(c, language));

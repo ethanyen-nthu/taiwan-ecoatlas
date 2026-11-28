@@ -331,6 +331,27 @@ test("no cyclone is reported as none only when the feed answered; a feed that is
   await expect(page.locator("[data-hazard-list=typhoon]")).toHaveCount(0);
   await expect(page.locator(".typhoon-label")).toHaveCount(0);
 
+  // An old track the feed still holds is named, never drawn as a storm.
+  await page.unroute("**/api/hazards");
+  await mock(
+    page,
+    hazards({
+      typhoon: {
+        ...fresh,
+        feed: "ok",
+        cyclones: [],
+        older: { count: 1, newestAt: hoursAgo(24 * 17) },
+      },
+    }),
+  );
+  await page.reload();
+  await expect(page.locator("[data-map-ready=true]")).toBeVisible();
+  await expect(
+    row(page, "Tropical cyclone track").locator(".layer-live"),
+  ).toHaveText(
+    "No tropical cyclone is being tracked right now. The agency's feed still lists one last updated 17 days ago; it is not shown as current.",
+  );
+
   await page.unroute("**/api/hazards");
   await mock(
     page,
