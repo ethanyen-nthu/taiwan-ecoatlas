@@ -404,6 +404,128 @@ describe("tropical cyclone tracks", () => {
     expect(c.forecast[0].time).toBe("2026-11-28T00:00:00.000Z");
     expect(c.forecast[1].radius70).toBe(120);
   });
+  describe("the layout the agency serves today", () => {
+    // Field names are those of the live feed; every value here is synthetic.
+    const liveFix = (extra: Record<string, unknown> = {}) => ({
+      DateTime: "2026-11-27T20:00:00+08:00",
+      CoordinateLongitude: "125.4",
+      CoordinateLatitude: "21.2",
+      MaxWindSpeed: "35",
+      MaxGustSpeed: "45",
+      Pressure: "955",
+      MovingSpeed: "18",
+      MovingDirection: "WNW",
+      ...extra,
+    });
+    const live = (circle: unknown) => ({
+      records: {
+        DataId: "W-C0034-005",
+        Note: "synthetic",
+        TropicalCyclones: {
+          TropicalCyclone: [
+            {
+              Year: "2026",
+              TyphoonName: "TESTNAME",
+              CwaTyphoonName: "測試",
+              CwaTdNo: "25",
+              CwaTyNo: "",
+              AnalysisData: {
+                Fix: [
+                  liveFix({
+                    DateTime: "2026-11-27T08:00:00+08:00",
+                    CoordinateLongitude: "128.0",
+                    CoordinateLatitude: "19.0",
+                  }),
+                  liveFix({ Circle15ms: circle }),
+                ],
+              },
+              ForecastData: {
+                Fix: [
+                  {
+                    InitialTime: "2026-11-27T20:00:00+08:00",
+                    ForecastHour: "12",
+                    CoordinateLongitude: "123.1",
+                    CoordinateLatitude: "22.4",
+                    MaxWindSpeed: "38",
+                    Radius70PercentProbability: "90",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+    it("reads a longitude and a latitude of their own, DateTime and ForecastHour", () => {
+      const { items, excluded } = parseCyclones(live({ Radius: "180" }));
+      expect(excluded).toBe(0);
+      const c = items[0];
+      expect(c.nameEn).toBe("TESTNAME");
+      expect(c.nameZh).toBe("測試");
+      expect(c.number).toBe("25");
+      expect(c.past.map((f) => [f.longitude, f.latitude])).toEqual([
+        [128, 19],
+        [125.4, 21.2],
+      ]);
+      expect(c.current?.time).toBe("2026-11-27T12:00:00.000Z");
+      expect(c.current?.maxWindMs).toBe(35);
+      expect(c.forecast).toHaveLength(1);
+      expect(c.forecast[0].tauHours).toBe(12);
+      expect(c.forecast[0].time).toBe("2026-11-28T00:00:00.000Z");
+      expect(c.forecast[0].radius70).toBe(90);
+      expect(c.current?.radius15).toBe(180);
+      expect(c.current?.radius15Quadrants).toBeNull();
+    });
+    it("reads the four quadrants however they are nested, or none", () => {
+      const four = { NE: 200, SE: 180, SW: 150, NW: 170 };
+      const quadrants = (circle: unknown) =>
+        parseCyclones(live(circle)).items[0].current?.radius15Quadrants;
+      expect(
+        quadrants({
+          Radius: "180",
+          QuadrantRadii: {
+            QuadrantRadius: [
+              { Direction: "NE", Radius: "200" },
+              { Direction: "SE", Radius: "180" },
+              { Direction: "SW", Radius: "150" },
+              { Direction: "NW", Radius: "170" },
+            ],
+          },
+        }),
+      ).toEqual(four);
+      expect(
+        quadrants({
+          Radius: "180",
+          QuadrantRadii: {
+            Radius: [
+              { Quadrant: "NE", Value: "200" },
+              { Quadrant: "SE", Value: "180" },
+              { Quadrant: "SW", Value: "150" },
+              { Quadrant: "NW", Value: "170" },
+            ],
+          },
+        }),
+      ).toEqual(four);
+      expect(
+        quadrants({
+          Radius: "180",
+          QuadrantRadii: { NE: "200", SE: "180", SW: "150", NW: "170" },
+        }),
+      ).toEqual(four);
+      // Three of four is not enough to draw a quadrant circle.
+      expect(
+        quadrants({
+          Radius: "180",
+          QuadrantRadii: { NE: "200", SE: "180", SW: "150" },
+        }),
+      ).toBeNull();
+    });
+    it("takes a records block with only its metadata as no cyclone, not as unreadable", () => {
+      expect(
+        parseCyclones({ records: { DataId: "W-C0034-005", Note: "none" } }),
+      ).toEqual({ items: [], excluded: 0 });
+    });
+  });
   it("reads wind radii, with the four quadrants only when all four are given", () => {
     const c = parseCyclones(cycloneCamel).items[0];
     expect(c.current?.radius15).toBe(180);

@@ -147,7 +147,7 @@ function typeTree(value: unknown, depth = 0): unknown {
   if (Array.isArray(value))
     return { list: value.length, first: typeTree(value[0], depth + 1) };
   if (value && typeof value === "object") {
-    if (depth >= 7) return "object";
+    if (depth >= 12) return "object";
     const tree: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value).slice(0, 40))
       if (/^[A-Za-z0-9_]{1,40}$/.test(key))

@@ -28,8 +28,16 @@ export function field(source: unknown, ...names: string[]): unknown {
   return undefined;
 }
 /** A records block that carries nothing but its description (or nothing). */
+const metadataKeys = new Set([
+  "datasetdescription",
+  "dataid",
+  "datasetid",
+  "note",
+  "notes",
+  "description",
+]);
 const hasOnlyDescription = (records: Record<string, unknown>) =>
-  Object.keys(records).every((key) => squash(key) === "datasetdescription");
+  Object.keys(records).every((key) => metadataKeys.has(squash(key)));
 const asList = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : value == null || value === "" ? [] : [value];
 export function num(value: unknown): number | null {
@@ -315,19 +323,40 @@ export function parseCoordinate(
   return { latitude, longitude };
 }
 
+/** The four quadrant radii of a wind circle. CWA has written them as a list of
+ *  {direction, radius} items, as items nested one level deeper, and as one
+ *  value per compass name, so each is read; anything else gives none rather
+ *  than a guess, and the circle's single radius is still shown. */
 function readQuadrants(circle: unknown): Quadrants | null {
-  const block = field(circle, "quadrantRadii");
   const found: Partial<Quadrants> = {};
-  for (const item of asList(field(block, "quadrantRadius"))) {
-    const dir = text(field(item, "dir", "direction"))?.toUpperCase();
-    const radius = num(field(item, "radius"));
+  const accept = (dir: unknown, value: unknown) => {
+    const name = text(dir)?.toUpperCase();
+    const radius = num(value);
     if (
-      (dir === "NE" || dir === "SE" || dir === "SW" || dir === "NW") &&
+      (name === "NE" || name === "SE" || name === "SW" || name === "NW") &&
       radius !== null &&
       radius >= 0
     )
-      found[dir] = radius;
-  }
+      found[name] = radius;
+  };
+  const walk = (node: unknown, depth: number) => {
+    if (depth > 4) return;
+    for (const item of asList(node)) {
+      if (!isObject(item)) continue;
+      for (const name of ["NE", "SE", "SW", "NW"])
+        accept(name, field(item, name));
+      accept(
+        field(item, "dir", "direction", "quadrant", "name"),
+        field(item, "radius", "value"),
+      );
+      for (const value of Object.values(item))
+        if (isObject(value) || Array.isArray(value)) walk(value, depth + 1);
+    }
+  };
+  walk(
+    field(circle, "quadrantRadii", "quadrantRadius", "quadrant", "quadrants"),
+    0,
+  );
   return found.NE !== undefined &&
     found.SE !== undefined &&
     found.SW !== undefined &&
@@ -337,17 +366,29 @@ function readQuadrants(circle: unknown): Quadrants | null {
 }
 
 function readFix(raw: unknown, forecast: boolean): Fix | null {
-  const position = parseCoordinate(field(raw, "coordinate"));
+  // One "lon,lat" string, or a longitude and a latitude field of their own.
+  const longitude = num(field(raw, "coordinateLongitude", "longitude", "lon"));
+  const latitude = num(field(raw, "coordinateLatitude", "latitude", "lat"));
+  const position =
+    parseCoordinate(field(raw, "coordinate")) ??
+    (longitude !== null &&
+    latitude !== null &&
+    longitude >= 90 &&
+    longitude <= 200 &&
+    latitude >= -10 &&
+    latitude <= 60
+      ? { latitude, longitude }
+      : null);
   if (!position) return null;
-  const circle15 = field(raw, "circleOf15Ms", "circleOf15MS");
-  const circle25 = field(raw, "circleOf25Ms", "circleOf25MS");
+  const circle15 = field(raw, "circleOf15Ms", "circle15ms");
+  const circle25 = field(raw, "circleOf25Ms", "circle25ms");
   const radius = (circle: unknown) => {
     const value = num(field(circle, "radius"));
     return value !== null && value >= 0 ? value : null;
   };
-  const tau = forecast ? num(field(raw, "tau")) : null;
-  const initTime = taipeiTime(field(raw, "initTime"));
-  const fixTime = taipeiTime(field(raw, "fixTime"));
+  const tau = forecast ? num(field(raw, "tau", "forecastHour")) : null;
+  const initTime = taipeiTime(field(raw, "initTime", "initialTime"));
+  const fixTime = taipeiTime(field(raw, "fixTime", "dateTime"));
   const time =
     fixTime ??
     (initTime && tau !== null
@@ -368,7 +409,13 @@ function readFix(raw: unknown, forecast: boolean): Fix | null {
     radius15Quadrants: readQuadrants(circle15),
     radius25: radius(circle25),
     radius70: (() => {
-      const value = num(field(raw, "radiusOf70PercentProbability"));
+      const value = num(
+        field(
+          raw,
+          "radiusOf70PercentProbability",
+          "radius70PercentProbability",
+        ),
+      );
       return value !== null && value >= 0 ? value : null;
     })(),
   };
