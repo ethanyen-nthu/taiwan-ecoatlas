@@ -1,0 +1,176 @@
+/* Cyclone name beside its latest position. A DOM label because the basemap
+   carries no font files; it ignores the pointer so clicks reach the map. */
+.typhoon-label {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 1.5px #4a3aa7;
+  color: #2c2370;
+  font-size: 11px;
+  font-weight: 640;
+  line-height: 17px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+.layer-text .layer-live {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.legend-line {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 0;
+  border-top: 2.6px solid #4a3aa7;
+}
+.legend-line.dashed {
+  border-top-width: 2px;
+  border-top-style: dashed;
+}
+.legend-fix {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.legend-fix.current {
+  background: #4a3aa7;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3px #4a3aa7;
+  width: 10px;
+  height: 10px;
+}
+.legend-fix.forecast {
+  background: #fff;
+  border: 2px solid #4a3aa7;
+  width: 10px;
+  height: 10px;
+}
+.legend-ring {
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.2px solid #4a3aa7;
+  background: #4a3aa721;
+}
+.legend-ring.strong {
+  border-width: 1.5px;
+  background: #4a3aa73d;
+}
+.legend-ring.p70 {
+  border-style: dashed;
+  background: none;
+}
+.hazard-list {
+  margin-top: 8px;
+  font-size: 0.75rem;
+}
+.hazard-list summary {
+  cursor: pointer;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hazard-list ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.hazard-list button {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hazard-list button:hover {
+  background: var(--paper);
+}
+.hazard-list button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
+}
+.hazard-list {
+  margin-top: 8px;
+  font-size: 0.75rem;
+}
+.hazard-list summary {
+  cursor: pointer;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hazard-list ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.hazard-list button {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hazard-list button:hover {
+  background: var(--paper);
+}
+.hazard-list button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
+}
+
+/* Hazard popups can be long (a forecast table plus links); keep them within
+   the map and let keyboard users scroll them. */
+.hazard-popup {
+  max-height: min(50vh, 400px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.hazard-popup:focus-visible {
+  outline: 2px solid #4a3aa7;
+  outline-offset: 2px;
+}
+
+/* Intensity bands sit two to a row so the key stays short beside the island. */
+.map-legend details > .legend-bands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 10px;
+}
+.legend-bands > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

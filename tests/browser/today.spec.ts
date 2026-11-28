@@ -108,11 +108,13 @@ test("home: four figures sit beside the map, each linking to its page", async ({
   // The reservoir figure is plain: no colour dot, only the air figure has one.
   await expect(items.locator(".today-dot")).toHaveCount(1);
   await expect(items.nth(0).locator(".today-dot")).toHaveCount(1);
-  // The three source statuses are still there, with reservoirs added.
+  // The source statuses are still there, with reservoirs and the two hazard feeds added.
   await expect(panel.locator(".hero-sources dt")).toHaveText([
     "Air quality · MOENV",
     "Weather · CWA",
     "Reservoirs · WRA",
+    "Earthquakes · CWA",
+    "Cyclones · CWA",
   ]);
   // The map is still beside it, and the strip is not repeated on this page.
   await expect(page.locator(".hero-map")).toBeVisible();
@@ -168,7 +170,7 @@ test("when the summary fails, the strip is not shown and the page still works", 
   await page.goto("/");
   await expect(hero(page).locator(".hero-today-grid")).toHaveCount(0);
   await expect(hero(page)).toContainText("No live readings right now");
-  await expect(hero(page).locator(".hero-sources dt")).toHaveCount(3);
+  await expect(hero(page).locator(".hero-sources dt")).toHaveCount(5);
 });
 
 test("a feed with nothing shows nothing, never zeros", async ({ page }) => {

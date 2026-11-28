@@ -32,6 +32,13 @@ import type { AtlasFeature, AtlasOverlay } from "@/lib/atlas-types";
 import { tileCollection } from "@/lib/atlas-tiles";
 import { subjectRamps } from "@/lib/choropleth";
 import { labelWidth, type CountyLabel } from "@/lib/wildlife-map";
+import type { HazardsResponse } from "@/lib/hazards";
+import {
+  hazardHitLayers,
+  installHazardLayers,
+  type HazardController,
+  type HazardTarget,
+} from "./hazard-layers";
 
 interface Props {
   overlays?: AtlasOverlay[];
@@ -63,6 +70,13 @@ interface Props {
   weather: Observation[];
   aqiVisible: boolean;
   weatherVisible: boolean;
+  /** Felt earthquakes and cyclone tracks; drawn only while their switch is on. */
+  hazards?: HazardsResponse | null;
+  quakesVisible?: boolean;
+  typhoonVisible?: boolean;
+  /** A report picked from the list; a new object each time, so choosing the
+   *  same report again opens it again. */
+  focusedHazard?: HazardTarget | null;
   language: Language;
   resetToken: number;
   onSelect: (code: string) => void;
@@ -277,6 +291,7 @@ export default function MapCanvas(props: Props) {
   } = props;
   const pointPopup = useRef<maplibregl.Popup | null>(null);
   const countyHoverPopup = useRef<maplibregl.Popup | null>(null);
+  const hazardLayers = useRef<HazardController | null>(null);
   const atlasPopupDataset = useRef<string | null>(null);
   const overlaySpecs = useRef(new Map<string, string>());
   const overlayClickHandlers = useRef(
@@ -533,6 +548,7 @@ export default function MapCanvas(props: Props) {
               layers: [
                 "aqi-hit",
                 "weather-hit",
+                ...hazardHitLayers,
                 ...(latest.current.overlays || []).flatMap((overlay) =>
                   ["hit", "line", "fill"].map(
                     (suffix) => `atlas-${overlay.dataset.id}-${suffix}`,
@@ -629,6 +645,18 @@ export default function MapCanvas(props: Props) {
               map.setFilter(`${kind}-ring`, ["==", ["get", "id"], ""]);
             });
           }
+          hazardLayers.current = installHazardLayers(map, {
+            language: () => latest.current.language,
+            padding: () => fitPadding(latest.current.compact),
+            openPopup: (lngLat, content) => {
+              pointPopup.current?.remove();
+              atlasPopupDataset.current = null;
+              pointPopup.current = new maplibregl.Popup({ maxWidth: "320px" })
+                .setLngLat(lngLat)
+                .setDOMContent(content)
+                .addTo(map);
+            },
+          });
           setReady(true);
           reportViewport();
           latest.current.onReady?.();
@@ -1346,6 +1374,26 @@ export default function MapCanvas(props: Props) {
         duration: 800,
       });
   }, [ready, props.resetToken, props.compact, props.island]);
+  // Declared after the home-view fit above: when the map becomes ready, effects
+  // run in order, so a storm's own fit has to come last to win.
+  useEffect(() => {
+    if (!ready) return;
+    hazardLayers.current?.update({
+      data: props.hazards ?? null,
+      quakesVisible: !!props.quakesVisible,
+      typhoonVisible: !!props.typhoonVisible,
+    });
+  }, [
+    ready,
+    props.hazards,
+    props.quakesVisible,
+    props.typhoonVisible,
+    props.language,
+  ]);
+  useEffect(() => {
+    if (ready && props.focusedHazard)
+      hazardLayers.current?.focus(props.focusedHazard);
+  }, [ready, props.focusedHazard]);
   useEffect(() => {
     const map = mapRef.current,
       focus = props.focusedObservation;

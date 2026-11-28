@@ -4,6 +4,8 @@ export type LayerId =
   | "counties"
   | "aqi"
   | "weather"
+  | "earthquakes"
+  | "typhoon"
   | "river"
   | "forest"
   | "forest-change"
@@ -61,6 +63,34 @@ const definitions: Omit<MapLayer, "legend">[] = [
     available: true,
     visible: false,
     color: "#0a8685",
+    temporal: true,
+    dateRange: null,
+  },
+  {
+    id: "earthquakes",
+    name: { en: "Felt earthquakes", zh: "有感地震" },
+    description: {
+      en: "Recent reports, sized by magnitude, coloured by strongest shaking",
+      zh: "近期報告，大小為規模，顏色為最大震度",
+    },
+    source: "earthquakes",
+    available: true,
+    visible: false,
+    color: "#b02a2e",
+    temporal: true,
+    dateRange: null,
+  },
+  {
+    id: "typhoon",
+    name: { en: "Tropical cyclone track", zh: "熱帶氣旋路徑" },
+    description: {
+      en: "Analysed and forecast positions with wind radii",
+      zh: "分析與預測位置及風圈半徑",
+    },
+    source: "typhoon",
+    available: true,
+    visible: false,
+    color: "#4a3aa7",
     temporal: true,
     dateRange: null,
   },

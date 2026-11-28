@@ -1360,6 +1360,9 @@ svg {
   background: #fbfdf5f2;
   box-shadow: 0 2px 12px #2b353f0a;
   padding: 14px 17px;
+  /* Taller than the map is a key nobody can read; it scrolls instead. */
+  max-height: calc(100dvh - 300px);
+  overflow-y: auto;
 }
 .explorer:has(.collapsed) .map-legend {
   left: 20px;

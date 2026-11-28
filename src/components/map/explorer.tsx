@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useId, useMemo, useState } from "react";
 import {
+  Activity,
   ArrowUpRight,
   ChevronDown,
   ChevronLeft,
@@ -14,6 +15,7 @@ import {
   Search,
   Settings2,
   SlidersHorizontal,
+  Tornado,
   Wind,
   Thermometer,
   X,
@@ -38,6 +40,15 @@ import {
   type AtlasMapFilters,
 } from "../atlas-hooks";
 import { AtlasLayerControls, AtlasMapLegend } from "../atlas-layer-controls";
+import {
+  HazardDetails,
+  HazardLegend,
+  HazardRowStatus,
+} from "../hazards/hazard-status";
+import { useHazards } from "../hazards/use-hazards";
+import type { HazardTarget } from "./hazard-layers";
+
+const hazardLayerIds = ["earthquakes", "typhoon"] as const;
 
 const MapCanvas = dynamic(() => import("./map-canvas"), {
   ssr: false,
@@ -80,13 +91,14 @@ export default function Explorer({
   const [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
     [resetToken, setResetToken] = useState(0);
-  const [visible, setVisible] = useState<LayerId[]>(
-      initialLayers.includes("live-weather")
+  const [visible, setVisible] = useState<LayerId[]>(() => [
+      ...(initialLayers.includes("live-weather")
         ? initialLayers.includes("live-aqi")
-          ? ["counties", "aqi", "weather"]
-          : ["counties", "weather"]
-        : ["counties", "aqi"],
-    ),
+          ? (["counties", "aqi", "weather"] as const)
+          : (["counties", "weather"] as const)
+        : (["counties", "aqi"] as const)),
+      ...hazardLayerIds.filter((id) => initialLayers.includes(id)),
+    ]),
     [panelOpen, setPanelOpen] = useState(!compact);
   const [tab, setTab] = useState<"layers" | "details">("layers"),
     [date, setDate] = useState("");
@@ -95,7 +107,9 @@ export default function Explorer({
     observation: Observation;
   } | null>(null);
   const [atlasIds, setAtlasIds] = useState<string[]>(
-    initialLayers.filter((id) => !["live-aqi", "live-weather"].includes(id)),
+    initialLayers.filter(
+      (id) => !["live-aqi", "live-weather", ...hazardLayerIds].includes(id),
+    ),
   );
   const [atlasMode, setAtlasMode] = useState<"points" | "density">("points");
   const [atlasFilters, setAtlasFilters] = useState<AtlasMapFilters>({});
@@ -152,6 +166,8 @@ export default function Explorer({
   };
   const aqi = useObservations("aqi"),
     weather = useObservations("weather");
+  const hazards = useHazards();
+  const [hazardFocus, setHazardFocus] = useState<HazardTarget | null>(null);
   const formatTime = useFormatTime();
   const county = counties?.features.find(
     (f) => f.properties.COUNTYCODE === selected,
@@ -206,6 +222,10 @@ export default function Explorer({
             weather={filteredWeather}
             aqiVisible={visible.includes("aqi")}
             weatherVisible={visible.includes("weather")}
+            hazards={hazards.data}
+            quakesVisible={visible.includes("earthquakes")}
+            typhoonVisible={visible.includes("typhoon")}
+            focusedHazard={hazardFocus}
             language={language}
             resetToken={resetToken}
             onSelect={(code) => {
@@ -508,6 +528,10 @@ export default function Explorer({
                           <Layers3 size={18} />
                         ) : layer.id === "aqi" ? (
                           <Wind size={18} />
+                        ) : layer.id === "earthquakes" ? (
+                          <Activity size={18} />
+                        ) : layer.id === "typhoon" ? (
+                          <Tornado size={18} />
                         ) : (
                           <Thermometer size={18} />
                         )}
@@ -517,16 +541,32 @@ export default function Explorer({
                           {layer.name[language]}
                         </label>
                         <p>{layer.description[language]}</p>
-                        {layer.id !== "counties" && (
-                          <Status
-                            loading={
-                              layer.id === "aqi" ? aqi.loading : weather.loading
-                            }
-                            status={
-                              (layer.id === "aqi" ? aqi.data : weather.data)
-                                ?.status
-                            }
+                        {layer.id === "earthquakes" ||
+                        layer.id === "typhoon" ? (
+                          <HazardRowStatus
+                            kind={layer.id}
+                            hazards={hazards}
+                            listed={visible.includes(layer.id)}
+                            onPick={(target) => {
+                              setFocus(null);
+                              setAtlasFocus(null);
+                              setHazardFocus({ ...target });
+                            }}
                           />
+                        ) : (
+                          layer.id !== "counties" && (
+                            <Status
+                              loading={
+                                layer.id === "aqi"
+                                  ? aqi.loading
+                                  : weather.loading
+                              }
+                              status={
+                                (layer.id === "aqi" ? aqi.data : weather.data)
+                                  ?.status
+                              }
+                            />
+                          )
                         )}
                       </div>
                       <button
@@ -639,6 +679,7 @@ export default function Explorer({
                     </a>
                   </div>
                 ))}
+                <HazardDetails hazards={hazards} />
                 <p className="small muted">
                   {t(
                     "All displayed times use Asia/Taipei (UTC+8). Freshness applies to the latest report; inspect each station’s own timestamp.",
@@ -758,6 +799,10 @@ export default function Explorer({
             </div>
           )}
           <AtlasMapLegend overlays={atlas.overlays} />
+          <HazardLegend
+            quakes={visible.includes("earthquakes")}
+            typhoon={visible.includes("typhoon")}
+          />
           {visible.includes("aqi") && (
             <details>
               <summary>

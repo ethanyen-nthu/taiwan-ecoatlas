@@ -1,9 +1,22 @@
 import type { Language } from "@/lib/types";
 import type { TodaySummary } from "@/lib/today";
 import { aqiColorForValue } from "@/lib/transform";
+import {
+  ageWords,
+  byStrength,
+  countyName,
+  cycloneClass,
+  cycloneClassLabels,
+  cycloneName,
+  intensityBand,
+  intensityColours,
+  intensityText,
+  latestFeltQuake,
+  type HazardsResponse,
+} from "@/lib/hazards";
 
 export interface TodayFigure {
-  key: "air" | "temperature" | "rain" | "reservoirs";
+  key: "air" | "temperature" | "rain" | "reservoirs" | "typhoon" | "quake";
   label: string;
   value: string;
   unit: string;
@@ -95,6 +108,83 @@ export function todayFigures(
         : `${reservoirs.large} 座大型水庫合計${lowest}`,
       href: "/environment/reservoirs",
       older: reservoirs.status === "stale",
+    });
+  }
+  return figures;
+}
+
+/** A cyclone being tracked and the latest felt earthquake, from the agency's
+ *  own reports. A cyclone appears only while the agency lists one; an
+ *  earthquake only if it was within the last week. With the feed down there is
+ *  no figure, never a "none". The cyclone comes first and is marked as an
+ *  alert; neither is a warning, and the wording says so. */
+export function hazardFigures(
+  hazards: HazardsResponse | null,
+  language: Language,
+  now: number,
+): (TodayFigure & { alert?: boolean })[] {
+  if (!hazards) return [];
+  const en = language === "en";
+  const figures: (TodayFigure & { alert?: boolean })[] = [];
+
+  const cyclones = byStrength(hazards.typhoon.cyclones);
+  if (cyclones.length) {
+    const [first] = cyclones;
+    const klass = cycloneClass(first.current?.maxWindMs ?? null);
+    const age = first.current?.time
+      ? ageWords(first.current.time, now, language)
+      : null;
+    const wind = first.current?.maxWindMs;
+    const more = cyclones.length - 1;
+    figures.push({
+      key: "typhoon",
+      label: en ? "Tropical cyclone" : "熱帶氣旋",
+      value: cycloneName(first, language),
+      unit: klass ? cycloneClassLabels[klass][language] : "",
+      detail: [
+        wind != null
+          ? en
+            ? `Winds up to ${wind} m/s`
+            : `最大風速 ${wind} m/s`
+          : null,
+        age ? (en ? `position analysed ${age}` : `位置分析於${age}`) : null,
+        more > 0
+          ? en
+            ? `${more} more being tracked`
+            : `另有 ${more} 個受追蹤`
+          : null,
+        en
+          ? "a map of the agency’s track, not a warning"
+          : "這是氣象署路徑的地圖，不是警報",
+      ]
+        .filter(Boolean)
+        .join(en ? "; " : "；"),
+      href: "/explore?layers=typhoon",
+      dot: "#4a3aa7",
+      older: hazards.typhoon.status === "stale",
+      alert: true,
+    });
+  }
+
+  const quake = latestFeltQuake(hazards.earthquakes.events, now);
+  if (quake && quake.magnitude !== null) {
+    const top = quake.areas[0];
+    const magnitude = quake.magnitude.toFixed(1);
+    figures.push({
+      key: "quake",
+      label: en ? "Latest felt earthquake" : "最近的有感地震",
+      value: en ? `M${magnitude}` : `規模 ${magnitude}`,
+      unit: ageWords(quake.originTime, now, language) ?? "",
+      detail: top
+        ? en
+          ? `Strongest shaking in ${countyName(top.county, "en")}, intensity ${intensityText(top.intensity, "en")}`
+          : `最大震度：${top.county} ${intensityText(top.intensity, "zh")}`
+        : en
+          ? "Intensity not reported"
+          : "未提供震度",
+      href: "/explore?layers=earthquakes",
+      dot: intensityColours[intensityBand(quake.maxIntensity)],
+      older: hazards.earthquakes.status === "stale",
     });
   }
   return figures;

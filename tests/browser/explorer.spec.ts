@@ -108,9 +108,10 @@ test("basemap failure keeps the official map usable and source states honest", a
     page.getByRole("switch", { name: "County boundaries" }),
   ).toBeVisible();
   await page.getByRole("tab", { name: "Data details" }).click();
-  await expect(page.getByText("Not configured", { exact: true })).toHaveCount(
-    2,
-  );
+  // Air quality, weather, felt earthquakes and cyclone tracks: no key here.
+  await expect(
+    page.locator(".data-detail .status", { hasText: "Not configured" }),
+  ).toHaveCount(4);
 });
 test("date filter only filters actual latest observations and popup retains provenance", async ({
   page,

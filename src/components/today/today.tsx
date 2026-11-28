@@ -4,8 +4,14 @@ import { usePathname } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { useLanguage } from "../providers";
 import { Status } from "../status";
-import { todayAsOf, todayFigures, type TodayFigure } from "./figures";
+import {
+  hazardFigures,
+  todayAsOf,
+  todayFigures,
+  type TodayFigure,
+} from "./figures";
 import { useToday } from "./use-today";
+import { useHazards, useNow } from "../hazards/use-hazards";
 import type { TodaySummary } from "@/lib/today";
 import "./today.css";
 
@@ -49,9 +55,16 @@ export function TodayBar() {
   const path = usePathname();
   const { language, t } = useLanguage();
   const { today, loading } = useToday();
+  const hazards = useHazards();
+  const now = useNow();
   const clock = useClock();
   if (hiddenOn(path)) return null;
-  const figures = today ? todayFigures(today, language) : [];
+  const alerts = hazardFigures(hazards.data, language, now);
+  const figures = [
+    ...alerts.filter((figure) => figure.alert),
+    ...(today ? todayFigures(today, language) : []),
+    ...alerts.filter((figure) => !figure.alert),
+  ];
   if (!loading && figures.length === 0) return null;
   const asOf = today ? clock(todayAsOf(today)) : null;
   return (
@@ -108,8 +121,15 @@ export function TodayHero({
 }) {
   const { language, t } = useLanguage();
   const { today, loading } = useToday();
+  const hazards = useHazards();
+  const now = useNow();
   const clock = useClock();
-  const figures = today ? todayFigures(today, language) : [];
+  const alerts = hazardFigures(hazards.data, language, now);
+  const figures = [
+    ...alerts.filter((figure) => figure.alert),
+    ...(today ? todayFigures(today, language) : []),
+    ...alerts.filter((figure) => !figure.alert),
+  ];
   const asOf = today ? clock(todayAsOf(today)) : null;
   return (
     <div className="hero-status hero-today" data-today="hero">
@@ -167,6 +187,24 @@ export function TodayHero({
           <dt>{t("Reservoirs · WRA", "水庫・水利署")}</dt>
           <dd>
             <Status status={today?.reservoirs.status} loading={loading} />
+          </dd>
+        </div>
+        <div>
+          <dt>{t("Earthquakes · CWA", "地震・中央氣象署")}</dt>
+          <dd>
+            <Status
+              status={hazards.data?.earthquakes.status}
+              loading={hazards.loading}
+            />
+          </dd>
+        </div>
+        <div>
+          <dt>{t("Cyclones · CWA", "熱帶氣旋・中央氣象署")}</dt>
+          <dd>
+            <Status
+              status={hazards.data?.typhoon.status}
+              loading={hazards.loading}
+            />
           </dd>
         </div>
       </dl>

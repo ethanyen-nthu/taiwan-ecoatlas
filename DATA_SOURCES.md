@@ -81,6 +81,39 @@ The feeds return a bare array of rows with every value a string and every gap an
 
 No history is kept or shown: the feed holds only about a day, so there is no "compared with before" page for reservoirs, and none is estimated. English names are given for 15 well-known reservoirs; the rest keep the published name.
 
+## Integrated adapters: CWA felt earthquakes and tropical cyclones (`/api/hazards`, map layers, Today strip)
+
+Three Central Weather Administration datasets under the Open Government Data License 1.0 (platform rules: https://opendata.cwa.gov.tw/about/rules), read server-side with the same `CWA_API_KEY` as the weather adapter, from `https://opendata.cwa.gov.tw/api/v1/rest/datastore/<id>?Authorization=…&format=JSON`:
+
+- `E-A0015-001` significant felt earthquakes (顯著有感地震報告), cached 3 minutes.
+- `E-A0016-001` small-area felt earthquakes (小區域有感地震報告), cached 3 minutes. The two lists are merged; a report carries its feed and number, and the same report is never counted twice.
+- `W-C0034-005` tropical cyclone analysis and forecast tracks (熱帶氣旋路徑), cached 10 minutes.
+
+The code is `src/lib/hazards.ts` (pure parsing, wording and geometry helpers), `src/server/hazards.ts` (fetching and caching) and `src/app/api/hazards/route.ts` (`GET /api/hazards`, shared by the CDN for 60 seconds with five minutes of stale-while-revalidate). The page sees one small response with an `earthquakes` section and a `typhoon` section, each with a status, and never the raw provider payload.
+
+**What is shown.** Each felt earthquake: time (Taipei time, UTC+8), epicentre, focal depth, magnitude with its type, strongest intensity (the 0–7 scale with 5弱, 5強, 6弱 and 6強 kept as the agency writes them) and intensity by county where reported, with a link to the agency's own report when the feed gives an https address. Each tropical cyclone: name and number, past analysed positions, the latest analysed position, forecast positions with their lead hours, and, where published, wind radii of 15 and 25 m/s and the 70% probability circle. Quadrant radii are drawn as quadrants, not averaged into a circle. The cyclone class (depression, mild, moderate, intense) is computed from maximum sustained wind by the agency's own bands (under 17.2, 17.2–32.6, 32.7–50.9 and 51 m/s or more) and is labelled as such.
+
+**This is a map of what the agency has published. It is not a warning, a forecast made by this site, or advice.** Every popup, key and layer row says so and points to the agency (typhoon news: https://www.cwa.gov.tw/V8/E/P/Typhoon/TY_NEWS.html). No figure is smoothed, extended or extrapolated; forecast positions are the agency's own.
+
+**Honest states.** A feed that cannot be read is never reported as "none".
+
+- `fresh`: the feed answered and was read. An empty list from a feed that answered is "none reported" (earthquakes: none in the agency's recent reports; cyclones: none tracked).
+- `stale`: the last good copy is shown because the latest request failed; the page says it is an older reading and gives its time. A failed request is not retried for 60 seconds.
+- `unavailable`: the request failed and there is no earlier copy. The page says the agency's feed could not be reached, and draws nothing.
+- `not-configured`: no `CWA_API_KEY`. The layers say so, and nothing is drawn or counted.
+- Message `unreadable-payload`: the feed answered, but its structure was not one this site understands. This is its own state, reported as unreadable, never as "none".
+- A single record that cannot be read in full (no usable time, coordinates or, for a cyclone, no position) is left out and counted in `excluded`; it is not guessed.
+
+**Parser tolerance.** The agency publishes the same datasets with both camelCase and PascalCase field names, depending on the endpoint and version, and coordinates as `"lon,lat"` strings. Fields are therefore matched ignoring case and punctuation, coordinates are read by value (the figure of 90 or more is the longitude), and times that have no offset are read as Taipei time. A list parser throws on an unrecognised records container and returns an empty list only when the feed answered with a dataset description and no records or an empty or null cyclone holder. On an unreadable payload the server logs `source_payload_invalid` with field names only (root keys, record keys, first-item keys), never values. The tests (`tests/hazards.test.ts`) cover both layouts with synthetic payloads.
+
+**Counties.** County names come from the report in Chinese; English names use a static table of the 22 counties and cities (台 and 臺 are treated as one character). A name not in the table is shown as published.
+
+**On the map.** Both layers are off by default and are switched on in the explorer's layer list or by a link: `/explore?layers=typhoon,earthquakes` (the same parameter also takes the atlas layer ids). Earthquake dots are sized by magnitude (radius 3 px plus 3.2 px per magnitude above 2, between 3 and 22 px; 4 px if no magnitude is given) and coloured by strongest reported intensity (1–2, 3, 4, 5, 6–7, and grey for "not reported"), which is a sequential ramp from sand to deep plum. The cyclone uses one indigo hue that no other layer uses, so a storm is never mistaken for an air-quality or rain colour. When the cyclone layer is switched on, or a new storm appears, the map frames Taiwan and the whole track once; later refreshes do not move the map.
+
+**Today strip.** If a cyclone is tracked, it leads the strip (marked as a figure to look at, with the line "not a warning"); the latest felt earthquake from the last seven days follows, coloured by intensity. A feed that is down or unreadable adds nothing to the strip and never a "none" line.
+
+**Verification status.** The parsers were written from the agency's published field descriptions and synthetic payloads; the browser tests mock `/api/hazards`. They have been checked against the live feed only after deployment, as recorded below.
+
 ## Weather page (`/environment/weather`)
 
 Uses the CWA station readings described below, with no new source. Each county is summarised by its middle station (median) with the coolest and warmest station beside it; humidity is the middle station's; rain and wind are the highest at any station in the county. Rain is the running total so far today. Nothing is interpolated or stored, and there is no comparison with normals because the atlas holds none.

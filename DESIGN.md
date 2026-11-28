@@ -106,6 +106,18 @@ The home page's first screen has "Today in Taiwan" beside the map (`src/componen
 
 A part with no reading is left out, never shown as 0, and if nothing has a reading the strip disappears and the home panel says there are no live readings. A stale feed says "older reading". The only colour is the air-quality band dot, and the band is named in words beside it; reservoir storage stays a plain number because the Water Resources Agency asks that it not be coloured like its water situation lights.
 
+## Live hazards on the map
+
+Felt earthquakes and tropical cyclones are two optional layers on the explorer (`src/components/map/hazard-layers.ts`, with the list, status and key in `src/components/hazards/`). They are the only layers whose subject can be frightening, so the design leans on plainness: the agency's own words and numbers, a source line in every popup, and "a map of what the agency has published, not a warning" wherever the layer appears.
+
+- **Colour.** Earthquakes use a sequential sand-to-plum ramp for strongest reported intensity (grey, not a ramp step, for "not reported"), so deeper means stronger and nothing reads as a traffic light. Cyclones use one indigo hue (`#4a3aa7`) that no other layer or subject uses, with the area fills kept light enough to read the basemap through them.
+- **Size means magnitude, colour means shaking.** They are different quantities, and the key says which is which. A small strong-shaking dot is possible and is drawn small.
+- **Line style carries the meaning twice.** The analysed track is solid and the forecast is dashed; the latest position is a filled dot with a ring and forecast positions are open rings. Nothing depends on colour alone.
+- **Honest empty states.** The layer row says one of: reports with their newest age, "none in the agency's recent reports", an older reading, feed could not be reached, feed unreadable, or not configured. A down feed is never shown as "none".
+- **Framing.** Switching the cyclone layer on frames Taiwan and the whole track once, because a storm out in the Pacific is otherwise off screen; later refreshes leave the map where the reader put it. With both layers on, the cyclone key starts collapsed and the intensity bands sit two to a row so the key does not cover the island it describes.
+- **Popups.** They scroll inside the map when long, take keyboard focus, and are labelled regions. A list in the layer row opens the same popup as a click, so everything on the canvas can be reached without the canvas.
+- **Today.** A tracked cyclone leads the strip and the latest felt earthquake from the last seven days follows. Neither appears when its feed is down, and there is never a "none" line.
+
 ## Feedback
 
 `/feedback` is deliberately not a form that posts to a server: the site has no database and no account, and a mail service would need a key and would store people's words. It builds a `mailto:` link instead, so the message goes from the visitor's own address and can be answered there. The exact email (to, subject, body) is shown first, the screen size and browser line is optional, and a "copy the message" button covers people with only webmail. The page address comes from the footer link, and only a plain path on this site is accepted. The same page links the public GitHub issues page.
