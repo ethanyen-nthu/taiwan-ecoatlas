@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowUpRight, Leaf, Menu, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "./providers";
@@ -18,8 +18,33 @@ const navigation = [
 export function Header() {
   const path = usePathname(),
     { language, setLanguage, t } = useLanguage();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  // Ctrl+K (Cmd+K on a Mac) opens search from any page, as on most sites. On
+  // the search page itself it puts the cursor back in the box.
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== "k" ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        event.defaultPrevented
+      )
+        return;
+      event.preventDefault();
+      const box = document.querySelector<HTMLInputElement>(
+        "input[data-search-box]",
+      );
+      if (box) {
+        box.focus();
+        box.select();
+      } else router.push("/search");
+    };
+    document.addEventListener("keydown", shortcut);
+    return () => document.removeEventListener("keydown", shortcut);
+  }, [router]);
   useEffect(() => {
     if (!open) return;
     const escape = (event: KeyboardEvent) => {
@@ -75,6 +100,8 @@ export function Header() {
           className="search-link icon-button"
           href="/search"
           aria-label={t("Search the atlas", "搜尋平台")}
+          aria-keyshortcuts="Control+K Meta+K"
+          title={t("Search the atlas (Ctrl+K)", "搜尋平台（Ctrl+K）")}
           aria-current={path === "/search" ? "page" : undefined}
           onClick={() => setOpen(false)}
         >

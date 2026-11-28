@@ -105,6 +105,8 @@ export function SearchView() {
           <input
             id={inputId}
             ref={input}
+            data-search-box=""
+            aria-keyshortcuts="Control+K Meta+K"
             type="search"
             value={query}
             autoComplete="off"
@@ -118,6 +120,12 @@ export function SearchView() {
         </div>
         <p className="sr-status" role="status">
           {status}
+        </p>
+        <p className="sr-hint">
+          {t(
+            "Tip: press Ctrl+K (⌘K on a Mac) on any page to search.",
+            "小技巧：在任何頁面按 Ctrl+K（Mac 為 ⌘K）即可搜尋。",
+          )}
         </p>
       </div>
 

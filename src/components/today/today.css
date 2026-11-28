@@ -57,6 +57,10 @@
 .today-label {
   color: var(--muted);
 }
+.today-label svg {
+  margin-right: 4px;
+  vertical-align: -1px;
+}
 .today-fig {
   font-variant-numeric: tabular-nums;
 }

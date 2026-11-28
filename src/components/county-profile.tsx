@@ -8,6 +8,7 @@ import { islandPath, islandViewBox } from "@/lib/island-path";
 import { useLanguage } from "./providers";
 import { speciesShortName } from "@/content/species-info";
 import { Footer } from "./footer";
+import { PinCountyButton } from "./pinned/pin-county";
 import "./teach/teach.css";
 
 const num = (value: number) => value.toLocaleString("en");
@@ -66,6 +67,7 @@ export function CountyProfile({
           "本平台在這個縣市的資料並列。每個數字都附有限制：數量不是比率；資料集中沒有該縣市，是沒有資料，而不是零。",
         )}
       </p>
+      <PinCountyButton code={county.code} />
       <p className="county-sheet-link">
         <Link href={`/county/${county.code}/card`}>
           <FileText size={16} aria-hidden="true" />

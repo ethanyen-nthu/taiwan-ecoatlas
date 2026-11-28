@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import type { SnapshotCounty } from "@/lib/county-snapshot";
 import { summariseAir, summariseWeather, inCounty } from "@/lib/live-summary";
+import { PinCountyButton } from "./pinned/pin-county";
+import { usePinnedCounty } from "./pinned/use-pinned";
 import { useLanguage, useObservations } from "./providers";
 import { useFormatTime } from "./status";
 import "./county-snapshot.css";
@@ -26,7 +28,10 @@ export function CountySnapshot({ counties }: { counties: SnapshotCounty[] }) {
   const formatTime = useFormatTime();
   const aqi = useObservations("aqi");
   const weather = useObservations("weather");
-  const [code, setCode] = useState("63000");
+  const { code: pinned } = usePinnedCounty();
+  // A county picked here wins; otherwise the pinned one; otherwise Taipei.
+  const [picked, setCode] = useState<string | null>(null);
+  const code = picked ?? pinned ?? "63000";
   const county = counties.find((item) => item.code === code) ?? counties[0];
   const name = language === "en" ? county.en : county.zh;
   const sorted = useMemo(() => {
@@ -101,6 +106,7 @@ export function CountySnapshot({ counties }: { counties: SnapshotCounty[] }) {
           </select>
         </label>
       </div>
+      <PinCountyButton code={county.code} />
       <p className="cs-now" aria-live="polite">
         {t(`Showing ${name}`, `目前顯示：${name}`)}
         {" · "}

@@ -1,17 +1,19 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, MapPin } from "lucide-react";
 import { useLanguage } from "../providers";
 import { Status } from "../status";
 import {
   hazardFigures,
+  pinnedFigures,
   todayAsOf,
   todayFigures,
   type TodayFigure,
 } from "./figures";
 import { useToday } from "./use-today";
 import { useHazards, useNow } from "../hazards/use-hazards";
+import { usePinnedCounty } from "../pinned/use-pinned";
 import type { TodaySummary } from "@/lib/today";
 import "./today.css";
 
@@ -55,6 +57,7 @@ export function TodayBar() {
   const path = usePathname();
   const { language, t } = useLanguage();
   const { today, loading } = useToday();
+  const { code: pinnedCode } = usePinnedCounty();
   const hazards = useHazards();
   const now = useNow();
   const clock = useClock();
@@ -62,6 +65,7 @@ export function TodayBar() {
   const alerts = hazardFigures(hazards.data, language, now);
   const figures = [
     ...alerts.filter((figure) => figure.alert),
+    ...(today && pinnedCode ? pinnedFigures(today, pinnedCode, language) : []),
     ...(today ? todayFigures(today, language) : []),
     ...alerts.filter((figure) => !figure.alert),
   ];
@@ -91,7 +95,10 @@ export function TodayBar() {
           {figures.map((figure) => (
             <li key={figure.key}>
               <Link href={figure.href} title={figure.detail}>
-                <span className="today-label">{figure.label}</span>{" "}
+                <span className="today-label">
+                  {figure.pin && <MapPin size={13} aria-hidden="true" />}
+                  {figure.label}
+                </span>{" "}
                 <span className="today-fig">
                   <Value figure={figure} />
                   {figure.older && (
@@ -121,12 +128,14 @@ export function TodayHero({
 }) {
   const { language, t } = useLanguage();
   const { today, loading } = useToday();
+  const { code: pinnedCode } = usePinnedCounty();
   const hazards = useHazards();
   const now = useNow();
   const clock = useClock();
   const alerts = hazardFigures(hazards.data, language, now);
   const figures = [
     ...alerts.filter((figure) => figure.alert),
+    ...(today && pinnedCode ? pinnedFigures(today, pinnedCode, language) : []),
     ...(today ? todayFigures(today, language) : []),
     ...alerts.filter((figure) => !figure.alert),
   ];
@@ -148,7 +157,10 @@ export function TodayHero({
           {figures.map((figure) => (
             <li key={figure.key}>
               <Link href={figure.href}>
-                <span className="today-label">{figure.label}</span>{" "}
+                <span className="today-label">
+                  {figure.pin && <MapPin size={13} aria-hidden="true" />}
+                  {figure.label}
+                </span>{" "}
                 <span className="today-fig">
                   <Value figure={figure} />
                 </span>

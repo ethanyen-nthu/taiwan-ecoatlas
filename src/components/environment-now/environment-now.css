@@ -203,3 +203,13 @@
     padding: 8px;
   }
 }
+/* The pinned county leads the table; a soft ground and the pin mark it, and
+   the row header says so in words for screen readers. */
+tr[data-pinned] > th,
+tr[data-pinned] > td {
+  background: var(--soft);
+}
+tr[data-pinned] > th svg {
+  margin-right: 6px;
+  vertical-align: -2px;
+}

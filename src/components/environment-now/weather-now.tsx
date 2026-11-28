@@ -1,12 +1,14 @@
 "use client";
 import { useMemo, useState } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, MapPin } from "lucide-react";
 import {
   summariseWeather,
   weatherByCounty,
   type CountyWeather,
 } from "@/lib/live-summary";
+import { countyByZh } from "@/lib/county-list";
 import { sourceById } from "@/lib/sources";
+import { usePinnedCounty } from "../pinned/use-pinned";
 import { useLanguage, useObservations } from "../providers";
 import { Status, useFormatTime } from "../status";
 import { TimePage, TimePanel } from "../trends/time-page";
@@ -66,6 +68,7 @@ export function WeatherNow() {
     county ? `${station}, ${name(county)}` : station;
   const source = sourceById("weather");
   const [sort, setSort] = useState<Sort>({ key: "median", dir: -1 });
+  const { code: pinnedCode } = usePinnedCounty();
 
   const value = (row: CountyWeather, key: SortKey): number | string | null => {
     switch (key) {
@@ -103,6 +106,14 @@ export function WeatherNow() {
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [counties, sort, language],
+  );
+  // The visitor's pinned county leads the table whatever the sort is.
+  const isMine = (row: CountyWeather) =>
+    !!pinnedCode && countyByZh(row.county)?.code === pinnedCode;
+  const rows = useMemo(
+    () => [...sorted.filter(isMine), ...sorted.filter((row) => !isMine(row))],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sorted, pinnedCode],
   );
   const byTemperature = useMemo(
     () =>
@@ -398,9 +409,22 @@ export function WeatherNow() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((row) => (
-                    <tr key={row.county}>
-                      <th scope="row">{name(row.county)}</th>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.county}
+                      data-pinned={isMine(row) ? "" : undefined}
+                    >
+                      <th scope="row">
+                        {isMine(row) && (
+                          <>
+                            <MapPin size={14} aria-hidden="true" />
+                            <span className="tp-sr">
+                              {t("My county: ", "我的縣市：")}
+                            </span>
+                          </>
+                        )}
+                        {name(row.county)}
+                      </th>
                       <td>{row.stations}</td>
                       {cell(row.medianTemperature, 1)}
                       {cell(row.coolest?.value ?? null, 1)}

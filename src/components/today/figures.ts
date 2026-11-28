@@ -1,5 +1,6 @@
 import type { Language } from "@/lib/types";
 import type { TodaySummary } from "@/lib/today";
+import { countyByCode } from "@/lib/county-list";
 import { aqiColorForValue } from "@/lib/transform";
 import {
   ageWords,
@@ -16,7 +17,15 @@ import {
 } from "@/lib/hazards";
 
 export interface TodayFigure {
-  key: "air" | "temperature" | "rain" | "reservoirs" | "typhoon" | "quake";
+  key:
+    | "air"
+    | "temperature"
+    | "rain"
+    | "reservoirs"
+    | "typhoon"
+    | "quake"
+    | "county-air"
+    | "county-temperature";
   label: string;
   value: string;
   unit: string;
@@ -27,6 +36,62 @@ export interface TodayFigure {
   dot?: string;
   /** True when the feed's last good reading is older than it should be. */
   older: boolean;
+  /** Marks a figure for the visitor's own pinned county. */
+  pin?: boolean;
+}
+
+/** The pinned county's own air and temperature, from the middle of its
+ *  stations. A part with no station reporting is left out, never zero. */
+export function pinnedFigures(
+  today: TodaySummary,
+  code: string,
+  language: Language,
+): TodayFigure[] {
+  const county = countyByCode(code);
+  const found = today.counties?.[code];
+  if (!county || !found) return [];
+  const en = language === "en";
+  const name = en ? county.en : county.zh;
+  const figures: TodayFigure[] = [];
+  if (found.air) {
+    const band = en
+      ? (found.air.bandEnglish ?? found.air.band)
+      : found.air.band;
+    figures.push({
+      key: "county-air",
+      label: en ? `${name} air (AQI)` : `${name}空氣（AQI）`,
+      value: String(found.air.medianAqi),
+      unit: band ?? "",
+      detail: en
+        ? `${band}, the middle of ${found.air.reporting} stations in ${name}`
+        : `${band}，${name} ${found.air.reporting} 個測站的中間值`,
+      href: `/county/${code}`,
+      dot: aqiColorForValue(found.air.medianAqi),
+      older: today.air.status === "stale",
+      pin: true,
+    });
+  }
+  if (found.weather) {
+    const range =
+      found.weather.coolest !== null &&
+      found.weather.warmest !== null &&
+      found.weather.stations > 1
+        ? `${found.weather.coolest.toFixed(1)}–${found.weather.warmest.toFixed(1)} °C`
+        : null;
+    figures.push({
+      key: "county-temperature",
+      label: en ? `${name} temperature` : `${name}氣溫`,
+      value: found.weather.medianTemperature.toFixed(1),
+      unit: "°C",
+      detail: en
+        ? `Middle of ${found.weather.stations} stations in ${name}${range ? `, from ${range}` : ""}`
+        : `${name} ${found.weather.stations} 個測站的中間值${range ? `，範圍 ${range}` : ""}`,
+      href: `/county/${code}`,
+      older: today.weather.status === "stale",
+      pin: true,
+    });
+  }
+  return figures;
 }
 
 /** The figures that have a reading. A part with no reading is left out, so

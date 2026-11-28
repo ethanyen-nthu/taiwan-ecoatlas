@@ -1,5 +1,12 @@
 import type { DatasetResponse, Freshness } from "./types";
-import { summariseAir, summariseWeather, type Extreme } from "./live-summary";
+import { countyByZh } from "./county-list";
+import {
+  median,
+  summariseAir,
+  summariseWeather,
+  type Extreme,
+} from "./live-summary";
+import type { Observation } from "./types";
 import {
   reservoirLabel,
   summariseReservoirs,
@@ -39,11 +46,80 @@ export interface TodayReservoirs {
   lowest: { nameEn: string; nameZh: string; percent: number } | null;
   latest: string | null;
 }
+/** One county's current readings, from the middle of its own stations. A
+ *  part with no station reporting is null, never a zero. */
+export interface TodayCounty {
+  air: {
+    medianAqi: number;
+    band: string | null;
+    bandEnglish: string | null;
+    reporting: number;
+  } | null;
+  weather: {
+    medianTemperature: number;
+    stations: number;
+    coolest: number | null;
+    warmest: number | null;
+  } | null;
+}
 export interface TodaySummary {
   checkedAt: string;
   air: TodayAir;
   weather: TodayWeather;
   reservoirs: TodayReservoirs;
+  /** By official county code, for the county a visitor has pinned. Absent in
+   *  an older cached response. */
+  counties?: Record<string, TodayCounty>;
+}
+
+/** Group station readings by official county code. Records naming no known
+ *  county are left out of every county, as they are on the county pages. */
+function byCode(observations: Observation[]) {
+  const groups = new Map<string, Observation[]>();
+  for (const observation of observations) {
+    const county = countyByZh(observation.county);
+    if (!county) continue;
+    groups.set(county.code, [...(groups.get(county.code) ?? []), observation]);
+  }
+  return groups;
+}
+
+export function summariseCounties(
+  air: Observation[],
+  weather: Observation[],
+): Record<string, TodayCounty> {
+  const airBy = byCode(air);
+  const weatherBy = byCode(weather);
+  const result: Record<string, TodayCounty> = {};
+  for (const code of new Set([...airBy.keys(), ...weatherBy.keys()])) {
+    const a = summariseAir(airBy.get(code) ?? []);
+    const w = summariseWeather(weatherBy.get(code) ?? []);
+    const temperatures = (weatherBy.get(code) ?? [])
+      .map((o) => o.values.temperature)
+      .filter((value): value is number => typeof value === "number");
+    const middle = median(temperatures);
+    result[code] = {
+      air:
+        a.medianAqi === null
+          ? null
+          : {
+              medianAqi: a.medianAqi,
+              band: a.band,
+              bandEnglish: a.bandEnglish,
+              reporting: a.reporting,
+            },
+      weather:
+        middle === null
+          ? null
+          : {
+              medianTemperature: middle,
+              stations: temperatures.length,
+              coolest: w.coolest?.value ?? null,
+              warmest: w.warmest?.value ?? null,
+            },
+    };
+  }
+  return result;
 }
 
 export function summariseToday(
@@ -60,6 +136,7 @@ export function summariseToday(
   const r = summariseReservoirs(reservoirs.readings);
   return {
     checkedAt,
+    counties: summariseCounties(air.observations, weather.observations),
     air: {
       status: air.status,
       stations: a.stations,
