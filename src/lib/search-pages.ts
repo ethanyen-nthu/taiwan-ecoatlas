@@ -39,6 +39,13 @@ const extras: SearchRow[] = [
   ["page", "Overview", "總覽", "/", "home start 首頁 開始"],
   [
     "page",
+    "Taiwan in five minutes",
+    "五分鐘看臺灣",
+    "/tour",
+    "tour guided scroll story introduction overview start here 導覽 介紹 故事 入門",
+  ],
+  [
+    "page",
     "Explore map",
     "探索地圖",
     "/explore",

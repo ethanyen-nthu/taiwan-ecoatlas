@@ -33,6 +33,20 @@ const unitsPerDegree = 200;
 /** East-west degrees are shorter than north-south ones at this latitude. */
 const squeeze = Math.cos((24 * Math.PI) / 180);
 
+/** Where a longitude and latitude fall on the same drawing as the county
+ *  shapes, or null when the point is outside the frame (Pratas, Taiping). */
+export function projectPoint(
+  lon: number,
+  lat: number,
+): [number, number] | null {
+  const { west, east, south, north } = shapeFrame;
+  if (lon < west || lon > east || lat < south || lat > north) return null;
+  return [
+    Math.round((lon - west) * unitsPerDegree * squeeze),
+    Math.round((north - lat) * unitsPerDegree),
+  ];
+}
+
 export function countyShapes(outlines: OutlineFile): ShapeSet {
   const { west, east, south, north } = shapeFrame;
   const width = Math.round((east - west) * unitsPerDegree * squeeze);

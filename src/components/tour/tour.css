@@ -1,0 +1,401 @@
+/* "Taiwan in five minutes": one county map pinned beside text that scrolls.
+   The map's colours come from lib/tour.ts; this file only lays them out.
+   Each stop wears its subject's hue (the same --c-* tokens as the rest of the
+   site) on its left rule and its big number, and the map's panel takes that
+   subject's soft tint. */
+.tour {
+  background: var(--paper);
+}
+.tour-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 5fr) minmax(0, 6fr);
+  align-items: start;
+}
+
+/* The pinned map */
+.tour-map {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  margin: 0;
+  padding: 18px 26px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--c-environment-soft);
+  border-right: 1px solid var(--line);
+  transition: background-color 0.7s ease;
+}
+.tour-map[data-tone="forests"] {
+  background: var(--c-forests-soft);
+}
+.tour-map[data-tone="wildlife"] {
+  background: var(--c-wildlife-soft);
+}
+.tour-map[data-tone="culture"] {
+  background: var(--c-culture-soft);
+}
+.tour-map[data-tone="urban"] {
+  background: var(--c-urban-soft);
+}
+.tour-progress ol {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tour-progress a {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+}
+.tour-progress a span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #a8a196;
+  transition:
+    width 0.3s ease,
+    height 0.3s ease,
+    background-color 0.3s ease;
+}
+.tour-progress a:hover span {
+  background: var(--ink);
+}
+.tour-progress a[aria-current="step"] span {
+  width: 14px;
+  height: 14px;
+  background: var(--ink);
+}
+.tour-now {
+  min-height: 3em;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.tour-svg-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.tour-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tour-county {
+  stroke: #fffdf8;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition: fill 0.7s ease;
+}
+.tour-county[data-empty] {
+  stroke: #8a8478;
+  stroke-width: 2;
+}
+/* Matsu, Kinmen and Penghu are only a few pixels wide at island scale, so
+   each is drawn again with a thick stroke in its own colour. The blobs follow
+   the real shapes; they are not discs and carry no extra meaning. */
+.tour-fat-edge,
+.tour-fat {
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.tour-fat-edge {
+  fill: none;
+  stroke: #00000038;
+  stroke-width: 12;
+}
+.tour-fat-edge[data-empty] {
+  stroke: #8a8478;
+}
+.tour-fat {
+  stroke-width: 9;
+  transition:
+    fill 0.7s ease,
+    stroke 0.7s ease;
+}
+.tour-outline {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.tour-dots {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+.tour-dots[data-on="true"] {
+  opacity: 1;
+}
+.tour-dots-halo,
+.tour-dots-dot {
+  fill: none;
+  stroke-linecap: round;
+}
+.tour-dots-halo {
+  stroke: #fffdf8;
+  stroke-width: 11;
+}
+.tour-dots-dot {
+  stroke-width: 7.5;
+}
+.tour-island {
+  font-size: 19px;
+  fill: var(--muted);
+}
+.tour-place {
+  font-size: 26px;
+  font-weight: 700;
+  fill: var(--c-urban-ink);
+}
+.tour-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 2.6em;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.tour-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.tour-swatch {
+  flex: none;
+  width: 20px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid #00000024;
+}
+.tour-swatch[data-dot] {
+  width: 12px;
+  border-radius: 50%;
+}
+.tour-swatch[data-gap] {
+  background: repeating-linear-gradient(45deg, #f3efe8 0 3px, #a9a398 3px 5px);
+}
+
+/* The scrolling text */
+.tour-steps {
+  padding: 0 clamp(24px, 5vw, 76px);
+}
+.tour-step {
+  --tone: var(--c-environment);
+  --tone-ink: var(--c-environment-ink);
+  min-height: 92dvh;
+  display: flex;
+  align-items: center;
+  padding: 9dvh 0;
+}
+.tour-step[data-tone="forests"] {
+  --tone: var(--c-forests);
+  --tone-ink: var(--c-forests-ink);
+}
+.tour-step[data-tone="wildlife"] {
+  --tone: var(--c-wildlife);
+  --tone-ink: var(--c-wildlife-ink);
+}
+.tour-step[data-tone="culture"] {
+  --tone: var(--c-culture);
+  --tone-ink: var(--c-culture-ink);
+}
+.tour-step[data-tone="urban"] {
+  --tone: var(--c-urban);
+  --tone-ink: var(--c-urban-ink);
+}
+.tour-step-inner {
+  max-width: 36rem;
+  padding-left: clamp(16px, 2.4vw, 28px);
+  border-left: 4px solid var(--tone);
+}
+.tour-step-inner > * + * {
+  margin-top: 16px;
+}
+.tour-step h1 {
+  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.tour-step h2 {
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.tour-lead {
+  font-size: 1.15rem;
+  line-height: 1.65;
+}
+.tour-aside {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.tour-figure strong {
+  display: block;
+  font-size: clamp(3.2rem, 7vw, 5.2rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--tone-ink);
+  font-variant-numeric: tabular-nums;
+}
+.tour-figure span {
+  display: block;
+  margin-top: 8px;
+  max-width: 30rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.tour-limit {
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #3d4651;
+}
+.tour-limit strong {
+  color: var(--ink);
+}
+.tour-table summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--green);
+  cursor: pointer;
+}
+.tour-table summary::before {
+  content: "";
+  flex: none;
+  margin-right: 9px;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+  border-left: 7px solid currentColor;
+  transition: transform 0.2s ease;
+}
+.tour-table[open] > summary::before {
+  transform: rotate(90deg);
+}
+.tour-table table {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.tour-table th,
+.tour-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.tour-table thead th {
+  text-align: left;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.tour-table thead th:last-child,
+.tour-table td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tour-table tbody th {
+  text-align: left;
+  font-weight: 500;
+}
+.tour-pick {
+  display: grid;
+  gap: 8px;
+  max-width: 22rem;
+}
+.tour-pick label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.tour-pick select {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+}
+.tour-next {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.tour-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.tour) {
+    scroll-behavior: smooth;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-map,
+  .tour-county,
+  .tour-fat,
+  .tour-dots,
+  .tour-progress a span {
+    transition: none;
+  }
+}
+
+/* Phones and narrow windows: the map becomes a strip pinned to the top and the
+   text scrolls beneath it. */
+@media (max-width: 899px) {
+  .tour-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tour-map {
+    z-index: 5;
+    height: 46dvh;
+    padding: 6px 14px 10px;
+    gap: 4px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .tour-now {
+    min-height: 2.9em;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+  .tour-legend {
+    gap: 2px 12px;
+    min-height: 2.4em;
+    font-size: 0.75rem;
+  }
+  .tour-steps {
+    padding: 0 20px;
+  }
+  .tour-step {
+    min-height: 74dvh;
+    align-items: flex-start;
+    padding: 28px 0 36px;
+    scroll-margin-top: 46dvh;
+  }
+}

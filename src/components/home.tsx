@@ -58,6 +58,10 @@ export function Home({
               {t("Open the map", "開啟地圖")}
               <ArrowUpRight size={18} />
             </Link>
+            <Link className="button secondary" href="/tour">
+              {t("Take the five-minute tour", "五分鐘導覽")}
+              <ArrowRight size={18} />
+            </Link>
             <Link className="text-link" href="/about">
               {t("How the atlas works", "EcoAtlas 如何運作")}
               <ArrowRight size={16} />

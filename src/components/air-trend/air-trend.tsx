@@ -10,7 +10,8 @@ import {
 } from "@/content/air-history";
 import { localiseSources } from "@/content/history-types";
 import { airCounty } from "@/data/air-county";
-import type { MapScale, ShapeSet } from "@/lib/county-shapes";
+import { hazeScale } from "@/lib/air-map";
+import type { ShapeSet } from "@/lib/county-shapes";
 import { useLanguage } from "../providers";
 import { TimePage, TimePanel } from "../trends/time-page";
 import { YearMap, type MapMeasure } from "../trends/year-map";
@@ -19,12 +20,6 @@ import "./air-trend.css";
 
 const one = (value: number) => value.toFixed(1);
 
-/** Sand to plum: more fine particles, darker. Plum, not blue, so this map is
- *  never mistaken for the temperature map, where blue means cooler. */
-const hazeScale: MapScale = {
-  breaks: [6, 9, 12, 15, 18],
-  colors: ["#eee1cf", "#e0c3ad", "#c99a8c", "#a96d73", "#80466a", "#552d4f"],
-};
 const countyYears = Array.from(
   { length: airCounty.lastYear - airCounty.firstYear + 1 },
   (_, index) => airCounty.firstYear + index,
