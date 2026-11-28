@@ -73,6 +73,8 @@ export function Home({
           weatherStatus={weather.data?.status}
           airLoading={aqi.loading}
           weatherLoading={weather.loading}
+          airSaved={!!aqi.saved}
+          weatherSaved={!!weather.saved}
         />
         <div className="hero-map">
           <Explorer compact island />

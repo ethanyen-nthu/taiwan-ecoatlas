@@ -9,6 +9,9 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     reducedMotion: "reduce",
+    // A page's own requests are what the specs mock; the service worker has
+    // its own spec (offline.spec.ts) that switches it back on.
+    serviceWorkers: "block",
     ...devices["Desktop Chrome"],
     launchOptions: {
       args: [

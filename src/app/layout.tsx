@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
 import { siteUrl } from "@/lib/site";
 import { Header } from "@/components/header";
 import { TodayBar } from "@/components/today/today";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
+  icons: { apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "EcoAtlas", statusBarStyle: "default" },
 };
+export const viewport: Viewport = { themeColor: "#f8f5f1" };
 export default function RootLayout({
   children,
 }: {
@@ -29,6 +33,7 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth">
       <body>
         <Providers>
+          <RegisterServiceWorker />
           <a className="skip-link" href="#main">
             Skip to content / 跳至內容
           </a>

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { useLanguage } from "../providers";
 import { Status } from "../status";
+import { asOfLabel, oldestSaved, type SavedCopy } from "@/lib/offline-copy";
 import {
   hazardFigures,
   pinnedFigures,
@@ -46,6 +47,63 @@ function Value({ figure }: { figure: TodayFigure }) {
   );
 }
 
+/** Said whenever a figure on screen is the copy saved on this device because
+ *  the live feed could not be reached, so it is never mistaken for a live one. */
+function SavedNotice({ saved, now }: { saved: SavedCopy | null; now: number }) {
+  const { language, t } = useLanguage();
+  if (!saved) return null;
+  const when = asOfLabel(saved.savedAt, now, language);
+  return (
+    <p className="today-saved" role="status" data-saved-copy>
+      {when
+        ? t(
+            `The live feed could not be reached, so these are the readings saved on this device at ${when}. They are not live.`,
+            `無法連上即時資料，以下是本機於 ${when} 儲存的讀數，並非即時。`,
+          )
+        : t(
+            "The live feed could not be reached, so these are readings saved earlier on this device. They are not live.",
+            "無法連上即時資料，以下是本機先前儲存的讀數，並非即時。",
+          )}
+    </p>
+  );
+}
+
+/** One feed in the sources list: its status, and the time of its newest
+ *  reading (or, for the hazard feeds, when the agency was last asked). */
+function Source({
+  name,
+  status,
+  loading,
+  saved,
+  time,
+  timeLabel,
+  now,
+}: {
+  name: string;
+  status?: TodaySummary["air"]["status"];
+  loading: boolean;
+  saved: boolean;
+  time: string | null | undefined;
+  timeLabel: string;
+  now: number;
+}) {
+  const { language } = useLanguage();
+  const when = asOfLabel(time, now, language);
+  return (
+    <div>
+      <dt>{name}</dt>
+      <dd>
+        <Status status={status} loading={loading} saved={saved} />
+        {when && !loading && (
+          <small className="source-time">
+            {timeLabel} <time dateTime={time ?? undefined}>{when}</time>
+          </small>
+        )}
+      </dd>
+    </div>
+  );
+}
+
 /** Pages where the strip would be in the way: the home page has the larger
  *  panel beside its map, and the full-screen map needs the whole window. */
 const hiddenOn = (path: string | null) =>
@@ -56,7 +114,7 @@ const hiddenOn = (path: string | null) =>
 export function TodayBar() {
   const path = usePathname();
   const { language, t } = useLanguage();
-  const { today, loading } = useToday();
+  const { today, loading, saved } = useToday();
   const { code: pinnedCode } = usePinnedCounty();
   const hazards = useHazards();
   const now = useNow();
@@ -83,6 +141,12 @@ export function TodayBar() {
           <span>
             {" "}
             {t("as of", "更新於")} {asOf}
+          </span>
+        )}
+        {(saved || hazards.saved) && (
+          <span data-saved-copy>
+            {" · "}
+            {t("saved copy, not live", "離線副本，非即時")}
           </span>
         )}
       </p>
@@ -120,14 +184,18 @@ export function TodayHero({
   weatherStatus,
   airLoading,
   weatherLoading,
+  airSaved = false,
+  weatherSaved = false,
 }: {
   airStatus?: TodaySummary["air"]["status"];
   weatherStatus?: TodaySummary["weather"]["status"];
   airLoading: boolean;
   weatherLoading: boolean;
+  airSaved?: boolean;
+  weatherSaved?: boolean;
 }) {
   const { language, t } = useLanguage();
-  const { today, loading } = useToday();
+  const { today, loading, saved } = useToday();
   const { code: pinnedCode } = usePinnedCounty();
   const hazards = useHazards();
   const now = useNow();
@@ -152,6 +220,7 @@ export function TodayHero({
           </span>
         )}
       </div>
+      <SavedNotice saved={oldestSaved([saved, hazards.saved])} now={now} />
       {figures.length > 0 ? (
         <ul className="hero-today-grid">
           {figures.map((figure) => (
@@ -183,42 +252,51 @@ export function TodayHero({
         </p>
       )}
       <dl className="hero-sources">
-        <div>
-          <dt>{t("Air quality · MOENV", "空氣品質・環境部")}</dt>
-          <dd>
-            <Status status={airStatus} loading={airLoading} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t("Weather · CWA", "氣象・中央氣象署")}</dt>
-          <dd>
-            <Status status={weatherStatus} loading={weatherLoading} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t("Reservoirs · WRA", "水庫・水利署")}</dt>
-          <dd>
-            <Status status={today?.reservoirs.status} loading={loading} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t("Earthquakes · CWA", "地震・中央氣象署")}</dt>
-          <dd>
-            <Status
-              status={hazards.data?.earthquakes.status}
-              loading={hazards.loading}
-            />
-          </dd>
-        </div>
-        <div>
-          <dt>{t("Cyclones · CWA", "熱帶氣旋・中央氣象署")}</dt>
-          <dd>
-            <Status
-              status={hazards.data?.typhoon.status}
-              loading={hazards.loading}
-            />
-          </dd>
-        </div>
+        <Source
+          name={t("Air quality · MOENV", "空氣品質・環境部")}
+          status={airStatus}
+          loading={airLoading}
+          saved={airSaved}
+          time={today?.air.latest}
+          timeLabel={t("latest reading", "最新讀數")}
+          now={now}
+        />
+        <Source
+          name={t("Weather · CWA", "氣象・中央氣象署")}
+          status={weatherStatus}
+          loading={weatherLoading}
+          saved={weatherSaved}
+          time={today?.weather.latest}
+          timeLabel={t("latest reading", "最新讀數")}
+          now={now}
+        />
+        <Source
+          name={t("Reservoirs · WRA", "水庫・水利署")}
+          status={today?.reservoirs.status}
+          loading={loading}
+          saved={!!saved}
+          time={today?.reservoirs.latest}
+          timeLabel={t("latest reading", "最新讀數")}
+          now={now}
+        />
+        <Source
+          name={t("Earthquakes · CWA", "地震・中央氣象署")}
+          status={hazards.data?.earthquakes.status}
+          loading={hazards.loading}
+          saved={!!hazards.saved}
+          time={hazards.data?.earthquakes.retrievedAt}
+          timeLabel={t("checked", "查詢於")}
+          now={now}
+        />
+        <Source
+          name={t("Cyclones · CWA", "熱帶氣旋・中央氣象署")}
+          status={hazards.data?.typhoon.status}
+          loading={hazards.loading}
+          saved={!!hazards.saved}
+          time={hazards.data?.typhoon.retrievedAt}
+          timeLabel={t("checked", "查詢於")}
+          now={now}
+        />
       </dl>
       <Link className="text-link" href="/sources">
         {t("All sources and licences", "所有來源與授權")}

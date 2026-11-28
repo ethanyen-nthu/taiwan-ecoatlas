@@ -2,6 +2,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import useSWR from "swr";
 import useSWRImmutable from "swr/immutable";
+import { readFeed, savedDataset, type SavedCopy } from "@/lib/offline-copy";
+import { useRefreshWhenOnline } from "./pwa/use-refresh-when-online";
 import type {
   Counties,
   DatasetResponse,
@@ -74,7 +76,10 @@ export function useCounties() {
   };
 }
 export function useObservations(kind: ObservationKind) {
-  const { data, error, isValidating, mutate } = useSWR<DatasetResponse>(
+  const { data, error, isValidating, mutate } = useSWR<{
+    body: DatasetResponse;
+    saved: SavedCopy | null;
+  }>(
     `/api/observations/${kind}`,
     async (url: string) => {
       const response = await fetch(url, {
@@ -82,7 +87,7 @@ export function useObservations(kind: ObservationKind) {
         signal: AbortSignal.timeout(45000),
       });
       if (!response.ok) throw new Error("Data unavailable");
-      return response.json();
+      return readFeed<DatasetResponse>(response, savedDataset);
     },
     {
       refreshInterval: kind === "aqi" ? 1800_000 : 600_000,
@@ -90,15 +95,17 @@ export function useObservations(kind: ObservationKind) {
       shouldRetryOnError: false,
     },
   );
+  useRefreshWhenOnline(data?.saved, () => void mutate());
   return {
     data:
       error && data
         ? {
-            ...data,
+            ...data.body,
             status: "stale" as const,
             message: "application-request-failed",
           }
-        : data || null,
+        : data?.body || null,
+    saved: data?.saved ?? null,
     loading: isValidating,
     error: !!error,
     refresh: () => void mutate(),

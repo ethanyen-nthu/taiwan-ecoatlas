@@ -26,6 +26,22 @@ const config: NextConfig = {
   async headers() {
     return [
       {
+        // The worker file must never be served from a cache, or a fix to it
+        // would not reach anyone for days.
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },

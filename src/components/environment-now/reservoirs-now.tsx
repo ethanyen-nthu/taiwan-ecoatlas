@@ -26,7 +26,7 @@ const pct = (value: number) => `${value.toFixed(1)}%`;
 export function ReservoirsNow() {
   const { language, t } = useLanguage();
   const formatTime = useFormatTime();
-  const { data, loading, refresh } = useReservoirs();
+  const { data, loading, refresh, saved } = useReservoirs();
   const readings = useMemo(() => data?.readings ?? [], [data]);
   const summary = useMemo(() => summariseReservoirs(readings), [readings]);
   const has = readings.length > 0;
@@ -193,7 +193,11 @@ export function ReservoirsNow() {
       ]}
     >
       <div className="now-bar" data-now-bar>
-        <Status status={data?.status} loading={loading && !data} />
+        <Status
+          status={data?.status}
+          loading={loading && !data}
+          saved={!!saved}
+        />
         <p>
           {data?.lastObservationAt
             ? t(

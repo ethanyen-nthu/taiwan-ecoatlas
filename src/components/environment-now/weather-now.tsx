@@ -306,6 +306,7 @@ export function WeatherNow() {
         <Status
           status={weather.data?.status}
           loading={weather.loading && !weather.data}
+          saved={!!weather.saved}
         />
         <p>
           {overall.latest

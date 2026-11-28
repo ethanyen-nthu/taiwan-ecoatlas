@@ -1,4 +1,5 @@
 "use client";
+import { LazyBoundary, MissingPiece } from "./pwa/lazy-boundary";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -1078,34 +1079,36 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
           </div>
           <div className="atlas-map">
             {counties ? (
-              <MapCanvas
-                compact
-                externalInspector
-                counties={counties}
-                selectedCounty={filters.county}
-                countyTint={
-                  countyView ? countyTint : shadeOn ? choropleth?.tint : null
-                }
-                countyLabels={countyView ? countyCountLabels : undefined}
-                boundariesVisible
-                aqi={[]}
-                weather={[]}
-                aqiVisible={false}
-                weatherVisible={false}
-                focusedObservation={null}
-                aqiRetrievedAt={null}
-                weatherRetrievedAt={null}
-                language={language}
-                resetToken={0}
-                onSelect={(code) => change("county", code)}
-                overlays={overlays}
-                onViewport={onViewport}
-                focusedAtlas={focusedAtlas}
-                onAtlasSelect={(_, feature) => {
-                  setFly(false);
-                  setSelected(feature);
-                }}
-              />
+              <LazyBoundary fallback={<MissingPiece kind="map" />}>
+                <MapCanvas
+                  compact
+                  externalInspector
+                  counties={counties}
+                  selectedCounty={filters.county}
+                  countyTint={
+                    countyView ? countyTint : shadeOn ? choropleth?.tint : null
+                  }
+                  countyLabels={countyView ? countyCountLabels : undefined}
+                  boundariesVisible
+                  aqi={[]}
+                  weather={[]}
+                  aqiVisible={false}
+                  weatherVisible={false}
+                  focusedObservation={null}
+                  aqiRetrievedAt={null}
+                  weatherRetrievedAt={null}
+                  language={language}
+                  resetToken={0}
+                  onSelect={(code) => change("county", code)}
+                  overlays={overlays}
+                  onViewport={onViewport}
+                  focusedAtlas={focusedAtlas}
+                  onAtlasSelect={(_, feature) => {
+                    setFly(false);
+                    setSelected(feature);
+                  }}
+                />
+              </LazyBoundary>
             ) : (
               <div className="map-loading">
                 {boundaryError ? (
@@ -1833,11 +1836,13 @@ export function SectionWorkbench({ section }: { section: AtlasSection }) {
         className="atlas-tab-panel"
       >
         {tab === "charts" && result.data && (
-          <AtlasCharts
-            result={result.data}
-            metric={metric}
-            countyNames={countyNames}
-          />
+          <LazyBoundary fallback={<MissingPiece kind="block" />}>
+            <AtlasCharts
+              result={result.data}
+              metric={metric}
+              countyNames={countyNames}
+            />
+          </LazyBoundary>
         )}
         {tab === "charts" && !result.data && (
           <p>

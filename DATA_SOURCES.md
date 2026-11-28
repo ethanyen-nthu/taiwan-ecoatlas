@@ -222,3 +222,7 @@ current survival, planting dates or canopy change. See the city's
 Default style: https://tiles.openfreemap.org/styles/liberty
 
 OpenFreeMap uses OpenMapTiles/OpenStreetMap-derived geography. MapLibre renders the provider's attribution and an explicit OpenFreeMap/© OpenStreetMap/NLSC attribution. See https://openfreemap.org/quick_start/ and https://www.openstreetmap.org/copyright. This basemap supplies context; official county selection uses dataset 7442 alone.
+
+## Saved copies on the visitor's device
+
+The service worker (`public/sw.js`) may keep the last copy of the live feeds the atlas already serves (`/api/today`, `/api/hazards`, `/api/reservoirs`, `/api/observations/aqi` and `/api/observations/weather`) in the visitor's own browser, so a page opened before can show them with no connection. This adds no source and changes no figure: a saved copy is the same public data, shown with its status set to "stale" and labelled "Saved copy" with the time it was saved, and it is never used while a live answer is available. A response in which no part holds a reading is never saved. The copy lives only on that device and is replaced by the next good answer.

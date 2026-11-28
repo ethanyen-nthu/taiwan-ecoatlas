@@ -46,6 +46,7 @@ import {
   HazardRowStatus,
 } from "../hazards/hazard-status";
 import { useHazards } from "../hazards/use-hazards";
+import { LazyBoundary, MissingPiece } from "../pwa/lazy-boundary";
 import type { HazardTarget } from "./hazard-layers";
 
 const hazardLayerIds = ["earthquakes", "typhoon"] as const;
@@ -212,35 +213,37 @@ export default function Explorer({
     >
       <div className="explorer-map">
         {counties ? (
-          <MapCanvas
-            compact={compact}
-            island={island}
-            counties={counties}
-            selectedCounty={selected}
-            boundariesVisible={visible.includes("counties")}
-            aqi={filteredAqi}
-            weather={filteredWeather}
-            aqiVisible={visible.includes("aqi")}
-            weatherVisible={visible.includes("weather")}
-            hazards={hazards.data}
-            quakesVisible={visible.includes("earthquakes")}
-            typhoonVisible={visible.includes("typhoon")}
-            focusedHazard={hazardFocus}
-            language={language}
-            resetToken={resetToken}
-            onSelect={(code) => {
-              setFocus(null);
-              setAtlasFocus(null);
-              setSelected(code);
-            }}
-            focusedObservation={focus}
-            overlays={atlas.overlays}
-            onViewport={setViewport}
-            focusedAtlas={atlasFocus}
-            onAtlasSelect={() => setFocus(null)}
-            aqiRetrievedAt={aqi.data?.retrievedAt || null}
-            weatherRetrievedAt={weather.data?.retrievedAt || null}
-          />
+          <LazyBoundary fallback={<MissingPiece kind="map" />}>
+            <MapCanvas
+              compact={compact}
+              island={island}
+              counties={counties}
+              selectedCounty={selected}
+              boundariesVisible={visible.includes("counties")}
+              aqi={filteredAqi}
+              weather={filteredWeather}
+              aqiVisible={visible.includes("aqi")}
+              weatherVisible={visible.includes("weather")}
+              hazards={hazards.data}
+              quakesVisible={visible.includes("earthquakes")}
+              typhoonVisible={visible.includes("typhoon")}
+              focusedHazard={hazardFocus}
+              language={language}
+              resetToken={resetToken}
+              onSelect={(code) => {
+                setFocus(null);
+                setAtlasFocus(null);
+                setSelected(code);
+              }}
+              focusedObservation={focus}
+              overlays={atlas.overlays}
+              onViewport={setViewport}
+              focusedAtlas={atlasFocus}
+              onAtlasSelect={() => setFocus(null)}
+              aqiRetrievedAt={aqi.data?.retrievedAt || null}
+              weatherRetrievedAt={weather.data?.retrievedAt || null}
+            />
+          </LazyBoundary>
         ) : (
           <div className="map-loading">
             {boundaryError ? (

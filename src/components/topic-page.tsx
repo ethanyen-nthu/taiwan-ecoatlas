@@ -1,4 +1,5 @@
 "use client";
+import { LazyBoundary, MissingPiece } from "./pwa/lazy-boundary";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -179,7 +180,9 @@ export function TopicPage({ topic }: { topic: Topic }) {
                   "依來源縣市欄位統計已載入空品報告數，呈現資料分布，不是污染程度比較。",
                 )}
               </p>
-              <ObservationChart observations={aqi.data.observations} />
+              <LazyBoundary fallback={<MissingPiece kind="block" />}>
+                <ObservationChart observations={aqi.data.observations} />
+              </LazyBoundary>
             </section>
           )}
         </section>
