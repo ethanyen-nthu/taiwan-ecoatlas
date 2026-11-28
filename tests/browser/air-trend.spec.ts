@@ -19,7 +19,7 @@ test("the chart reads year by year with the keyboard, a visible gap and exact nu
   page,
 }) => {
   await page.goto("/environment/air-over-time");
-  const slider = page.getByRole("slider");
+  const slider = page.locator(".air-scrub");
   await expect(slider).toHaveCount(1);
   await expect(page.locator(".air-gap-label")).toContainText("2020–21");
   await slider.focus();
@@ -39,8 +39,11 @@ test("the chart reads year by year with the keyboard, a visible gap and exact nu
   const box = await slider.boundingBox();
   await page.mouse.move(box!.x + 60, box!.y + box!.height / 2);
   await expect(page.locator(".air-tip")).toContainText("2013");
-  await page.locator(".tp-table summary").click();
-  const rows = page.locator(".tp-table tbody tr");
+  const national = page.getByRole("region", {
+    name: "Annual average PM2.5 in Taiwan",
+  });
+  await national.locator("summary").click();
+  const rows = national.locator(".tp-table tbody tr");
   await expect(rows).toHaveCount(13);
   await expect(rows.filter({ hasText: "2020" })).toContainText("Not plotted");
   await expect(rows.filter({ hasText: "2025" })).toContainText("12.8");
@@ -55,7 +58,7 @@ test("the tooltip stays below the legend for every year, also on a phone", async
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/environment/air-over-time");
-  const slider = page.getByRole("slider");
+  const slider = page.locator(".air-scrub");
   await slider.focus();
   const legend = await page.locator(".air-legend").boundingBox();
   for (let i = 0; i < 11; i += 1) {
@@ -90,7 +93,9 @@ test("the air record passes automated WCAG checks and does not overflow", async 
     await page.setViewportSize(size);
     await page.goto("/environment/air-over-time");
     await expect(page.locator("main h1")).toBeVisible();
-    await page.locator(".tp-table summary").click();
+    for (const summary of await page.locator(".tp-table summary").all()) {
+      await summary.click();
+    }
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
       .analyze();

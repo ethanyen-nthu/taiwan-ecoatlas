@@ -34,6 +34,13 @@ The agency registry is `src/lib/sources.ts`; imported editions also have bilingu
 - Not live and not county-level: the page states this. Annual ministry averages (12.8 in 2025) differ from IQAir's (13.3) because the methods differ; the page tells students not to mix them on one axis.
 - To extend it: add a point to `nationalPm25` with its `sources`, update `yearSpan` and `gapYears`, and run `npm test`. The MOENV datasets that would allow a proper archive (AQI overview `89029`, pollutant concentrations `89030`) were not reachable from the build environment; persisting hourly snapshots from `AQX_P_432` going forward is the other route.
 
+## County PM2.5 annual averages (`/environment/air-over-time`, county map)
+
+- **Source.** Ministry of Environment, air pollutant concentrations by county, open-data table `stat_p_116` (data.gov.tw dataset 89030, `https://data.gov.tw/dataset/89030`). Licence as listed on data.gov.tw: Government Open Data License, version 1.0. Needs the ministry's open-data API key (`MOENV_API_KEY`) to fetch; the site does not.
+- **Fetched by hand, never at run time.** `MOENV_API_KEY=... node scripts/build-air-county.mjs` (or `--from saved-rows.json`) reduces the rows to one annual PM2.5 average per county and year and writes `src/data/air-county.json`; `src/data/air-county.ts` types it. Fetched 27 November 2026.
+- **Coverage.** The table keeps the latest five years only, so the file holds 2021–2025 for 22 counties. A county-year with no figure stays null and is drawn hatched; nothing is filled in.
+- **Method.** The ministry's average over each county's general automatic monitoring stations for the whole year, in µg/m³. This is not the 31-station manual-method national series in `src/content/air-history.ts`; the page keeps the two apart and tells readers not to join them. The national 2021–2025 values in this table (14.4, 12.4, 13.7, 12.8, 12.8) are the "All counties together" figure beside the map, and are never plotted against the national series.
+
 ## Other "compared with before" pages
 
 All of these live in `src/content/` and `src/components/trends/`. Hand-copied figures carry source ids that resolve to a link in the module's source list (`tests/history-data.test.ts` fails if a source is not a unique https link, a figure cites an unknown source, or the arithmetic no longer matches the published percentages). Figures counted from the atlas's own files are stored in `src/content/year-summaries.json`, produced by `node scripts/build-year-summaries.mjs`; `tests/year-summaries.test.ts` recounts them from the data files and fails on any drift.

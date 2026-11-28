@@ -20,6 +20,19 @@ export interface AirSource {
 
 export const airSources: AirSource[] = [
   {
+    id: "moenv-county",
+    title: {
+      en: "Air pollutant concentrations by county (open-data table)",
+      zh: "空氣污染物濃度測值（縣市別，開放資料）",
+    },
+    publisher: "Ministry of Environment, via data.gov.tw (dataset 89030)",
+    url: "https://data.gov.tw/dataset/89030",
+    used: {
+      en: "County PM2.5 annual averages from automatic stations, 2021 to 2025, for the county map only.",
+      zh: "各縣市自動測站 PM2.5 年平均，2021 至 2025 年，僅用於縣市地圖。",
+    },
+  },
+  {
     id: "review",
     title: {
       en: "2025 national air-pollution review (reported by CNA)",

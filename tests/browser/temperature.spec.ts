@@ -60,7 +60,7 @@ test("the chart is readable from the keyboard, year by year", async ({
   page,
 }) => {
   await page.goto(url);
-  const slider = page.getByRole("slider").first();
+  const slider = page.locator(".lc-scrub").first();
   await slider.focus();
   await expect(page.locator(".lc-tip").first()).toContainText("1950");
   await slider.press("ArrowRight");
@@ -91,8 +91,14 @@ test("a county can be added to the chart and its numbers join the table", async 
   );
   await select.selectOption({ label: "Taipei City" });
   await expect(page.locator(".lc-legend").first()).toContainText("Taipei City");
-  const table = page.locator(".tp-panel").first().locator("table");
-  await page.locator(".tp-panel").first().locator("summary").click();
+  // The year-by-year map panel comes first on the page; the chart is the one
+  // with the scrubber.
+  const chartPanel = page
+    .locator(".tp-panel")
+    .filter({ has: page.locator(".lc-scrub") })
+    .first();
+  const table = chartPanel.locator("table");
+  await chartPanel.locator("summary").click();
   await expect(table.locator("thead th")).toHaveCount(5);
   await expect(table.locator("thead th").last()).toContainText("Taipei City");
   // Every year has a value for a county the model covers.
@@ -126,13 +132,15 @@ test("the numbers download as CSV with gaps left empty", async ({ page }) => {
   const buttons = page
     .locator("[data-cite]")
     .getByRole("button", { name: /Download CSV/ });
-  await expect(buttons).toHaveCount(3);
+  // Four tables: the map's decade table, then the chart's yearly table, the
+  // seasons and the counties.
+  await expect(buttons).toHaveCount(4);
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    buttons.first().click(),
+    buttons.nth(1).click(),
   ]);
   expect(download.suggestedFilename()).toBe(
-    "taiwan-ecoatlas-environment-temperature-over-time-1.csv",
+    "taiwan-ecoatlas-environment-temperature-over-time-2.csv",
   );
   const text = await readFile((await download.path())!, "utf8");
   const lines = text.replace("﻿", "").split("\r\n");

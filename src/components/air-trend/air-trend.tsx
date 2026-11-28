@@ -9,14 +9,52 @@ import {
   yearSpan,
 } from "@/content/air-history";
 import { localiseSources } from "@/content/history-types";
+import { airCounty } from "@/data/air-county";
+import type { MapScale, ShapeSet } from "@/lib/county-shapes";
 import { useLanguage } from "../providers";
 import { TimePage, TimePanel } from "../trends/time-page";
+import { YearMap, type MapMeasure } from "../trends/year-map";
 import { AirChart } from "./air-chart";
 import "./air-trend.css";
 
 const one = (value: number) => value.toFixed(1);
 
-export function AirTrend() {
+/** Sand to plum: more fine particles, darker. Plum, not blue, so this map is
+ *  never mistaken for the temperature map, where blue means cooler. */
+const hazeScale: MapScale = {
+  breaks: [6, 9, 12, 15, 18],
+  colors: ["#eee1cf", "#e0c3ad", "#c99a8c", "#a96d73", "#80466a", "#552d4f"],
+};
+const countyYears = Array.from(
+  { length: airCounty.lastYear - airCounty.firstYear + 1 },
+  (_, index) => airCounty.firstYear + index,
+);
+const countyNames = Object.fromEntries(
+  airCounty.counties.map((county) => [
+    county.code,
+    { en: county.en, zh: county.zh },
+  ]),
+);
+const countyValues = Object.fromEntries(
+  airCounty.counties.map((county) => [
+    county.code,
+    countyYears.map((year) => county.values[String(year)] ?? null),
+  ]),
+);
+const countyRank = (year: number) =>
+  airCounty.counties
+    .map((county) => ({ county, value: county.values[String(year)] }))
+    .filter(
+      (
+        row,
+      ): row is {
+        county: (typeof airCounty.counties)[number];
+        value: number;
+      } => row.value !== null,
+    )
+    .sort((a, b) => b.value - a.value);
+
+export function AirTrend({ shapes }: { shapes: ShapeSet }) {
   const { language, t } = useLanguage();
   const first = nationalPm25[0];
   const last = nationalPm25[nationalPm25.length - 1];
@@ -25,6 +63,46 @@ export function AirTrend() {
   const southLast = centralSouthPm25[2];
   const southDrop = percentChange(southFirst.value, southLast.value);
   const minus = (value: number) => `−${Math.abs(value)}%`;
+
+  const lastCounty = countyYears[countyYears.length - 1];
+  const ranked = countyRank(lastCounty);
+  const highest = ranked[0];
+  const lowest = ranked[ranked.length - 1];
+  const countyName = (county: { en: string; zh: string }) =>
+    language === "en" ? county.en : county.zh;
+  const mapMeasure: MapMeasure = {
+    id: "pm25",
+    label: "PM2.5",
+    years: countyYears,
+    values: countyValues,
+    scale: hazeScale,
+    format: (value) => `${one(value)} µg/m³`,
+    tickFormat: (value) => String(value),
+    deltaFormat: (value) =>
+      `${value < 0 ? "−" : value > 0 ? "+" : ""}${Math.abs(value).toFixed(1)} µg/m³`,
+    legendTitle: t(
+      "Yearly average PM2.5, µg/m³ (darker is more)",
+      "PM2.5 年平均濃度，µg/m³（越深越高）",
+    ),
+    summary: {
+      label: t("All counties together", "全國合計"),
+      values: countyYears.map(
+        (year) => airCounty.national[String(year)] ?? null,
+      ),
+    },
+    periods: countyYears.map((year) => ({
+      id: String(year),
+      label: String(year),
+      values: Object.fromEntries(
+        airCounty.counties.map((county) => [
+          county.code,
+          county.values[String(year)] ?? null,
+        ]),
+      ),
+    })),
+    defaultFrom: String(countyYears[0]),
+    defaultTo: String(lastCounty),
+  };
 
   const notes: { title: string; body: string }[] = [
     {
@@ -149,8 +227,8 @@ export function AirTrend() {
         },
       ]}
       sourcesIntro={t(
-        "Every number on this page was copied by hand from the documents below; the atlas has no live archive of past air quality. Please check against the originals before citing. Two figures that differ between sources are never averaged: where releases disagreed, the year is left out.",
-        "本頁每個數字都是從下列文件人工抄錄；本平台沒有過去空氣品質的即時存檔。引用前請對照原文。不同來源之間有出入的數字不會取平均：發布內容不一致的年份就不列入。",
+        "Every number in the national chart was copied by hand from the documents below; the atlas has no live archive of past air quality. The county map uses the ministry’s open-data table, saved on the date shown in the last source. Please check against the originals before citing. Two figures that differ between sources are never averaged: where releases disagreed, the year is left out.",
+        "全國圖表的每個數字都是從下列文件人工抄錄；本平台沒有過去空氣品質的即時存檔。縣市地圖使用環境部的開放資料表，存檔日期見最後一項來源。引用前請對照原文。不同來源之間有出入的數字不會取平均：發布內容不一致的年份就不列入。",
       )}
       sources={localiseSources(airSources, language)}
     >
@@ -187,6 +265,43 @@ export function AirTrend() {
         }}
       >
         <AirChart />
+      </TimePanel>
+
+      <TimePanel
+        id="air-county-title"
+        title={t(
+          "Where the air is cleaner, county by county",
+          "各縣市的空氣，哪裡比較乾淨",
+        )}
+        sub={t(
+          `µg/m³ · county averages, automatic stations, ${countyYears[0]}–${lastCounty}`,
+          `µg/m³ · 各縣市自動測站平均，${countyYears[0]}–${lastCounty} 年`,
+        )}
+        caption={t(
+          `In ${lastCounty} the highest county average was ${countyName(highest.county)} (${one(highest.value)}) and the lowest was ${countyName(lowest.county)} (${one(lowest.value)}). The ministry’s open-data table holds only the latest five years, so this map cannot go back further. It averages the ministry’s automatic stations in each county, a different method from the 31-station standard method in the chart above, so the two should not be joined into one line.`,
+          `${lastCounty} 年縣市平均最高的是${countyName(highest.county)}（${one(highest.value)}），最低的是${countyName(lowest.county)}（${one(lowest.value)}）。環境部的開放資料表只保留最近五年，所以這張地圖無法再往前。它平均的是各縣市的自動測站，方法與上圖的 31 站標準方法不同，兩者不宜接成同一條線。`,
+        )}
+        table={{
+          caption: t(
+            "PM2.5 annual average by county, µg/m³, automatic stations",
+            "各縣市 PM2.5 年平均，µg/m³，自動測站",
+          ),
+          head: [t("County", "縣市"), ...countyYears.map(String)],
+          rows: airCounty.counties.map((county) => [
+            countyName(county),
+            ...countyYears.map((year) => {
+              const value = county.values[String(year)];
+              return value === null || value === undefined ? "—" : one(value);
+            }),
+          ]),
+        }}
+      >
+        <YearMap
+          shapes={shapes}
+          names={countyNames}
+          measures={[mapMeasure]}
+          title={t("yearly average PM2.5", "PM2.5 年平均濃度")}
+        />
       </TimePanel>
     </TimePage>
   );

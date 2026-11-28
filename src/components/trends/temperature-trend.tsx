@@ -3,6 +3,8 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { temperatureSources } from "@/content/temperature-sources";
 import { localiseSources } from "@/content/history-types";
 import { temperatureHistory as data } from "@/data/temperature";
+import type { ShapeSet } from "@/lib/county-shapes";
+import { temperatureMapData, warmingScales } from "@/lib/temperature-map";
 import {
   anomalies,
   baselinePeriod,
@@ -19,10 +21,12 @@ import {
   trailingMean,
   trendPerDecade,
   warmestYears,
+  type Season,
   type YearValue,
 } from "@/lib/temperature-history";
 import { useLanguage } from "../providers";
 import { LineChart } from "./line-chart";
+import { YearMap, type MapMeasure } from "./year-map";
 import { TimePage, TimePanel } from "./time-page";
 import "./temperature-trend.css";
 
@@ -69,14 +73,76 @@ const years = Array.from(
   { length: data.lastYear - data.firstYear + 1 },
   (_, index) => data.firstYear + index,
 );
+const mapSeasons = {
+  annual: temperatureMapData(data, "annual"),
+  summer: temperatureMapData(data, "summer"),
+  winter: temperatureMapData(data, "winter"),
+};
+const countyNames = Object.fromEntries(
+  data.counties.map((county) => [
+    county.code,
+    { en: county.en, zh: county.zh },
+  ]),
+);
+const decadeLabel = (from: number, to: number) =>
+  from === to ? String(from) : `${from}–${String(to).slice(-2)}`;
 const at = (points: YearValue[], year: number) =>
   points.find((point) => point.year === year)?.value ?? null;
 
-export function TemperatureTrend() {
+export function TemperatureTrend({ shapes }: { shapes: ShapeSet }) {
   const { language, t } = useLanguage();
   const [pickedCode, setPickedCode] = useState("");
   const name = (county: { zh: string; en: string }) =>
     language === "en" ? county.en : county.zh;
+
+  const seasonMeasure = (season: Season, label: string): MapMeasure => {
+    const m = mapSeasons[season];
+    const base = `${m.base.from}–${m.base.to}`;
+    return {
+      id: season,
+      label,
+      years: m.years,
+      values: m.anomaly,
+      scale: warmingScales[season],
+      format: (value) => `${degrees(value, true)} °C`,
+      tickFormat: (value) => degrees(value, true),
+      deltaFormat: (value) => `${degrees(value, true)} °C`,
+      legendTitle: t(
+        `Change from each county’s own ${base} average, °C`,
+        `相對各縣市自己 ${base} 年平均的變化，°C`,
+      ),
+      summary: {
+        label: t(
+          `Average of ${m.counted} counties`,
+          `${m.counted} 個縣市的平均`,
+        ),
+        values: m.island,
+      },
+      detail: (code, index) => {
+        const value = m.actual[code]?.[index];
+        return value === null || value === undefined
+          ? null
+          : t(
+              `Modelled temperature that year: ${one(value)} °C`,
+              `該年模型氣溫：${one(value)} °C`,
+            );
+      },
+      zeroLine: true,
+      periods: m.decades.map((decade) => ({
+        id: decade.id,
+        label: decadeLabel(decade.from, decade.to),
+        values: decade.values,
+      })),
+      defaultFrom: m.decades[0].id,
+      defaultTo: m.decades[m.decades.length - 1].id,
+    };
+  };
+  const mapMeasures = [
+    seasonMeasure("annual", t("Whole year", "全年")),
+    seasonMeasure("summer", t("Summer", "夏季")),
+    seasonMeasure("winter", t("Winter", "冬季")),
+  ];
+  const decades = mapSeasons.annual.decades;
 
   const picked = withRecord.find((county) => county.code === pickedCode);
   const pickedSeries = useMemo(
@@ -283,6 +349,46 @@ export function TemperatureTrend() {
       )}
       sources={localiseSources(temperatureSources, language)}
     >
+      <TimePanel
+        id="tt-map"
+        title={t("Watch the counties warm up", "看各縣市如何變暖")}
+        sub={t(
+          "Each colour compares a year with that county’s own 1950–1979 average · modelled",
+          "每個顏色是該年與該縣市自己 1950–1979 年平均的差距 · 模型資料",
+        )}
+        caption={t(
+          `A county is only ever compared with itself, so a cold mountain county and a warm coastal one start from the same neutral shade. ${leftOut.length ? `${leftOutText} have no model values and are hatched.` : ""} Single years jump around with the weather; “Then and now” averages whole decades to smooth that out, and the last one is only ${decadeLabel(decades[decades.length - 1].from, decades[decades.length - 1].to)}.`,
+          `每個縣市只和自己比較，所以高山縣市與溫暖的沿海縣市都從同一個中性色開始。${leftOut.length ? `${leftOutText}沒有模型數值，以斜線標示。` : ""}單一年份會隨天氣起伏；「今昔對照」改看整個十年的平均來減少這種起伏，而最後一個十年只有 ${decadeLabel(decades[decades.length - 1].from, decades[decades.length - 1].to)} 年。`,
+        )}
+        table={{
+          caption: t(
+            "Change from each county’s own 1950–1979 average, by decade, whole year, °C",
+            "各縣市相對自己 1950–1979 年平均的變化，依十年，全年，°C",
+          ),
+          head: [
+            t("County", "縣市"),
+            ...decades.map((decade) => decadeLabel(decade.from, decade.to)),
+          ],
+          rows: data.counties.map((county) => [
+            name(county),
+            ...decades.map((decade) => {
+              const value = decade.values[county.code];
+              return value === null ? "—" : degrees(value, true);
+            }),
+          ]),
+        }}
+      >
+        <YearMap
+          shapes={shapes}
+          names={countyNames}
+          measures={mapMeasures}
+          title={t(
+            "temperature change since 1950–1979",
+            "相對 1950–1979 年的氣溫變化",
+          )}
+        />
+      </TimePanel>
+
       <TimePanel
         id="tt-year"
         title={t("Yearly average temperature", "年平均氣溫")}
