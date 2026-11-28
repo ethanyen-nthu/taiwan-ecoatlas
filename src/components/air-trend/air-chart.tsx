@@ -140,8 +140,8 @@ export function AirChart() {
   const lastNational = nationalPm25[nationalPm25.length - 1];
 
   return (
-    <div className="air-chart" ref={frame}>
-      <ul className="air-legend" aria-hidden="true">
+    <div className="air-chart" ref={frame} data-chart="">
+      <ul className="air-legend" aria-hidden="true" data-chart-legend="">
         <li>
           <i className="air-key air-key-national" />
           {t("National average", "全國平均")}

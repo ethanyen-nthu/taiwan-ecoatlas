@@ -199,8 +199,8 @@ export function LineChart({
   const tipTop = activeValues.length ? y(Math.max(...activeValues)) : 0;
 
   return (
-    <div className="lc" ref={frame}>
-      <ul className="lc-legend" aria-hidden="true">
+    <div className="lc" ref={frame} data-chart="">
+      <ul className="lc-legend" aria-hidden="true" data-chart-legend="">
         {series.map((item) => (
           <li key={item.key}>
             <i

@@ -560,8 +560,14 @@
   color: var(--muted);
   font-size: 0.8125rem;
 }
+.tp-cite-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 @media print {
   .tp-cite-actions,
+  .tp-cite-check,
   .tp-cite-files {
     display: none !important;
   }
