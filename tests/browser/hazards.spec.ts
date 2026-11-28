@@ -330,6 +330,11 @@ test("no cyclone is reported as none only when the feed answered; a feed that is
   await page.getByRole("switch", { name: "Tropical cyclone track" }).click();
   await expect(page.locator("[data-hazard-list=typhoon]")).toHaveCount(0);
   await expect(page.locator(".typhoon-label")).toHaveCount(0);
+  // Switched on with nothing tracked, there is no key for a storm that is not there.
+  await expect(
+    page.getByRole("switch", { name: "Tropical cyclone track" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator("[data-legend=typhoon]")).toHaveCount(0);
 
   // An old track the feed still holds is named, never drawn as a storm.
   await page.unroute("**/api/hazards");

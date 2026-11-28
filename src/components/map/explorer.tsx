@@ -799,9 +799,17 @@ export default function Explorer({
             </div>
           )}
           <AtlasMapLegend overlays={atlas.overlays} />
+          {/* A key only for what is drawn: with no report or no tracked
+              storm there is nothing on the map for it to explain. */}
           <HazardLegend
-            quakes={visible.includes("earthquakes")}
-            typhoon={visible.includes("typhoon")}
+            quakes={
+              visible.includes("earthquakes") &&
+              (hazards.data?.earthquakes.events.length ?? 0) > 0
+            }
+            typhoon={
+              visible.includes("typhoon") &&
+              (hazards.data?.typhoon.cyclones.length ?? 0) > 0
+            }
           />
           {visible.includes("aqi") && (
             <details>
